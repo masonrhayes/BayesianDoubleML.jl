@@ -21,15 +21,15 @@ include("utils.jl")
     problem = BDMLProblem(Y, D, X; model_type = :basic)
     method = MCMCNUTS()  # Method only takes algorithm params
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     @test result isa BDMLResult
     @test result.model_type == :basic
     @test length(result.alpha_samples) >= 200
 
-    alpha_mean = mean(result.alpha_samples)
-    alpha_std = std(result.alpha_samples)
-    ci = credible_interval(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
+    alpha_std = std(extract_alpha(result))
+    ci = credible_interval(result)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
@@ -52,15 +52,15 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     @test result isa BDMLResult
     @test result.model_type == :hier
     @test length(result.alpha_samples) >= 200
 
-    alpha_mean = mean(result.alpha_samples)
-    alpha_std = std(result.alpha_samples)
-    ci = credible_interval(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
+    alpha_std = std(extract_alpha(result))
+    ci = credible_interval(result)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
@@ -84,10 +84,10 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 150, n_warmup = 100)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 150, n_chains = 2)
 
-    alpha_mean = mean(result.alpha_samples)
-    alpha_std = std(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
+    alpha_std = std(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
@@ -97,46 +97,6 @@ end
     @test isfinite(alpha_mean)
     @test alpha_std > 0
     @test abs(alpha_mean - alpha_true) < 0.5
-end
-
-@testset "MCMC HMC Sampler - Basic Model" begin
-    Random.seed!(203)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.4, seed = 203)
-
-    println("\n=== MCMC HMC Sampler: Basic Model ===")
-    println("True α: $alpha_true")
-
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
-    method = MCMCHMC(; leapfrog_steps = 10, step_size = 0.1)
-
-    # HMC not yet implemented via dispatch - test will error
-    @test_broken try
-        result = fit(problem, method; n_samples = 150, n_warmup = 100)
-        true
-    catch e
-        println("  Note: HMC via dispatch not yet implemented")
-        false
-    end
-end
-
-@testset "MCMC HMC Sampler - Hierarchical Model" begin
-    Random.seed!(204)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.7, seed = 204)
-
-    println("\n=== MCMC HMC Sampler: Hierarchical Model ===")
-    println("True α: $alpha_true")
-
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCHMC()
-
-    # HMC not yet implemented via dispatch - test will error
-    @test_broken try
-        result = fit(problem, method; n_samples = 150, n_warmup = 100)
-        true
-    catch e
-        println("  Note: HMC via dispatch not yet implemented")
-        false
-    end
 end
 
 @testset "MCMC Binary Treatment Data - IRM" begin
@@ -152,11 +112,11 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     @test result isa BDMLResult
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -175,12 +135,12 @@ end
     problem = BDMLProblem(data; model_type = :hier)
     method = MCMCNUTS()
 
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     @test result isa BDMLResult
     @test length(result.alpha_samples) >= 200
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -193,7 +153,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     # Test display methods
     @test_nowarn println(result)
@@ -204,7 +164,7 @@ end
     @test length(ci) == 2
     @test ci[1] < ci[2]
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
     @test ci[1] < alpha_mean < ci[2]
 end
 
@@ -215,7 +175,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    result = fit(problem, method; n_samples = 200, n_chains = 1)
 
     alpha_samples = result.alpha_samples
 
@@ -242,9 +202,9 @@ end
     # Test with different target acceptance rates
     for target_acc in [0.65, 0.8, 0.95]
         method = MCMCNUTS(; target_acceptance = target_acc)
-        result = fit(problem, method; n_samples = 100, n_warmup = 50)
+        result = fit(problem, method; n_samples = 100, n_chains = 1)
 
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
         println("  Target $target_acc: α = $(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)
@@ -262,9 +222,9 @@ end
     # Test with different max depths
     for max_d in [5, 10, 15]
         method = MCMCNUTS(; max_depth = max_d)
-        result = fit(problem, method; n_samples = 100, n_warmup = 50)
+        result = fit(problem, method; n_samples = 100, n_chains = 1)
 
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
         println("  Max depth $max_d: α = $(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)
@@ -272,4 +232,4 @@ end
 end
 
 println("\n=== All MCMC Tests Complete ===")
-println("Tested: NUTS, HMC, single/multi-chain, basic/hierarchical models")
+println("Tested: NUTS single/multi-chain, basic/hierarchical models")

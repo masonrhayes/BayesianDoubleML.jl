@@ -28,7 +28,7 @@ include("utils.jl")
     # Check all samples are finite
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  All samples finite: $(all(isfinite.(result.alpha_samples)))")
@@ -53,7 +53,7 @@ end
     @test length(result.alpha_samples) >= 200
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from MCMC basic works")
@@ -77,7 +77,7 @@ end
     @test length(result.alpha_samples) >= 500
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI hierarchical works")
@@ -101,7 +101,7 @@ end
     @test length(result.alpha_samples) >= 500
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI basic works")
@@ -125,7 +125,7 @@ end
     @test length(result.alpha_samples) >= 500
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from SimpleVI works")
@@ -170,8 +170,8 @@ end
     result = fit(problem, method; n_samples = 200, n_warmup = 100)
 
     # Manual calculation should match result.mean_alpha if available
-    alpha_manual_mean = mean(result.alpha_samples)
-    alpha_manual_std = std(result.alpha_samples)
+    alpha_manual_mean = mean(extract_alpha(result))
+    alpha_manual_std = std(extract_alpha(result))
 
     # Basic sanity checks
     @test alpha_manual_mean > -5
@@ -179,7 +179,7 @@ end
     @test alpha_manual_std > 0
 
     # CI should contain mean
-    ci = credible_interval(result.alpha_samples)
+    ci = credible_interval(result)
     @test ci[1] < alpha_manual_mean < ci[2]
 
     println("  Mean: $(round(alpha_manual_mean, digits = 4))")
@@ -231,7 +231,7 @@ end
         method = UnifiedVI()
         result = fit(problem, method; n_iterations = 400, n_draws = 400)
 
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
         push!(alphas, alpha_mean)
 
         println("  Seed $seed: α = $(round(alpha_mean, digits = 4))")
@@ -262,7 +262,7 @@ end
     @test length(result.alpha_samples) >= 300  # 150 * 2
     @test all(isfinite.(result.alpha_samples))
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Chains: 2")
     println("  Total samples: $(length(result.alpha_samples))")
@@ -322,7 +322,7 @@ end
     @test alpha_idx !== nothing
 
     alpha_from_ct = ct.mat[alpha_idx, 1]
-    alpha_from_samples = mean(result.alpha_samples)
+    alpha_from_samples = mean(extract_alpha(result))
 
     println("  From samples: $(round(alpha_from_samples, digits = 4))")
     println("  From coeftable: $(round(alpha_from_ct, digits = 4))")
@@ -340,8 +340,10 @@ end
     println("True α: $alpha_true")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    result = fit(problem, MCMCNUTS(; n_samples = 200, n_warmup = 100))
+    result = fit(problem, MCMCNUTS(); n_samples = 200, n_warmup = 100)
 
+    alpha_mean = mean(extract_alpha(result))
+    
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from MCMC works")
 
@@ -367,7 +369,7 @@ end
     @test hasfield(typeof(result), :alpha_samples)
     @test length(result.alpha_samples) >= 500
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI works")

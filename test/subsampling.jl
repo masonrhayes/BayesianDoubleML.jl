@@ -60,7 +60,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -87,7 +87,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -116,8 +116,8 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
-    ci = credible_interval(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
+    ci = credible_interval(result)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
@@ -152,7 +152,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Batch size: 128")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
@@ -184,7 +184,7 @@ end
         method = UnifiedVI(; subsample = true, batch_size = bs)
         result = fit(problem, method; n_iterations = 300, n_draws = 300)
 
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
         println("  Batch size $bs: α=$(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)
@@ -215,7 +215,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -286,7 +286,7 @@ end
         )
 
         elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
 
         println("  $(nameof(backend)): α=$(round(alpha_mean, digits = 4)), time=$(round(elapsed, digits = 2))s")
 
@@ -314,7 +314,7 @@ end
         batch_size = 128
     )
     result = fit(problem, method; n_iterations = 300, n_draws = 300)
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 

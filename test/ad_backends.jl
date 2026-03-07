@@ -26,8 +26,8 @@ include("utils.jl")
     method2 = UnifiedVI(; ad_backend = AutoReverseDiff, ad_kwargs = (compile = false,), n_iterations = 400, n_draws = 400)
     elapsed2 = @elapsed result2 = fit(problem, method2; n_iterations = 400, n_draws = 400)
 
-    alpha1 = mean(result1.alpha_samples)
-    alpha2 = mean(result2.alpha_samples)
+    alpha1 = mean(extract_alpha(result1))
+    alpha2 = mean(extract_alpha(result2))
 
     println("  Compile=true: α=$(round(alpha1, digits = 4)), time=$(round(elapsed1, digits = 2))s")
     println("  Compile=false: α=$(round(alpha2, digits = 4)), time=$(round(elapsed2, digits = 2))s")
@@ -55,8 +55,8 @@ end
     method2 = UnifiedVI(; ad_backend = AutoForwardDiff, ad_kwargs = (chunksize = 10,), n_iterations = 300, n_draws = 300)
     elapsed2 = @elapsed result2 = fit(problem, method2; n_iterations = 400, n_draws = 400)
 
-    alpha1 = mean(result1.alpha_samples)
-    alpha2 = mean(result2.alpha_samples)
+    alpha1 = mean(extract_alpha(result1))
+    alpha2 = mean(extract_alpha(result2))
 
     println("  Default chunksize: α=$(round(alpha1, digits = 4)), time=$(round(elapsed1, digits = 2))s")
     println("  chunksize=10: α=$(round(alpha2, digits = 4)), time=$(round(elapsed2, digits = 2))s")
@@ -84,7 +84,7 @@ end
     method = UnifiedVI(; ad_backend = AutoMooncake)
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Time: $(round(elapsed, digits = 2))s")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
@@ -104,7 +104,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  Time: $(round(elapsed, digits = 2))s")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
@@ -144,7 +144,7 @@ end
         end
 
         elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
-        alpha_mean = mean(result.alpha_samples)
+        alpha_mean = mean(extract_alpha(result))
 
         results[name] = alpha_mean
         times[name] = elapsed
@@ -208,7 +208,7 @@ end
     method = MCMCNUTS()
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
-    alpha_mean = mean(result.alpha_samples)
+    alpha_mean = mean(extract_alpha(result))
 
     println("  MCMC NUTS: α=$(round(alpha_mean, digits = 4)), time=$(round(elapsed, digits = 2))s")
 
@@ -239,7 +239,7 @@ end
             method = UnifiedVI(; ad_backend = backend)
             result = fit(problem, method; n_iterations = 300, n_draws = 300)
 
-            alpha_mean = mean(result.alpha_samples)
+            alpha_mean = mean(extract_alpha(result))
             println("    $(nameof(backend)): α=$(round(alpha_mean, digits = 4))")
 
             @test isfinite(alpha_mean)
@@ -262,7 +262,7 @@ end
     for i in 1:3
         Random.seed!(508 + i)
         result = fit(problem, method; n_iterations = 500, n_draws = 500)
-        push!(alphas, mean(result.alpha_samples))
+        push!(alphas, mean(extract_alpha(result)))
     end
 
     println("  Multiple runs with same seed offset:")

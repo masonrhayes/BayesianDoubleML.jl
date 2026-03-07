@@ -179,9 +179,9 @@ end
     @test isfinite(mcse_value)
 
     # MCSE should be smaller than posterior std
-    @test mcse_value < std(result.alpha_samples)
+    @test mcse_value < std(extract_alpha(result))
 
-    println("  Posterior std: $(round(std(result.alpha_samples), digits = 4))")
+    println("  Posterior std: $(round(std(extract_alpha(result)), digits = 4))")
     println("  MCSE: $(round(mcse_value, digits = 4))")
     println("  ✓ MCSE calculation works")
 end
