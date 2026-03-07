@@ -352,5 +352,59 @@ Return p-values.
 """
 pvalues(ct::BDMLCoeftable) = ct.pvalue
 
+"""
+    ess(result::BDMLResult)
+
+Compute effective sample size from MCMC chain.
+Uses MCMCChains.ess for proper multi-chain ESS calculation.
+Returns the minimum ESS across all parameters as conservative estimate.
+"""
+function ess(result::BDMLResult)
+    # Extract ESS from chain using MCMCChains
+    ess_df = MCMCChains.ess(result.chain)
+    # Get minimum ESS across all parameters (conservative estimate)
+    ess_values = ess_df.nt.ess
+    finite_ess = filter(x -> isfinite(x) && x > 0, ess_values)
+    return length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
+end
+
+"""
+    rhat(result::BDMLResult)
+
+Compute R-hat (potential scale reduction factor) from MCMC chain.
+R-hat ≈ 1.0 indicates good convergence. Values > 1.05 suggest non-convergence.
+Returns the maximum R-hat across all parameters as conservative estimate.
+"""
+function rhat(result::BDMLResult)
+    # Get Gelman diagnostic (R-hat) from MCMCChains
+    gd = gelmandiag(result.chain)
+    # Get maximum PSRF (R-hat) across all parameters (conservative estimate)
+    rhat_values = gd.nt.psrf
+    finite_rhat = filter(x -> isfinite(x) && x > 0, rhat_values)
+    return length(finite_rhat) > 0 ? maximum(finite_rhat) : missing
+end
+
+"""
+    mcse(result::BDMLResult)
+
+Compute Monte Carlo Standard Error from MCMC samples.
+"""
+function mcse(result::BDMLResult)
+    return mcse(result.alpha_samples)
+end
+
+"""
+    chain_info(result::BDMLResult)
+
+Get chain summary information: (n_chains, n_samples_per_chain, total_samples)
+"""
+function chain_info(result::BDMLResult)
+    chain = result.chain
+    n_chains = size(chain, 3)  # chains are in 3rd dimension
+    n_samples_per_chain = size(chain, 1)
+    total_samples = n_chains * n_samples_per_chain
+    return (n_chains = n_chains, n_samples_per_chain = n_samples_per_chain, total_samples = total_samples)
+end
+
 # Export the coeftable function and related types
-export coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size
+export coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size, rhat, chain_info

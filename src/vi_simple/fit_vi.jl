@@ -30,7 +30,7 @@ For large datasets (n > 10,000), consider using `fit_bdml_vi_subsampled()` inste
 
 # AD Backend Options
 - `AutoMooncake`: **Default and recommended**. Reverse-mode AD with rule compilation.
-  - **⚠️ Requires warmup**: First 1-2 runs compile differentiation rules (~50-100 iterations)
+  - **⚠️ Requires warmup**: First few runs compile differntiation rules.
   - After warmup, typically 5-10x faster than ReverseDiff
   - No additional kwargs needed
 - `AutoReverseDiff`: Reverse-mode AD with tape compilation

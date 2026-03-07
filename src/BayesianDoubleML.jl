@@ -12,7 +12,7 @@ export fit, BDMLProblem,
     # Results
     extract_alpha, BDMLData, AbstractBDMLResult, BDMLResult, BDMLVIResult,
     # Coeftable
-    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size,
+    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size, rhat, chain_info,
     # Summary
     summary,
     # Utilities

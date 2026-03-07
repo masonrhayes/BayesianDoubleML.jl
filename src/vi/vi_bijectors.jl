@@ -83,8 +83,8 @@ function Bijectors.bijector(model::BDMLVIModel)
         dists = [
             LogNormal(T(0), T(1)),      # σ²_δ: exp(unconstrained) → positive
             LogNormal(T(0), T(1)),        # σ²_γ: exp(unconstrained) → positive
-            MvNormal(zeros(T, p), T(1)),  # θ_Y: identity (already real)
-            MvNormal(zeros(T, p), T(1)),  # θ_D: identity (already real)
+            MvNormal(zeros(T, p), I),  # θ_Y: identity (already real)
+            MvNormal(zeros(T, p), I),  # θ_D: identity (already real)
             LogNormal(T(0), T(1)),        # σ_U: exp(unconstrained) → positive
             LogNormal(T(0), T(1)),        # σ_V: exp(unconstrained) → positive
             Beta(T(2), T(2)),              # ρ_raw: logistic(unconstrained) → (0,1)
@@ -101,8 +101,8 @@ function Bijectors.bijector(model::BDMLVIModel)
         ]
 
         dists = [
-            MvNormal(zeros(T, p), T(1)),  # θ_Y: identity (already real)
-            MvNormal(zeros(T, p), T(1)),  # θ_D: identity (already real)
+            MvNormal(zeros(T, p), I),  # θ_Y: identity (already real)
+            MvNormal(zeros(T, p), I),  # θ_D: identity (already real)
             LogNormal(T(0), T(1)),        # σ_U: exp(unconstrained) → positive
             LogNormal(T(0), T(1)),        # σ_V: exp(unconstrained) → positive
             Beta(T(2), T(2)),              # ρ_raw: logistic(unconstrained) → (0,1)

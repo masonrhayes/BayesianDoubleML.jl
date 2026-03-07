@@ -89,7 +89,7 @@ Uses LKJCholesky correlation parameterization (Turing's native approach).
 """
 function fit(
         prob::BDMLBasicProblem, method::MCMCMethod;
-        n_samples::Int = 2000, n_chains::Int = 4, kwargs...
+        n_samples::Int = 2000, n_chains::Int = 4
     )
 
     # Create Turing model (uses LKJCholesky for MCMC)
@@ -132,7 +132,7 @@ Uses LKJCholesky correlation parameterization.
 """
 function fit(
         prob::BDMLHierarchicalProblem, method::MCMCMethod;
-        n_samples::Int = 2000, n_chains::Int = 4, kwargs...
+        n_samples::Int = 2000, n_chains::Int = 4
     )
 
     # Create Turing model
@@ -418,7 +418,7 @@ function fit(
     if method.ad_backend == AutoReverseDiff
         ad_kwargs = merge(ad_kwargs, (compile = true,))
     elseif method.ad_backend == AutoMooncake
-        @info "Using AutoMooncake AD backend. Note: First 1-2 runs compile differentiation rules."
+        @info "Using AutoMooncake AD backend. Note: May require more compliation time, at the benefit of much faster fitting."
     end
 
     ad_backend = method.ad_backend(; ad_kwargs...)

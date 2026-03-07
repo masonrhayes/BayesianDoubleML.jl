@@ -112,14 +112,31 @@ function print_causal_effect(io::IO, result::AbstractBDMLResult)
     ci = credible_interval(result.alpha_samples)
     @printf io "  Estimate:         %s%.4f%s\n" COLOR_BOLD alpha_mean COLOR_RESET
     @printf io "  Std Error:        %.4f\n" alpha_std
-    return @printf io "  95%% CI:           [%s%.4f%s, %s%.4f%s]\n" COLOR_BOLD ci[1] COLOR_RESET COLOR_BOLD ci[2] COLOR_RESET
+    @printf io "  95%% CI:           [%s%.4f%s, %s%.4f%s]\n" COLOR_BOLD ci[1] COLOR_RESET COLOR_BOLD ci[2] COLOR_RESET
+
+    # Add HPD interval for MCMC results (more appropriate for skewed posteriors)
+    return if result isa BDMLResult
+        try
+            hpd = hpd_interval(result.alpha_samples)
+            @printf io "  95%% HPD:          [%s%.4f%s, %s%.4f%s]\n" COLOR_BOLD hpd[1] COLOR_RESET COLOR_BOLD hpd[2] COLOR_RESET
+        catch
+            # HPD not available, skip
+        end
+    end
 end
 
 function print_mcmc_diagnostics(io::IO, result::BDMLResult)
-    # Try to extract ESS and R-hat from the chain if available
-    return try
+    # Get chain info
+    info = chain_info(result)
+    @printf io "  Chains:           %d\n" info.n_chains
+    @printf io "  Samples/Chain:    %d\n" info.n_samples_per_chain
+    @printf io "  Total Samples:    %d\n" info.total_samples
+
+    # ESS
+    try
         ess_val = ess(result)
-        @printf io "  ESS (Total):      %.0f\n" ess_val
+        ess_pct = 100 * ess_val / info.total_samples
+        @printf io "  ESS:              %.0f (%.1f%% efficiency)\n" ess_val ess_pct
         if ess_val > 400
             println(io, COLOR_GREEN, "  ✓ Good effective sample size (ESS > 400)", COLOR_RESET)
         elseif ess_val > 200
@@ -129,6 +146,29 @@ function print_mcmc_diagnostics(io::IO, result::BDMLResult)
         end
     catch
         println(io, "  ESS:              Not available")
+    end
+
+    # R-hat (most critical convergence diagnostic)
+    try
+        rhat_val = rhat(result)
+        @printf io "  R-hat:            %.3f\n" rhat_val
+        if rhat_val < 1.01
+            println(io, COLOR_GREEN, "  ✓ Excellent convergence (R-hat < 1.01)", COLOR_RESET)
+        elseif rhat_val < 1.05
+            println(io, COLOR_YELLOW, "  ⚠ Acceptable convergence (R-hat < 1.05)", COLOR_RESET)
+        else
+            println(io, COLOR_RED, "  ✗ Poor convergence (R-hat ≥ 1.05)", COLOR_RESET)
+        end
+    catch
+        println(io, "  R-hat:            Not available")
+    end
+
+    # MCSE
+    return try
+        mcse_val = mcse(result)
+        @printf io "  MCSE:             %.4f\n" mcse_val
+    catch
+        println(io, "  MCSE:             Not available")
     end
 end
 
@@ -213,9 +253,6 @@ function print_convergence_summary(io::IO, result::AbstractBDMLResult)
         else
             println(io, COLOR_YELLOW, "⚠ Diagnostics: ELBO may not have converged.", COLOR_RESET)
         end
-    else
-        # MCMC - simplified
-        println(io, COLOR_GREEN, "✓ MCMC sampling complete - review ESS and diagnostics above", COLOR_RESET)
     end
 end
 
