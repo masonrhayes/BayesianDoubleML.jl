@@ -1,14 +1,23 @@
 # BayesianDoubleML.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://masonrhayes.github.io/BayesianDoubleML.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://masonrhayes.github.io/BayesianDoubleML.jl/dev/)
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
 
 A Julia package for Bayesian inference in Double Machine Learning (DML) models using both MCMC and Variational Inference (VI).
 
 ## Overview
 
-BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework demonstrated in DiTraglia & Liu (2025). It represens a Bayesian alterantive to the (Frequentist) Double Machine Learning framework (Chernozhukov et al., 2018). 
+BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework demonstrated in [DiTraglia &amp; Liu (2025)](https://arxiv.org/abs/2508.12688v1). It represents a Bayesian alternative to the (Frequentist) Double Machine Learning framework ([Chernozhukov et al., 2018](https://onlinelibrary.wiley.com/doi/abs/10.1111/ectj.12097)); in particular, BDML "*modifies a standard Bayesian multivariate regression model and recovers the causal effect of interest from the reduced-form covariance matrix*".
 
-The package supports both MCMC inference (as per DiTraglia & Liu (2025)), as well as fast, approximate Bayesian inference with Variational Inference methods, with multiple automatic differentiation backend options including AutoReverseDiff, AutoMooncake, AutoZygote, and AutoForwardDiff.
+This package supports both MCMC inference (as per DiTraglia & Liu (2025)), as well as fast, approximate Bayesian inference with Variational Inference methods, with multiple automatic differentiation backend options including AutoReverseDiff, AutoMooncake, AutoZygote, and AutoForwardDiff.
+
+It is recommended to use MCMC in cases where time and computational power are not an issue, especially in the following scenarios:
+
+* For small-scale data (roughly, $N<1000, P<100$), MCMC is sufficiently fast
+* Where the number of covariates ($p$) is greater than $\sqrt{n}$.
+
+However, for large-scale problems, MCMC does not scale well in terms of performance. For a wide variety of problems, Variational Inference is a highly capable approximation that provides massive performance improvements over MCMC.
 
 ## Paper Reference
 
@@ -258,44 +267,6 @@ mcse(result.alpha_samples)
 - `ess(result)` - Effective sample size accessor
 - `confint(result; level=0.95)` - Confidence/credible intervals
 
-## Project Structure
-
-```
-src/
-├── BayesianDoubleML.jl    # Main module, exports
-├── types.jl              # Result types (BDMLResult, BDMLVIResult)
-├── utils.jl              # Standardization, helper functions
-├── problems.jl           # Problem types (BDMLBasicProblem, BDMLHierarchicalProblem)
-├── methods.jl            # Method types (MCMCMethod, UnifiedVIMethod, SimpleVIMethod)
-├── fit_dispatch.jl       # Multiple dispatch fit() implementations
-├── model.jl              # Core Turing models (bdml_basic, bdml_hier)
-├── alpha_extraction.jl   # Alpha extraction from samples
-├── alpha.jl              # Basic extract_alpha for MCMC
-├── coeftable.jl          # StatsAPI-compliant coefficient tables
-├── fit.jl                # Legacy fitting functions
-├── vi/                   # Unified VI implementation
-│   ├── vi_model.jl       # BDMLVIModel (LogDensityProblems interface)
-│   ├── vi_bijectors.jl   # Bijectors for unconstrained→constrained
-│   ├── vi_logdensity.jl  # Log-posterior with Jacobian adjustment
-│   └── vi_fit.jl         # Core VI fitting
-├── vi_simple/            # Simple VI (Turing's native vi())
-│   ├── model_vi.jl       # VI-compatible Turing models
-│   └── fit_vi.jl
-├── zygote_vi/            # Zygote-specific VI (deprecated)
-├── enzyme_vi/            # Enzyme-specific VI (deprecated)
-├── model_vi_subsampled.jl # Legacy subsampled VI
-└── fit_vi_subsampled.jl   # Legacy subsampled fitting
-
-archive/
-└── experimental/         # Archived experimental VI methods
-    └── vi_methods.jl     # FullRankVI and LowRankVI (archived due to issues)
-
-docs/
-└── STATUS_UPDATE.md      # Development status and progress
-
-test/                     # Test suite (to be implemented)
-```
-
 ## Performance Tips
 
 ### Choosing AD Backends
@@ -335,6 +306,34 @@ result = fit(problem, UnifiedVIMethod(; ad_backend=AutoMooncake);
 ### Memory Issues
 
 For very large datasets, the MCMC chains can consume significant memory. Use VI methods for memory-efficient approximate inference.
+
+## Testing
+
+To run the test suite:
+
+```julia
+using Pkg
+Pkg.test("BayesianDoubleML")
+```
+
+Or from the command line:
+
+```bash
+julia --project=. -e "using Pkg; Pkg.test()"
+```
+
+The test suite includes:
+
+- Core types and utilities tests
+- Problem constructor tests
+- Method type tests
+- MCMC inference tests
+- VI inference tests
+- AD backend compatibility tests
+- Subsampling tests
+- Diagnostic function tests
+- Alpha extraction tests
+- Real data integration tests
 
 ## References
 
