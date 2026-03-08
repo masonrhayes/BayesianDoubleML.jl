@@ -155,7 +155,7 @@ end
     @test method_hmc.algorithm == :hmc
 
     method_unified = UnifiedVI()
-    @test typeof(method_unified) == UnifiedVIMethod
+    @test typeof(method_unified) <: UnifiedVIMethod  # Now parametric type
 
     method_simple = SimpleVI()
     @test typeof(method_simple) == SimpleVIMethod

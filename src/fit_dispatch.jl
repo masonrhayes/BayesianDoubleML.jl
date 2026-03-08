@@ -78,6 +78,173 @@ Convenience method that defaults to NUTS sampler.
 """
 fit(problem::AbstractBDMLProblem; kwargs...) = fit(problem, MCMCMethod(:nuts); kwargs...)
 
+# ==================== VARIATIONAL FAMILY INITIALIZATION ====================
+# Multiple dispatch-based initialization for different variational families
+
+"""
+    initialize_variational_distribution(dim::Int, family::AbstractVariationalFamily)
+
+Initialize the variational distribution q0 based on the family type using multiple dispatch.
+
+This function uses Julia's multiple dispatch to select the appropriate AdvancedVI 
+distribution type based on the variational family.
+"""
+function initialize_variational_distribution end
+
+"""
+    initialize_variational_distribution(dim::Int, ::MeanField)
+
+Initialize a MeanField Gaussian with diagonal covariance.
+"""
+function initialize_variational_distribution(dim::Int, ::MeanField)
+    return AdvancedVI.MeanFieldGaussian(zeros(dim), Diagonal(fill(0.1, dim)))
+end
+
+"""
+    initialize_variational_distribution(dim::Int, family::LowRank)
+
+Initialize a LowRank Gaussian with specified rank.
+
+Uses diagonal + low-rank decomposition: Σ = D² + U*U'
+Uses random initialization for low-rank factors to break symmetry.
+"""
+function initialize_variational_distribution(dim::Int, family::LowRank)
+    actual_rank = min(family.rank, dim - 1)  # Cap rank at dim-1
+    D = fill(0.1, dim)                    # Diagonal scale
+    U = randn(dim, actual_rank) * 0.01    # Low-rank factors (random to break symmetry)
+    return AdvancedVI.LowRankGaussian(zeros(dim), D, U)
+end
+
+"""
+    initialize_variational_distribution(dim::Int, family::LowRankScore)
+
+Initialize a LowRank Gaussian with specified rank for score gradient estimator.
+
+Uses diagonal + low-rank decomposition: Σ = D² + U*U'
+Uses random initialization for low-rank factors to break symmetry.
+"""
+function initialize_variational_distribution(dim::Int, family::LowRankScore)
+    actual_rank = min(family.rank, dim - 1)  # Cap rank at dim-1
+    D = fill(0.1, dim)                    # Diagonal scale
+    U = randn(dim, actual_rank) * 0.01    # Low-rank factors (random to break symmetry)
+    return AdvancedVI.LowRankGaussian(zeros(dim), D, U)
+end
+
+"""
+    family_symbol(family::AbstractVariationalFamily)
+
+Get the symbol representation of the variational family for result storage.
+"""
+family_symbol(::MeanField) = :meanfield
+family_symbol(::LowRank) = :lowrank
+family_symbol(::LowRankScore) = :lowrank_score
+
+"""
+    configure_vi_algorithm(method::UnifiedVIMethod, use_subsample::Bool, batch_size::Int, n::Int)
+
+Configure the AdvancedVI algorithm based on the variational family using dispatch.
+
+Different families require different algorithms:
+- MeanField: Uses KLMinRepGradProxDescent with ProximalLocationScaleEntropy
+- LowRank: Uses KLMinRepGradDescent with ClipScale operator
+"""
+function configure_vi_algorithm end
+
+"""
+    configure_vi_algorithm(method::UnifiedVIMethod{MeanField}, use_subsample::Bool, batch_size::Int, n::Int)
+
+Configure KLMinRepGradProxDescent for MeanField families.
+"""
+function configure_vi_algorithm(method::UnifiedVIMethod{MeanField}, use_subsample::Bool, batch_size::Int, n::Int)
+    ad_kwargs = if method.ad_backend == AutoReverseDiff
+        (; compile = true)
+    else
+        (;)
+    end
+
+    if use_subsample
+        dataset = 1:n
+        subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
+        return AdvancedVI.KLMinRepGradProxDescent(
+            method.ad_backend(; ad_kwargs...);
+            subsampling = subsampling,
+            n_samples = method.n_montecarlo
+        )
+    else
+        return AdvancedVI.KLMinRepGradProxDescent(
+            method.ad_backend(; ad_kwargs...);
+            n_samples = method.n_montecarlo
+        )
+    end
+end
+
+"""
+    configure_vi_algorithm(method::UnifiedVIMethod{LowRank}, use_subsample::Bool, batch_size::Int, n::Int)
+
+Configure KLMinRepGradDescent with Adam optimizer for LowRank families.
+
+Uses Adam optimizer which can work better with low-rank structure than DoWG.
+"""
+function configure_vi_algorithm(method::UnifiedVIMethod{LowRank}, use_subsample::Bool, batch_size::Int, n::Int)
+    ad_kwargs = if method.ad_backend == AutoReverseDiff
+        (; compile = true)
+    else
+        (;)
+    end
+
+    if use_subsample
+        dataset = 1:n
+        subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
+        return AdvancedVI.KLMinRepGradDescent(
+            method.ad_backend(; ad_kwargs...);
+            subsampling = subsampling,
+            n_samples = method.n_montecarlo,
+            optimizer = Optimisers.Adam(0.01),  # Use Adam instead of DoWG
+            operator = AdvancedVI.ClipScale()  # ClipScale supports LowRank
+        )
+    else
+        return AdvancedVI.KLMinRepGradDescent(
+            method.ad_backend(; ad_kwargs...);
+            n_samples = method.n_montecarlo,
+            optimizer = Optimisers.Adam(0.01),  # Use Adam instead of DoWG
+            operator = AdvancedVI.ClipScale()  # ClipScale supports LowRank
+        )
+    end
+end
+
+"""
+    configure_vi_algorithm(method::UnifiedVIMethod{LowRankScore}, use_subsample::Bool, batch_size::Int, n::Int)
+
+Configure KLMinScoreGradDescent (BBVI) for LowRankScore families.
+
+Uses score gradient (REINFORCE) estimator with VarGrad control variate.
+This can be more stable than reparameterization gradient for some problems.
+"""
+function configure_vi_algorithm(method::UnifiedVIMethod{LowRankScore}, use_subsample::Bool, batch_size::Int, n::Int)
+    ad_kwargs = if method.ad_backend == AutoReverseDiff
+        (; compile = true)
+    else
+        (;)
+    end
+
+    if use_subsample
+        dataset = 1:n
+        subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
+        return AdvancedVI.KLMinScoreGradDescent(
+            method.ad_backend(; ad_kwargs...);
+            subsampling = subsampling,
+            n_samples = method.n_montecarlo,
+            operator = AdvancedVI.ClipScale()  # ClipScale supports LowRank
+        )
+    else
+        return AdvancedVI.KLMinScoreGradDescent(
+            method.ad_backend(; ad_kwargs...);
+            n_samples = method.n_montecarlo,
+            operator = AdvancedVI.ClipScale()  # ClipScale supports LowRank
+        )
+    end
+end
+
 # ==================== MCMC DISPATCH ====================
 
 """
@@ -217,24 +384,11 @@ function fit(
     # Create AD wrapper
     prob_ad = LogDensityProblemsAD.ADgradient(method.ad_backend(; ad_kwargs...), vi_model)
 
-    # Set up variational family
-    q0 = AdvancedVI.MeanFieldGaussian(zeros(d), Diagonal(fill(0.1, d)))
+    # Set up variational family using dispatch based on family type
+    q0 = initialize_variational_distribution(d, method.family)
 
-    # Configure algorithm
-    if use_subsample
-        dataset = 1:n
-        subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
-        alg = AdvancedVI.KLMinRepGradProxDescent(
-            method.ad_backend(; ad_kwargs...);
-            subsampling = subsampling,
-            n_samples = method.n_montecarlo
-        )
-    else
-        alg = AdvancedVI.KLMinRepGradProxDescent(
-            method.ad_backend(; ad_kwargs...);
-            n_samples = method.n_montecarlo
-        )
-    end
+    # Configure algorithm using dispatch (different algorithms for different families)
+    alg = configure_vi_algorithm(method, use_subsample, batch_size, n)
 
     # Run optimization
     q_result, opt_stats, _ = AdvancedVI.optimize(
@@ -278,7 +432,9 @@ function fit(
     scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    vi_type = use_subsample ? :meanfield_subsampled : :meanfield
+    # Determine result type based on family and subsampling
+    base_vi_type = family_symbol(method.family)
+    vi_type = use_subsample ? Symbol(base_vi_type, :_subsampled) : base_vi_type
 
     return BDMLVIResult(
         q_result, α_samples, α_s_samples, prob.stats,
@@ -330,22 +486,11 @@ function fit(
 
     prob_ad = LogDensityProblemsAD.ADgradient(method.ad_backend(; ad_kwargs...), vi_model)
 
-    q0 = AdvancedVI.MeanFieldGaussian(zeros(d), Diagonal(fill(0.1, d)))
+    # Set up variational family using dispatch based on family type
+    q0 = initialize_variational_distribution(d, method.family)
 
-    if use_subsample
-        dataset = 1:n
-        subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
-        alg = AdvancedVI.KLMinRepGradProxDescent(
-            method.ad_backend(; ad_kwargs...);
-            subsampling = subsampling,
-            n_samples = method.n_montecarlo
-        )
-    else
-        alg = AdvancedVI.KLMinRepGradProxDescent(
-            method.ad_backend(; ad_kwargs...);
-            n_samples = method.n_montecarlo
-        )
-    end
+    # Configure algorithm using dispatch (different algorithms for different families)
+    alg = configure_vi_algorithm(method, use_subsample, batch_size, n)
 
     q_result, opt_stats, _ = AdvancedVI.optimize(
         Random.default_rng(),
@@ -396,7 +541,9 @@ function fit(
     scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    vi_type = use_subsample ? :meanfield_subsampled : :meanfield
+    # Determine result type based on family and subsampling
+    base_vi_type = family_symbol(method.family)
+    vi_type = use_subsample ? Symbol(base_vi_type, :_subsampled) : base_vi_type
 
     return BDMLVIResult(
         q_result, α_samples, α_s_samples, prob.stats,
