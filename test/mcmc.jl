@@ -23,7 +23,7 @@ include("utils.jl")
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test result.model_type == :basic
     @test length(result.alpha_samples) >= 200
 
@@ -54,7 +54,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test result.model_type == :hier
     @test length(result.alpha_samples) >= 200
 
@@ -114,7 +114,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 200, n_chains = 1)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
 
     alpha_mean = mean(extract_alpha(result))
 
@@ -137,7 +137,7 @@ end
 
     result = fit(problem, method; n_samples = 200, n_chains = 1)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test length(result.alpha_samples) >= 200
 
     alpha_mean = mean(extract_alpha(result))

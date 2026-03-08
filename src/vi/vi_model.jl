@@ -19,6 +19,21 @@ Designed for efficiency and AD compatibility:
 - Type-stable operations throughout
 - No closures or dynamic dispatch
 
+# Model Specification
+
+Implements the bivariate reduced form model from DiTraglia & Liu (2025), 
+Equations 13-15:
+
+**Reduced form equations:**
+    Y = X'δ + U          (Eq. 12)
+    D = X'γ + V          (Eq. 5)
+
+**Joint error distribution:**
+    [U; V] | X ~ N(0, Σ)  (Eq. 13)
+
+where the causal effect α is recovered via:
+    α = Cov(U, V) / Var(V) = ρ·σ_U / σ_V   (Eq. 15)
+
 # Fields
 - `Y::YType`: Outcome variable (Vector{Float64})
 - `D::DType`: Treatment variable (Vector{Float64})
@@ -26,8 +41,8 @@ Designed for efficiency and AD compatibility:
 - `n_data::Int`: Total number of observations (for likelihood scaling with subsampling)
 - `model_type::Symbol`: :hier (hierarchical) or :basic
 - `T::Type{T}`: Element type (Float64)
-- `μ_Y_cache::Vector{T}`: Pre-allocated temporary for outcome mean
-- `μ_D_cache::Vector{T}`: Pre-allocated temporary for treatment mean
+- `μ_Y_cache::Vector{T}`: Pre-allocated temporary for outcome mean (X'δ)
+- `μ_D_cache::Vector{T}`: Pre-allocated temporary for treatment mean (X'γ)
 
 # Example
 ```julia
@@ -37,6 +52,11 @@ model = BDMLVIModel(Y, D, X; model_type=:basic, T=Float64)
 # See Also
 - `bijector(::BDMLVIModel)`: Bijector for unconstrained → constrained transformation
 - `LogDensityProblems.logdensity(::BDMLVIModel, θ)`: Log-posterior computation
+- `unpack_parameters`: Extract δ, γ, and other parameters from flat vector
+
+# References
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+  Causal Inference", arXiv:2508.12688v1, Section 4.
 """
 struct BDMLVIModel{YType, DType, XType, T}
     Y::YType
@@ -103,11 +123,13 @@ end
 
 Return the number of parameters in the model.
 
-Parameter counts:
-- Basic: 2p (θ_Y, θ_D) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 3
-- Hierarchical: 2 (log_σ²_δ, log_σ²_γ) + 2p (θ_Y, θ_D) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 5
+Parameter counts (paper notation δ for outcome, γ for treatment):
+- Basic: 2p (δ, γ) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 3
+- Hierarchical: 2 (log_σ²_δ, log_σ²_γ) + 2p (δ, γ) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 5
 
 where p = number of control variables (size(X, 2))
+
+See DiTraglia & Liu (2025), Section 4, Equations 12-13.
 
 # Examples
 ```julia
@@ -118,9 +140,9 @@ d = LogDensityProblems.dimension(model)  # Returns 2*p + 3
 function LogDensityProblems.dimension(model::BDMLVIModel)
     n, p = size(model.X)
     if model.model_type == :hier
-        return 2 * p + 5  # log_σ²_δ, log_σ²_γ, θ_Y(p), θ_D(p), σ_U, σ_V, ρ_raw
+        return 2 * p + 5  # log_σ²_δ, log_σ²_γ, δ(p), γ(p), σ_U, σ_V, ρ_raw
     else
-        return 2 * p + 3  # θ_Y(p), θ_D(p), σ_U, σ_V, ρ_raw
+        return 2 * p + 3  # δ(p), γ(p), σ_U, σ_V, ρ_raw
     end
 end
 
@@ -136,7 +158,7 @@ LogDensityProblems.capabilities(::Type{<:BDMLVIModel}) = LogDensityProblems.LogD
 """
     unpack_parameters(model::BDMLVIModel, θ)
 
-Unpack flat parameter vector θ into model components.
+Unpack flat parameter vector θ into model components using paper notation.
 
 # Arguments
 - `model::BDMLVIModel`: The model instance
@@ -144,19 +166,30 @@ Unpack flat parameter vector θ into model components.
 
 # Returns
 For hierarchical models:
-- `(θ_Y, θ_D, σ_U, σ_V, ρ_raw, σ²_δ, σ²_γ)`
+- `(δ, γ, σ_U, σ_V, ρ_raw, σ²_δ, σ²_γ)`
 
 For basic models:
-- `(θ_Y, θ_D, σ_U, σ_V, ρ_raw)`
+- `(δ, γ, σ_U, σ_V, ρ_raw)`
+
+where:
+- `δ`: Reduced form coefficients for Y on X (Eq. 12)
+- `γ`: Reduced form coefficients for D on X (Eq. 5)
+- `σ_U`: Outcome error standard deviation
+- `σ_V`: Treatment error standard deviation  
+- `ρ_raw`: Correlation parameter in [0,1] (transforms to ρ = 2ρ_raw - 1)
+- `σ²_δ`: Hierarchical variance hyperparameter for δ
+- `σ²_γ`: Hierarchical variance hyperparameter for γ
 
 # Notes
 Assumes parameters are already in constrained space (positive variances, ρ_raw in [0,1]).
 This is called AFTER bijector transformation in logdensity().
 
+See DiTraglia & Liu (2025), Section 4, Equations 12-13.
+
 # Examples
 ```julia
 θ = rand(LogDensityProblems.dimension(model))
-θ_Y, θ_D, σ_U, σ_V, ρ_raw = unpack_parameters(model, θ)
+δ, γ, σ_U, σ_V, ρ_raw = unpack_parameters(model, θ)
 ```
 """
 function unpack_parameters(model::BDMLVIModel, θ)
@@ -164,12 +197,12 @@ function unpack_parameters(model::BDMLVIModel, θ)
     T = model.T
 
     if model.model_type == :hier
-        # Hierarchical: [log_σ²_δ, log_σ²_γ, θ_Y(p), θ_D(p), σ_U, σ_V, ρ_raw]
-        # After bijector: [σ²_δ, σ²_γ, θ_Y..., θ_D..., σ_U, σ_V, ρ_raw]
+        # Hierarchical: [log_σ²_δ, log_σ²_γ, δ(p), γ(p), σ_U, σ_V, ρ_raw]
+        # After bijector: [σ²_δ, σ²_γ, δ..., γ..., σ_U, σ_V, ρ_raw]
         log_σ²_δ = θ[1]
         log_σ²_γ = θ[2]
-        θ_Y = θ[3:(2 + p)]
-        θ_D = θ[(3 + p):(2 + 2p)]
+        δ = θ[3:(2 + p)]
+        γ = θ[(3 + p):(2 + 2p)]
         σ_U = θ[3 + 2p]
         σ_V = θ[4 + 2p]
         ρ_raw = θ[5 + 2p]
@@ -178,16 +211,16 @@ function unpack_parameters(model::BDMLVIModel, θ)
         σ²_δ = exp(log_σ²_δ)
         σ²_γ = exp(log_σ²_γ)
 
-        return θ_Y, θ_D, σ_U, σ_V, ρ_raw, σ²_δ, σ²_γ
+        return δ, γ, σ_U, σ_V, ρ_raw, σ²_δ, σ²_γ
     else
-        # Basic: [θ_Y(p), θ_D(p), σ_U, σ_V, ρ_raw]
-        θ_Y = θ[1:p]
-        θ_D = θ[(p + 1):2p]
+        # Basic: [δ(p), γ(p), σ_U, σ_V, ρ_raw]
+        δ = θ[1:p]
+        γ = θ[(p + 1):2p]
         σ_U = θ[2p + 1]
         σ_V = θ[2p + 2]
         ρ_raw = θ[2p + 3]
 
-        return θ_Y, θ_D, σ_U, σ_V, ρ_raw
+        return δ, γ, σ_U, σ_V, ρ_raw
     end
 end
 
@@ -215,6 +248,7 @@ batch_model = AdvancedVI.subsample(model, batch_idx)
 
 # Notes
 New temporaries are allocated sized to the batch (length(idx)).
+The reduced form means X'δ and X'γ are computed on the subsample.
 """
 function AdvancedVI.subsample(model::BDMLVIModel, idx)
     n = length(idx)

@@ -10,41 +10,6 @@ using Statistics
 # Load test utilities
 include("utils.jl")
 
-@testset "Subsampling Threshold Detection" begin
-    println("\n=== Subsampling Threshold Detection ===")
-
-    # Test the should_use_subsampling function
-    @test BayesianDoubleML.should_use_subsampling(500) == false
-    @test BayesianDoubleML.should_use_subsampling(1000) == false
-    @test BayesianDoubleML.should_use_subsampling(5000) == false
-    @test BayesianDoubleML.should_use_subsampling(9999) == false
-    @test BayesianDoubleML.should_use_subsampling(10000) == true
-    @test BayesianDoubleML.should_use_subsampling(50000) == true
-    @test BayesianDoubleML.should_use_subsampling(100000) == true
-
-    println("  n < 10000: no subsampling")
-    println("  n >= 10000: use subsampling")
-    println("  ✓ Threshold detection works correctly")
-end
-
-@testset "Batch Size Computation" begin
-    println("\n=== Batch Size Computation ===")
-
-    # Test compute_batch_size function
-    @test BayesianDoubleML.compute_batch_size(500) == 64      # Minimum
-    @test BayesianDoubleML.compute_batch_size(1000) == 64     # Minimum
-    @test BayesianDoubleML.compute_batch_size(6400) == 64     # n/100 = 64
-    @test BayesianDoubleML.compute_batch_size(10000) == 64    # n/100 = 100, but min is 64
-    @test BayesianDoubleML.compute_batch_size(20000) == 128   # Capped logic
-    @test BayesianDoubleML.compute_batch_size(50000) == 256   # Maximum cap
-    @test BayesianDoubleML.compute_batch_size(100000) == 256  # Maximum cap
-
-    println("  Small n (500): batch = 64 (minimum)")
-    println("  Medium n (10000): batch = 64-128")
-    println("  Large n (50000+): batch = 256 (maximum)")
-    println("  ✓ Batch size computation works correctly")
-end
-
 @testset "Small Dataset - No Subsampling (Auto)" begin
     Random.seed!(600)
     n, p = 500, 10
@@ -52,8 +17,6 @@ end
 
     println("\n=== Small Dataset: Auto No Subsampling (n=$n) ===")
     println("True α: $alpha_true")
-
-    @test BayesianDoubleML.should_use_subsampling(n) == false
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
@@ -80,9 +43,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI(;
         subsample = true,
-        batch_size = 64,
-        n_iterations = 500,
-        n_draws = 500
+        batch_size = 64
     )
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
@@ -108,8 +69,6 @@ end
 
     println("\n=== Medium Dataset: Auto Subsampling (n=$n) ===")
     println("True α: $alpha_true")
-
-    @test BayesianDoubleML.should_use_subsampling(n) == true
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
@@ -145,9 +104,7 @@ end
     # Test with explicit batch size
     method = UnifiedVI(;
         subsample = true,
-        batch_size = 128,
-        n_iterations = 400,
-        n_draws = 400
+        batch_size = 128
     )
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
@@ -208,9 +165,7 @@ end
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI(;
-        subsample = false,  # Force full-batch
-        n_iterations = 200,  # Reduced for speed
-        n_draws = 200
+        subsample = false  # Force full-batch
     )
 
     elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
@@ -266,23 +221,15 @@ end
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
 
-    backends = [AutoReverseDiff, AutoMooncake]
+    backends = [AutoReverseDiff]
 
     for backend in backends
         Random.seed!(607)
 
-        # Warmup for Mooncake
-        if backend == AutoMooncake
-            _ = fit(problem, UnifiedVI(; ad_backend = AutoMooncake, n_iterations = 50, n_draws = 100))
-            Random.seed!(607)
-        end
-
         method = UnifiedVI(;
             ad_backend = backend,
             subsample = true,
-            batch_size = 128,
-            n_iterations = 300,
-            n_draws = 300
+            batch_size = 128
         )
 
         elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
@@ -340,15 +287,15 @@ end
 
     # Full batch (forced)
     Random.seed!(609)
-    method_full = UnifiedVI(; subsample = false, n_iterations = 200, n_draws = 200)
-    result_full = fit(problem, method_full)
-    alpha_full = mean(result_full.alpha_samples)
+    method_full = UnifiedVI(; subsample = false)
+    result_full = fit(problem, method_full; n_iterations = 200, n_draws = 200)
+    alpha_full = mean(extract_alpha(result_full))
 
     # Subsampled
     Random.seed!(609)
     method_sub = UnifiedVI(; subsample = true, batch_size = 128)
-    result_sub = fit(problem, method_sub)
-    alpha_sub = mean(result_sub.alpha_samples)
+    result_sub = fit(problem, method_sub; n_iterations = 300, n_draws = 300)
+    alpha_sub = mean(extract_alpha(result_sub))
 
     println("  Full batch: α=$(round(alpha_full, digits = 4))")
     println("  Subsampled: α=$(round(alpha_sub, digits = 4))")

@@ -143,7 +143,7 @@ end
 
 @testset "UnifiedVI AD Backend - AutoZygote" begin
     using Zygote
-    
+
     Random.seed!(306)
     Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 306)
 
@@ -392,7 +392,7 @@ end
 
 @testset "SimpleVI AD Backend - AutoZygote" begin
     using Zygote
-    
+
     Random.seed!(410)
     Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 410)
 
@@ -489,4 +489,3 @@ end
         @test isfinite(alpha_mean)
     end
 end
-

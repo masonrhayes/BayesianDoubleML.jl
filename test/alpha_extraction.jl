@@ -343,7 +343,7 @@ end
     result = fit(problem, MCMCNUTS(); n_samples = 200, n_warmup = 100)
 
     alpha_mean = mean(extract_alpha(result))
-    
+
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from MCMC works")
 

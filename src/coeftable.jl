@@ -7,12 +7,12 @@ using StatsAPI
 to_s(x, width = 12, digits = 4) = lpad(round(x, digits = digits), width)
 
 """
-    hpd_interval(samples::Vector{Float64}, level::Real=0.95)
+    hpd_interval(samples::Vector{Float64}; level::Real=0.95)
 
 Compute the Highest Posterior Density (HPD) interval for a vector of samples.
 HPD intervals are the shortest intervals containing the specified probability mass.
 """
-function hpd_interval(samples::Vector{Float64}, level::Real = 0.95)
+function hpd_interval(samples::Vector{Float64}; level::Real = 0.95)
     n = length(samples)
     sorted_samples = sort(samples)
 
@@ -34,80 +34,6 @@ function hpd_interval(samples::Vector{Float64}, level::Real = 0.95)
     end
 
     return (lower = hpd_lower, upper = hpd_upper)
-end
-
-"""
-    mcse(samples::Vector{Float64})
-
-Compute the Monte Carlo Standard Error using batch means method.
-This estimates the error due to finite sampling.
-"""
-function mcse(samples::Vector{Float64})
-    n = length(samples)
-
-    # If samples are too few, use simple std/sqrt(n)
-    if n < 100
-        return std(samples) / sqrt(n)
-    end
-
-    # Batch means method
-    n_batches = max(2, floor(Int, sqrt(n)))
-    batch_size = div(n, n_batches)
-
-    batch_means = Float64[]
-    for i in 1:n_batches
-        start_idx = (i - 1) * batch_size + 1
-        end_idx = min(i * batch_size, n)
-        push!(batch_means, mean(samples[start_idx:end_idx]))
-    end
-
-    return std(batch_means) / sqrt(n_batches)
-end
-
-"""
-    effective_sample_size(samples::Vector{Float64})
-
-Compute effective sample size using autocorrelation method.
-ESS accounts for correlation in MCMC samples.
-"""
-function effective_sample_size(samples::Vector{Float64})
-    n = length(samples)
-
-    # If using MCMCChains, extract from chain
-    if n < 10
-        return Float64(n)
-    end
-
-    # Compute autocorrelation
-    mean_samples = mean(samples)
-    var_samples = var(samples)
-
-    if var_samples < 1.0e-10
-        return Float64(n)
-    end
-
-    # Compute autocorrelations up to lag where they become negligible
-    max_lag = min(n - 1, 100)
-    autocorr_sum = 0.0
-
-    for lag in 1:max_lag
-        # Compute autocorrelation at this lag
-        c = 0.0
-        for i in 1:(n - lag)
-            c += (samples[i] - mean_samples) * (samples[i + lag] - mean_samples)
-        end
-        c = c / ((n - lag) * var_samples)
-
-        # Stop when autocorrelation becomes negative (Geyer's method)
-        if c < 0
-            break
-        end
-
-        autocorr_sum += c
-    end
-
-    ess = n / (1 + 2 * autocorr_sum)
-    return max(1.0, ess)
 end
 
 """
@@ -154,26 +80,35 @@ struct BDMLCoeftable
 end
 
 """
-    coeftable(result::BDMLResult; level=0.95)
+    coeftable(result::BDMLMCMCResult; level=0.95)
 
 Compute coefficient table for MCMC results with HPD credible intervals.
+Uses MCMCChains for ESS and MCSE calculations.
 """
-function coeftable(result::BDMLResult; level = 0.95)
+function coeftable(result::BDMLMCMCResult; level = 0.95)
     samples = result.alpha_samples
 
     # Basic statistics
     coef_est = mean(samples)
     std_error = std(samples)
-    mcse_val = mcse(samples)
 
     # HPD interval
-    hpd = hpd_interval(samples, level)
+    hpd = hpd_interval(samples; level = level)
 
     # P-value
     pval = compute_pvalue(samples)
 
-    # ESS
-    ess_val = effective_sample_size(samples)
+    # ESS from MCMCChains (get minimum across all parameters as conservative estimate)
+    ess_df = MCMCChains.ess(result.chain)
+    ess_values = ess_df.nt.ess
+    finite_ess = filter(x -> isfinite(x) && x > 0, ess_values)
+    ess_val = length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
+
+    # MCSE from MCMCChains (get maximum across all parameters as conservative estimate)
+    mcse_df = MCMCChains.mcse(result.chain)
+    mcse_values = mcse_df.nt.mcse
+    finite_mcse = filter(x -> isfinite(x) && x > 0, mcse_values)
+    mcse_val = length(finite_mcse) > 0 ? maximum(finite_mcse) : std(samples) / sqrt(length(samples))
 
     # For MCMC, no ELBO
     elbo_val = nothing
@@ -199,6 +134,7 @@ end
     coeftable(result::BDMLVIResult; level=0.95)
 
 Compute coefficient table for VI results with HPD credible intervals.
+Note: ESS and MCSE are not computed for VI results as samples are drawn independently.
 """
 function coeftable(result::BDMLVIResult; level = 0.95)
     samples = result.alpha_samples
@@ -206,16 +142,16 @@ function coeftable(result::BDMLVIResult; level = 0.95)
     # Basic statistics
     coef_est = mean(samples)
     std_error = std(samples)
-    mcse_val = mcse(samples)
 
     # HPD interval
-    hpd = hpd_interval(samples, level)
+    hpd = hpd_interval(samples; level = level)
 
     # P-value
     pval = compute_pvalue(samples)
 
-    # ESS for VI (tends to be higher due to independent samples)
-    ess_val = effective_sample_size(samples)
+    # For VI, no ESS or MCSE (samples are independent)
+    ess_val = 0.0
+    mcse_val = 0.0
 
     # ELBO from VI
     elbo_val = result.final_elbo
@@ -239,8 +175,8 @@ end
 
 # Allow generic AbstractBDMLResult dispatch
 function coeftable(result::AbstractBDMLResult; level = 0.95)
-    if result isa BDMLResult
-        return coeftable(result::BDMLResult; level = level)
+    if result isa BDMLMCMCResult
+        return coeftable(result::BDMLMCMCResult; level = level)
     elseif result isa BDMLVIResult
         return coeftable(result::BDMLVIResult; level = level)
     else
@@ -292,7 +228,6 @@ function Base.show(io::IO, ct::BDMLCoeftable)
         println(io, "  Effective Sample Size (ESS): $(round(ct.ess[1], digits = 1))")
     elseif ct.method_type == :VI && ct.elbo !== nothing
         println(io, "  Final ELBO: $(round(ct.elbo, digits = 2))")
-        println(io, "  Effective Sample Size (ESS): $(round(ct.ess[1], digits = 1))")
     end
 end
 
@@ -300,17 +235,17 @@ function Base.show(io::IO, ::MIME"text/plain", ct::BDMLCoeftable)
     return show(io, ct)
 end
 
-# Pretty printing for BDMLResult using coeftable
-function Base.show(io::IO, r::BDMLResult)
+# Pretty printing for BDMLMCMCResult using coeftable
+function Base.show(io::IO, r::BDMLMCMCResult)
     # First show the basic info
-    println(io, "BDMLResult ($(r.model_type))")
+    println(io, "BDMLMCMCResult ($(r.model_type))")
 
     # Then show the coeftable
     ct = coeftable(r)
     return show(io, ct)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", r::BDMLResult)
+function Base.show(io::IO, ::MIME"text/plain", r::BDMLMCMCResult)
     return show(io, r)
 end
 
@@ -353,13 +288,13 @@ Return p-values.
 pvalues(ct::BDMLCoeftable) = ct.pvalue
 
 """
-    ess(result::BDMLResult)
+    ess(result::BDMLMCMCResult)
 
 Compute effective sample size from MCMC chain.
 Uses MCMCChains.ess for proper multi-chain ESS calculation.
 Returns the minimum ESS across all parameters as conservative estimate.
 """
-function ess(result::BDMLResult)
+function ess(result::BDMLMCMCResult)
     # Extract ESS from chain using MCMCChains
     ess_df = MCMCChains.ess(result.chain)
     # Get minimum ESS across all parameters (conservative estimate)
@@ -369,13 +304,13 @@ function ess(result::BDMLResult)
 end
 
 """
-    rhat(result::BDMLResult)
+    rhat(result::BDMLMCMCResult)
 
 Compute R-hat (potential scale reduction factor) from MCMC chain.
 R-hat ≈ 1.0 indicates good convergence. Values > 1.05 suggest non-convergence.
 Returns the maximum R-hat across all parameters as conservative estimate.
 """
-function rhat(result::BDMLResult)
+function rhat(result::BDMLMCMCResult)
     # Get Gelman diagnostic (R-hat) from MCMCChains
     gd = gelmandiag(result.chain)
     # Get maximum PSRF (R-hat) across all parameters (conservative estimate)
@@ -385,20 +320,54 @@ function rhat(result::BDMLResult)
 end
 
 """
-    mcse(result::BDMLResult)
+    mcse(result::BDMLMCMCResult)
 
-Compute Monte Carlo Standard Error from MCMC samples.
+Compute Monte Carlo Standard Error from MCMC chain.
+Uses MCMCChains.mcse for proper multi-chain MCSE calculation.
+Returns the maximum MCSE across all parameters as conservative estimate.
 """
-function mcse(result::BDMLResult)
-    return mcse(result.alpha_samples)
+function mcse(result::BDMLMCMCResult)
+    mcse_df = MCMCChains.mcse(result.chain)
+    mcse_values = mcse_df.nt.mcse
+    finite_mcse = filter(x -> isfinite(x) && x > 0, mcse_values)
+    return length(finite_mcse) > 0 ? maximum(finite_mcse) : std(result.alpha_samples) / sqrt(length(result.alpha_samples))
 end
 
 """
-    chain_info(result::BDMLResult)
+    confint(result::AbstractBDMLResult; level=0.95)
+
+Return confidence/credible intervals for the treatment effect from a BDML result.
+Computes HPD credible intervals at the specified level.
+"""
+function confint(result::AbstractBDMLResult; level = 0.95)
+    ct = coeftable(result; level = level)
+    return hcat(ct.cilower, ct.ciupper)
+end
+
+"""
+    pvalues(result::AbstractBDMLResult)
+
+Return p-value for testing H0: α = 0 from a BDML result.
+"""
+function pvalues(result::AbstractBDMLResult)
+    ct = coeftable(result)
+    return ct.pvalue[1]
+end
+
+"""
+    rhat_statistic(result::BDMLMCMCResult)
+
+Alias for `rhat(result)` - compute R-hat convergence diagnostic.
+R-hat ≈ 1.0 indicates good convergence.
+"""
+const rhat_statistic = rhat
+
+"""
+    chain_info(result::BDMLMCMCResult)
 
 Get chain summary information: (n_chains, n_samples_per_chain, total_samples)
 """
-function chain_info(result::BDMLResult)
+function chain_info(result::BDMLMCMCResult)
     chain = result.chain
     n_chains = size(chain, 3)  # chains are in 3rd dimension
     n_samples_per_chain = size(chain, 1)
@@ -406,5 +375,51 @@ function chain_info(result::BDMLResult)
     return (n_chains = n_chains, n_samples_per_chain = n_samples_per_chain, total_samples = total_samples)
 end
 
-# Export the coeftable function and related types
-export coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size, rhat, chain_info
+"""
+    coef(result::AbstractBDMLResult)
+
+Return coefficient estimates from a BDML result.
+"""
+function StatsAPI.coef(result::AbstractBDMLResult)
+    ct = coeftable(result)
+    return ct.coef
+end
+
+# Module-level wrapper
+function coef(result::AbstractBDMLResult)
+    return StatsAPI.coef(result)
+end
+
+"""
+    stderror(result::AbstractBDMLResult)
+
+Return standard errors from a BDML result.
+"""
+function StatsAPI.stderror(result::AbstractBDMLResult)
+    ct = coeftable(result)
+    return ct.stderror
+end
+
+# Module-level wrapper
+function stderror(result::AbstractBDMLResult)
+    return StatsAPI.stderror(result)
+end
+
+"""
+    vcov(result::AbstractBDMLResult)
+
+Return variance-covariance matrix (diagonal only for single parameter α).
+"""
+function StatsAPI.vcov(result::AbstractBDMLResult)
+    ct = coeftable(result)
+    # For single parameter, return diagonal matrix
+    return Diagonal(ct.stderror .^ 2)
+end
+
+# Module-level wrapper
+function vcov(result::AbstractBDMLResult)
+    return StatsAPI.vcov(result)
+end
+
+# Export additional StatsAPI functions
+export coef, stderror, vcov

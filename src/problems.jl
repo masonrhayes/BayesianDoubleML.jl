@@ -24,7 +24,8 @@ abstract type AbstractBDMLProblem end
 """
     BDMLBasicProblem <: AbstractBDMLProblem
 
-Basic BDML model problem specification.
+Basic BDML model problem specification implementing BDML-Basic from 
+DiTraglia & Liu (2025), Algorithm 1.
 
 # Fields
 - `Y::Vector{Float64}`: Standardized outcome variable
@@ -33,19 +34,34 @@ Basic BDML model problem specification.
 - `stats::StandardizationStats`: Statistics for transforming back to original scale
 - `n::Int`: Number of observations
 - `p::Int`: Number of control variables
-- `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean
-- `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean
+- `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
+- `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
 
-# Model Specification
-Uses standard priors:
-- θ_Y ~ N(0, 25*I)
-- θ_D ~ N(0, 25*I)
-- σ_U ~ Cauchy+(0, 2.5) (for MCMC with LKJCholesky)
-- σ_V ~ Cauchy+(0, 2.5) (for MCMC with LKJCholesky)
+# Model Specification (Section 4, Equations 12-13)
+
+**Reduced form:**
+    Y = X'δ + U          (Eq. 12)
+    D = X'γ + V          (Eq. 5)
+
+**Priors:**
+- δ ~ N(0, 25·I_p)      [Outcome reduced form coefficients]
+- γ ~ N(0, 25·I_p)      [Treatment reduced form coefficients]  
+- σ_U ~ Cauchy⁺(0, 2.5) [Outcome error scale]
+- σ_V ~ Cauchy⁺(0, 2.5) [Treatment error scale]
+- R ~ LKJ(4)            [Correlation matrix]
 
 For VI, uses Beta(2,2) correlation parameterization instead of LKJCholesky.
 
+**Causal effect recovery:**
+    α = ρ·σ_U / σ_V       (Eq. 15)
+
+This is the BDML-Basic variation with fixed prior variances (Section 6, Table 1).
+
 See also: [`BDMLHierarchicalProblem`](@ref), [`BDMLProblem`](@ref)
+
+# References
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+  Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 """
 struct BDMLBasicProblem <: AbstractBDMLProblem
     Y::Vector{Float64}
@@ -62,27 +78,53 @@ end
 """
     BDMLHierarchicalProblem <: AbstractBDMLProblem
 
-Hierarchical BDML model problem specification.
+Hierarchical BDML model problem specification implementing BDML-Hier from 
+DiTraglia & Liu (2025), Algorithm 1.
 
 # Fields
-Same as `BDMLBasicProblem`.
+Same as `BDMLBasicProblem`:
+- `Y::Vector{Float64}`: Standardized outcome variable
+- `D::Vector{Float64}`: Standardized treatment variable  
+- `X::Matrix{Float64}`: Standardized control variables (covariates)
+- `stats::StandardizationStats`: Standardization statistics
+- `n::Int`: Number of observations
+- `p::Int`: Number of control variables
+- `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
+- `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
 
-# Model Specification
-Uses hierarchical priors for adaptive shrinkage:
-- σ²_δ ~ InvGamma(2, 2) - variance hyperparameter for θ_Y
-- σ²_γ ~ InvGamma(2, 2) - variance hyperparameter for θ_D
-- θ_Y ~ N(0, σ²_δ*I) - coefficients for outcome equation
-- θ_D ~ N(0, σ²_γ*I) - coefficients for treatment equation
-- σ_U ~ Cauchy+(0, 2.5)
-- σ_V ~ Cauchy+(0, 2.5)
+# Model Specification (Section 4, Equations 12-13)
 
-For MCMC, uses LKJCholesky for correlation.
+**Reduced form:**
+    Y = X'δ + U          (Eq. 12)
+    D = X'γ + V          (Eq. 5)
+
+**Hierarchical priors:**
+- σ²_δ ~ InvGamma(2, 2)       [Variance hyperparameter for δ]
+- σ²_γ ~ InvGamma(2, 2)       [Variance hyperparameter for γ]
+- δ ~ N(0, σ²_δ·I_p)         [Outcome coefficients with adaptive shrinkage]
+- γ ~ N(0, σ²_γ·I_p)         [Treatment coefficients with adaptive shrinkage]
+- σ_U ~ Cauchy⁺(0, 2.5)       [Outcome error scale]
+- σ_V ~ Cauchy⁺(0, 2.5)       [Treatment error scale]
+- R ~ LKJ(4)                 [Correlation matrix]
+
 For VI, uses Beta(2,2) correlation parameterization.
 
-The hierarchical structure provides adaptive shrinkage on coefficients,
-which can improve performance when p is large relative to n.
+**Causal effect recovery:**
+    α = ρ·σ_U / σ_V            (Eq. 15)
+
+**Hierarchical structure:**
+This is equivalent to placing independent Student-t(4) distributions on each 
+coefficient marginally. The InvGamma(2, 2) hyperprior provides adaptive 
+shrinkage that learns the appropriate regularization from data (Section 6, Table 1).
+
+This can improve performance when p is large relative to n, and the paper's
+simulations show BDML-Hier achieves better coverage (0.94) than BDML-Basic (0.91-0.93).
 
 See also: [`BDMLBasicProblem`](@ref), [`BDMLProblem`](@ref)
+
+# References
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+  Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 """
 struct BDMLHierarchicalProblem <: AbstractBDMLProblem
     Y::Vector{Float64}
@@ -99,7 +141,8 @@ end
 """
     BDMLProblem(Y, D, X; model_type=:basic)
 
-Factory function to create appropriate BDML problem type.
+Factory function to create appropriate BDML problem type for Algorithm 1
+from DiTraglia & Liu (2025).
 
 Standardizes data once during creation and pre-allocates temporaries.
 This ensures data is only standardized once, even if fitted multiple times.
@@ -110,10 +153,27 @@ This ensures data is only standardized once, even if fitted multiple times.
 - `X::Matrix{Float64}`: Control variables (will be standardized)
 
 # Keyword Arguments
-- `model_type::Symbol=:basic`: :basic or :hier
+- `model_type::Symbol=:basic`: 
+  - `:basic` for BDML-Basic (fixed prior variances)
+  - `:hier` for BDML-Hier (adaptive hierarchical priors)
 
 # Returns
 `AbstractBDMLProblem`: Either `BDMLBasicProblem` or `BDMLHierarchicalProblem`
+
+# Algorithm 1 Variations
+
+**BDML-Basic** (`model_type=:basic`):
+- Places independent N(0, 25·I) priors on δ and γ
+- Fixed shrinkage across all covariates
+- Recommended for interpretability and simplicity
+
+**BDML-Hier** (`model_type=:hier`):
+- Places hierarchical InvGamma(2, 2) priors on σ²_δ and σ²_γ
+- Adaptive shrinkage equivalent to Student-t(4) on coefficients
+- Better coverage in simulations (Table 1: 0.94 vs 0.91-0.93)
+- Recommended as default choice
+
+Both variations recover α via Equation 15: α = ρ·σ_U / σ_V
 
 # Examples
 ```julia
@@ -131,6 +191,10 @@ result_vi = fit(prob_basic, UnifiedVIMethod())
 # Performance Notes
 Standardization is performed once during problem creation.
 Pre-allocated temporaries are sized to the data dimensions.
+
+# References
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+  Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1.
 
 See also: [`BDMLBasicProblem`](@ref), [`BDMLHierarchicalProblem`](@ref)
 """

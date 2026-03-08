@@ -49,7 +49,7 @@ function Base.summary(result::AbstractBDMLResult)
     print_method_info(io, result)
 
     # Diagnostics (MCMC vs VI specific)
-    if result isa BDMLResult
+    if result isa BDMLMCMCResult
         print_section_header(io, COLOR_MAGENTA, "MCMC Diagnostics")
         print_mcmc_diagnostics(io, result)
     elseif result isa BDMLVIResult
@@ -92,7 +92,7 @@ function print_model_info(io::IO, result::AbstractBDMLResult)
     return @printf io "  Standardization:  Y mean=%.3f, sd=%.3f; D mean=%.3f, sd=%.3f\n" stats.Y_mean stats.Y_sd stats.D_mean stats.D_sd
 end
 
-function print_method_info(io::IO, result::BDMLResult)
+function print_method_info(io::IO, result::BDMLMCMCResult)
     @printf io "  Method:           %s\n" "NUTS (No-U-Turn Sampler)"
     return @printf io "  Samples:          %d\n" length(result.alpha_samples)
 end
@@ -115,7 +115,7 @@ function print_causal_effect(io::IO, result::AbstractBDMLResult)
     @printf io "  95%% CI:           [%s%.4f%s, %s%.4f%s]\n" COLOR_BOLD ci[1] COLOR_RESET COLOR_BOLD ci[2] COLOR_RESET
 
     # Add HPD interval for MCMC results (more appropriate for skewed posteriors)
-    return if result isa BDMLResult
+    return if result isa BDMLMCMCResult
         try
             hpd = hpd_interval(result.alpha_samples)
             @printf io "  95%% HPD:          [%s%.4f%s, %s%.4f%s]\n" COLOR_BOLD hpd[1] COLOR_RESET COLOR_BOLD hpd[2] COLOR_RESET
@@ -125,7 +125,7 @@ function print_causal_effect(io::IO, result::AbstractBDMLResult)
     end
 end
 
-function print_mcmc_diagnostics(io::IO, result::BDMLResult)
+function print_mcmc_diagnostics(io::IO, result::BDMLMCMCResult)
     # Get chain info
     info = chain_info(result)
     @printf io "  Chains:           %d\n" info.n_chains

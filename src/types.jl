@@ -26,7 +26,7 @@ struct StandardizationStats
     X_sd::Vector{Float64}
 end
 
-struct BDMLResult <: AbstractBDMLResult
+struct BDMLMCMCResult <: AbstractBDMLResult
     chain::MCMCChains.Chains
     alpha_samples::Vector{Float64}
     alpha_samples_standardized::Vector{Float64}

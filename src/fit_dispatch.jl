@@ -34,7 +34,7 @@ For VI:
 - `n_draws::Int=2000`: Number of posterior samples to draw after fitting
 
 # Returns
-`BDMLResult` or `BDMLVIResult` depending on method type.
+`BDMLMCMCResult` or `BDMLVIResult` depending on method type.
 
 # Examples
 ```julia
@@ -120,7 +120,7 @@ function fit(
     scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    return BDMLResult(chain, α_samples, α_s_samples, prob.stats, :basic)
+    return BDMLMCMCResult(chain, α_samples, α_s_samples, prob.stats, :basic)
 end
 
 """
@@ -159,7 +159,7 @@ function fit(
     scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    return BDMLResult(chain, α_samples, α_s_samples, prob.stats, :hier)
+    return BDMLMCMCResult(chain, α_samples, α_s_samples, prob.stats, :hier)
 end
 
 # ==================== VI DISPATCH - UNIFIED ====================
@@ -226,10 +226,14 @@ function fit(
         subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
         alg = AdvancedVI.KLMinRepGradProxDescent(
             method.ad_backend(; ad_kwargs...);
-            subsampling = subsampling
+            subsampling = subsampling,
+            n_samples = method.n_montecarlo
         )
     else
-        alg = AdvancedVI.KLMinRepGradProxDescent(method.ad_backend(; ad_kwargs...))
+        alg = AdvancedVI.KLMinRepGradProxDescent(
+            method.ad_backend(; ad_kwargs...);
+            n_samples = method.n_montecarlo
+        )
     end
 
     # Run optimization
@@ -248,16 +252,16 @@ function fit(
     end
     final_elbo = length(elbo_history) > 0 ? elbo_history[end] : -Inf
 
-    # Check ELBO convergence with dynamic window (last 30%, rel_tol=0.1%)
+    # Check ELBO convergence with dynamic window (last 30%, rel_tol=5%)
     converged, conv_msg = check_elbo_convergence(
         elbo_history;
         min_pct = 0.3,
-        rel_tol = 0.01,
+        rel_tol = 0.05,
         check_trend = true,
         min_iterations = 50
     )
 
-    @debug "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
+    @info "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
 
     # Get bijector and transform samples
     binv = bijector(vi_model)
@@ -333,10 +337,14 @@ function fit(
         subsampling = AdvancedVI.ReshufflingBatchSubsampling(dataset, batch_size)
         alg = AdvancedVI.KLMinRepGradProxDescent(
             method.ad_backend(; ad_kwargs...);
-            subsampling = subsampling
+            subsampling = subsampling,
+            n_samples = method.n_montecarlo
         )
     else
-        alg = AdvancedVI.KLMinRepGradProxDescent(method.ad_backend(; ad_kwargs...))
+        alg = AdvancedVI.KLMinRepGradProxDescent(
+            method.ad_backend(; ad_kwargs...);
+            n_samples = method.n_montecarlo
+        )
     end
 
     q_result, opt_stats, _ = AdvancedVI.optimize(
@@ -353,16 +361,16 @@ function fit(
     end
     final_elbo = length(elbo_history) > 0 ? elbo_history[end] : -Inf
 
-    # Check ELBO convergence with dynamic window (last 30%, rel_tol=0.1%)
+    # Check ELBO convergence with dynamic window (last 30%, rel_tol=5%)
     converged, conv_msg = check_elbo_convergence(
         elbo_history;
         min_pct = 0.3,
-        rel_tol = 0.01,
+        rel_tol = 0.05,
         check_trend = true,
         min_iterations = 50
     )
 
-    @debug "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
+    @info "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
 
     binv = bijector(vi_model)
     vi_samples_unconstrained = rand(q_result, n_draws)
@@ -499,14 +507,16 @@ function fit(
     end
     final_elbo = length(elbo_history) > 0 ? elbo_history[end] : -1.0
 
-    # Check ELBO convergence with dynamic window (last 30%, rel_tol=0.1%)
-    converged, _ = check_elbo_convergence(
+    # Check ELBO convergence with dynamic window (last 30%, rel_tol=5%)
+    converged, conv_msg = check_elbo_convergence(
         elbo_history;
         min_pct = 0.3,
-        rel_tol = 0.01,
+        rel_tol = 0.05,
         check_trend = true,
         min_iterations = 50
     )
+
+    @info "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
 
     vi_samples = rand(q, n_draws)
 

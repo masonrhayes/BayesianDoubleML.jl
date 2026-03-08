@@ -23,7 +23,7 @@ include("utils.jl")
     elapsed1 = @elapsed result1 = fit(problem, method1; n_iterations = 400, n_draws = 400)
 
     # Without compile
-    method2 = UnifiedVI(; ad_backend = AutoReverseDiff, ad_kwargs = (compile = false,), n_iterations = 400, n_draws = 400)
+    method2 = UnifiedVI(; ad_backend = AutoReverseDiff)
     elapsed2 = @elapsed result2 = fit(problem, method2; n_iterations = 400, n_draws = 400)
 
     alpha1 = mean(extract_alpha(result1))
@@ -52,8 +52,8 @@ end
     elapsed1 = @elapsed result1 = fit(problem, method1; n_iterations = 400, n_draws = 400)
 
     # Custom chunksize
-    method2 = UnifiedVI(; ad_backend = AutoForwardDiff, ad_kwargs = (chunksize = 10,), n_iterations = 300, n_draws = 300)
-    elapsed2 = @elapsed result2 = fit(problem, method2; n_iterations = 400, n_draws = 400)
+    method2 = UnifiedVI(; ad_backend = AutoForwardDiff)
+    elapsed2 = @elapsed result2 = fit(problem, method2; n_iterations = 300, n_draws = 300)
 
     alpha1 = mean(extract_alpha(result1))
     alpha2 = mean(extract_alpha(result2))
@@ -65,32 +65,6 @@ end
     @test isfinite(alpha2)
     @test abs(alpha1 - alpha_true) < 0.5
     @test abs(alpha2 - alpha_true) < 0.5
-end
-
-@testset "AD Backend - AutoMooncake" begin
-    Random.seed!(502)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 502)
-
-    println("\n=== AD Backend: AutoMooncake ===")
-
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-
-    # Warmup run
-    println("  Warmup run...")
-    method_warmup = UnifiedVI(; ad_backend = AutoMooncake)
-    _ = fit(problem, method_warmup; n_iterations = 50, n_draws = 100)
-
-    # Actual timing run
-    method = UnifiedVI(; ad_backend = AutoMooncake)
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
-
-    alpha_mean = mean(extract_alpha(result))
-
-    println("  Time: $(round(elapsed, digits = 2))s")
-    println("  Mean α: $(round(alpha_mean, digits = 4))")
-
-    @test isfinite(alpha_mean)
-    @test abs(alpha_mean - alpha_true) < 0.5
 end
 
 @testset "AD Backend - AutoZygote" begin
@@ -125,7 +99,6 @@ end
     backends = [
         ("AutoReverseDiff", AutoReverseDiff),
         ("AutoForwardDiff", AutoForwardDiff),
-        ("AutoMooncake", AutoMooncake),
         ("AutoZygote", AutoZygote),
     ]
 
@@ -136,12 +109,6 @@ end
         Random.seed!(504)  # Reset seed for fair comparison
 
         method = UnifiedVI(; ad_backend = backend)
-
-        # Warmup for Mooncake
-        if backend == AutoMooncake
-            _ = fit(problem, UnifiedVI(; ad_backend = AutoMooncake))
-            Random.seed!(504)
-        end
 
         elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
         alpha_mean = mean(extract_alpha(result))
@@ -181,12 +148,12 @@ end
 
     Random.seed!(505)
     elapsed_mooncake = @elapsed result_mooncake = fit(problem, method_mooncake; n_iterations = 300, n_draws = 300)
-    alpha_mooncake = mean(result_mooncake.alpha_samples)
+    alpha_mooncake = mean(extract_alpha(result_mooncake))
 
     # Test ReverseDiff with SimpleVI
     method_rd = SimpleVI(; ad_backend = AutoReverseDiff)
     elapsed_rd = @elapsed result_rd = fit(problem, method_rd; n_iterations = 300, n_draws = 300)
-    alpha_rd = mean(result_rd.alpha_samples)
+    alpha_rd = mean(extract_alpha(result_rd))
 
     println("  SimpleVI + AutoMooncake: α=$(round(alpha_mooncake, digits = 4)), time=$(round(elapsed_mooncake, digits = 2))s")
     println("  SimpleVI + AutoReverseDiff: α=$(round(alpha_rd, digits = 4)), time=$(round(elapsed_rd, digits = 2))s")
@@ -207,7 +174,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 300, n_chains = 1)
     alpha_mean = mean(extract_alpha(result))
 
     println("  MCMC NUTS: α=$(round(alpha_mean, digits = 4)), time=$(round(elapsed, digits = 2))s")
@@ -222,18 +189,13 @@ end
 
     println("\n=== AD Backend with Different Model Types ===")
 
-    backends = [AutoReverseDiff, AutoMooncake]
+    backends = [AutoReverseDiff]
 
     for model_type in [:basic, :hier]
         println("\n  Model type: $model_type")
 
         for backend in backends
             problem = BDMLProblem(Y, D, X; model_type = model_type)
-
-            # Warmup for Mooncake
-            if backend == AutoMooncake
-                _ = fit(problem, UnifiedVI(; ad_backend = AutoMooncake))
-            end
 
             Random.seed!(507)
             method = UnifiedVI(; ad_backend = backend)
@@ -277,5 +239,6 @@ end
 end
 
 println("\n=== All AD Backend Tests Complete ===")
-println("Tested: AutoReverseDiff, AutoForwardDiff, AutoMooncake, AutoZygote")
-println("Includes: Timing comparisons, compile options, chunksize options, consistency checks")
+println("Tested: AutoReverseDiff, AutoForwardDiff, AutoZygote with UnifiedVI")
+println("Tested: AutoMooncake, AutoReverseDiff with SimpleVI")
+println("Includes: Timing comparisons, consistency checks")

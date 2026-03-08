@@ -16,28 +16,28 @@ using DataFrames
 function load_plr_data()
     data_path = joinpath(@__DIR__, "data", "make_plr_CCDDHNR2018_n500_p20.csv")
     @test isfile(data_path) "Data file not found at $data_path"
-    
+
     df = CSV.read(data_path, DataFrame)
     Y = df.y
     D = df.d
     X_cols = filter(col -> startswith(string(col), "X"), names(df))
     X = Matrix(df[:, X_cols])
-    
+
     return Y, D, X, data_path
 end
 
 function load_irm_data()
     data_path = joinpath(@__DIR__, "data", "make_irm_data_n500_p20.csv")
     @test isfile(data_path) "Data file not found at $data_path"
-    
+
     df = CSV.read(data_path, DataFrame)
     Y = df.y
     D = df.d
     X_cols = filter(col -> startswith(string(col), "X"), names(df))
     X = Matrix(df[:, X_cols])
-    
+
     @test all(D .∈ Ref([0.0, 1.0])) "D should be binary for IRM"
-    
+
     return Y, D, X, data_path
 end
 
@@ -60,7 +60,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test length(result.alpha_samples) >= 500
 
     alpha_mean = mean(extract_alpha(result))
@@ -96,7 +96,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
 
     alpha_mean = mean(extract_alpha(result))
     ci = credible_interval(result)
@@ -124,7 +124,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 300, n_warmup = 200)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test length(result.alpha_samples) >= 300
 
     alpha_mean = mean(extract_alpha(result))
@@ -149,7 +149,7 @@ end
 
     elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
 
-    @test result isa BDMLResult
+    @test result isa BDMLMCMCResult
     @test result.model_type == :basic
 
     alpha_mean = mean(extract_alpha(result))
@@ -196,15 +196,15 @@ end
 
     ct = coeftable(result)
 
-    @test ct isa CoefTable
+    @test ct isa BDMLCoeftable
 
-    alpha_idx = findfirst(contains("alpha"), ct.rownms)
+    alpha_idx = findfirst(contains("α"), ct.coefnames)
     @test alpha_idx !== nothing
 
-    alpha_estimate = ct.mat[alpha_idx, 1]
-    alpha_stderror = ct.mat[alpha_idx, 2]
+    alpha_estimate = ct.coef[alpha_idx]
+    alpha_stderror = ct.stderror[alpha_idx]
 
-    println("  Coefficient table: $(length(ct.rownms)) parameters")
+    println("  Coefficient table: $(length(ct.coefnames)) parameters")
     println("  Alpha estimate: $(round(alpha_estimate, digits = 4))")
     println("  Alpha std error: $(round(alpha_stderror, digits = 4))")
 end
@@ -344,14 +344,14 @@ end
 
     ct = coeftable(result)
 
-    @test ct isa CoefTable
+    @test ct isa BDMLCoeftable
 
-    alpha_idx = findfirst(contains("alpha"), ct.rownms)
+    alpha_idx = findfirst(contains("α"), ct.coefnames)
     @test alpha_idx !== nothing
 
-    alpha_estimate = ct.mat[alpha_idx, 1]
+    alpha_estimate = ct.coef[alpha_idx]
 
-    println("  Coefficient table: $(length(ct.rownms)) parameters")
+    println("  Coefficient table: $(length(ct.coefnames)) parameters")
     println("  Alpha estimate: $(round(alpha_estimate, digits = 4))")
 end
 

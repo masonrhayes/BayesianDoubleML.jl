@@ -320,7 +320,7 @@ end
 # Note: credible_interval(::BDMLVIResult) is defined in the unified implementation (src/vi/)
 # We don't redefine it here to avoid method overwriting
 
-# Extend existing credible_interval function for BDMLResult
-function credible_interval(result::BDMLResult; level::Float64 = 0.95)
+# Extend existing credible_interval function for BDMLMCMCResult
+function credible_interval(result::BDMLMCMCResult; level::Float64 = 0.95)
     return credible_interval(result.alpha_samples; level = level)
 end

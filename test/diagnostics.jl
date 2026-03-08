@@ -6,6 +6,7 @@ using BayesianDoubleML
 using Test
 using Random
 using Statistics
+using LinearAlgebra
 
 # Load test utilities
 include("utils.jl")
@@ -62,29 +63,27 @@ end
     println("  ✓ Posterior summary works correctly")
 end
 
-@testset "coeftable for BDMLResult (MCMC)" begin
+@testset "coeftable for BDMLMCMCResult (MCMC)" begin
     Random.seed!(702)
     Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 702)
 
-    println("\n=== coeftable: BDMLResult (MCMC) ===")
+    println("\n=== coeftable: BDMLMCMCResult (MCMC) ===")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200)
 
     ct = coeftable(result)
 
-    @test ct isa CoefTable
-    @test length(ct.rownms) >= 1  # At least alpha parameter
-    @test length(ct.colnms) >= 4   # Estimate, Std Error, z value, Pr(>|z|)
+    @test ct isa BDMLCoeftable
+    @test length(ct.coefnames) >= 1  # At least alpha parameter
 
     # Find alpha row
-    alpha_idx = findfirst(contains("alpha"), ct.rownms)
+    alpha_idx = findfirst(contains("α"), ct.coefnames)
     @test alpha_idx !== nothing
 
-    println("  Coefficient table rows: $(length(ct.rownms))")
-    println("  Coefficient table cols: $(length(ct.colnms))")
-    println("  Alpha estimate: $(round(ct.mat[alpha_idx, 1], digits = 4))")
+    println("  Coefficient table rows: $(length(ct.coefnames))")
+    println("  Alpha estimate: $(round(ct.coef[alpha_idx], digits = 4))")
     println("  ✓ coeftable works for MCMC results")
 end
 
@@ -100,15 +99,14 @@ end
 
     ct = coeftable(result)
 
-    @test ct isa CoefTable
-    @test length(ct.rownms) >= 1
-    @test length(ct.colnms) >= 4
+    @test ct isa BDMLCoeftable
+    @test length(ct.coefnames) >= 1
 
-    alpha_idx = findfirst(contains("alpha"), ct.rownms)
+    alpha_idx = findfirst(contains("α"), ct.coefnames)
     @test alpha_idx !== nothing
 
-    println("  Coefficient table rows: $(length(ct.rownms))")
-    println("  Alpha estimate: $(round(ct.mat[alpha_idx, 1], digits = 4))")
+    println("  Coefficient table rows: $(length(ct.coefnames))")
+    println("  Alpha estimate: $(round(ct.coef[alpha_idx], digits = 4))")
     println("  ✓ coeftable works for VI results")
 end
 
@@ -120,7 +118,7 @@ end
 
     # MCMC
     problem_mcmc = BDMLProblem(Y, D, X; model_type = :hier)
-    result_mcmc = fit(problem_mcmc, MCMCNUTS(; n_samples = 200, n_warmup = 100))
+    result_mcmc = fit(problem_mcmc, MCMCMethod(:nuts), n_samples = 200)
 
     ci_mcmc = confint(result_mcmc)
     @test length(ci_mcmc) == 2
@@ -147,8 +145,8 @@ end
 
     # MCMC with multiple chains for ESS calculation
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100, n_chains = 2)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200, n_chains = 2)
 
     # ESS function should exist and return positive value
     ess_value = ess(result)
@@ -169,8 +167,8 @@ end
     println("\n=== Monte Carlo Standard Error (MCSE) ===")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200)
 
     # MCSE should exist and be positive
     mcse_value = mcse(result)
@@ -193,8 +191,8 @@ end
     println("\n=== P-values ===")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200)
 
     # pvalues function
     pval = pvalues(result)
@@ -240,8 +238,8 @@ end
     println("\n=== Convergence Diagnostics ===")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100, n_chains = 2)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200, n_chains = 2)
 
     # R-hat (potential scale reduction factor)
     rhat = rhat_statistic(result)
@@ -282,16 +280,16 @@ end
     println("\n=== StatsAPI Integration ===")
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    method = MCMCMethod(:nuts)
+    result = fit(problem, method; n_samples = 200)
 
     # Test StatsAPI functions work
-    @test coef(result) isa AbstractVector
-    @test stderror(result) isa AbstractVector
-    @test vcov(result) isa AbstractMatrix
+    @test BayesianDoubleML.coef(result) isa AbstractVector
+    @test BayesianDoubleML.stderror(result) isa AbstractVector
+    @test BayesianDoubleML.vcov(result) isa AbstractMatrix
 
-    println("  coef: $(round.(coef(result), digits = 4))")
-    println("  stderror: $(round.(stderror(result), digits = 4))")
+    println("  coef: $(round.(BayesianDoubleML.coef(result), digits = 4))")
+    println("  stderror: $(round.(BayesianDoubleML.stderror(result), digits = 4))")
     println("  ✓ StatsAPI integration works")
 end
 

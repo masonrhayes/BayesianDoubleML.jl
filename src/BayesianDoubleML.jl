@@ -10,15 +10,19 @@ export fit, BDMLProblem,
     # Accessors
     nobs, ncovariates, model_type, standardization_stats,
     # Results
-    extract_alpha, BDMLData, AbstractBDMLResult, BDMLResult, BDMLVIResult,
+    extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult,
     # Coeftable
-    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, effective_sample_size, rhat, chain_info,
+    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
+    # StatsAPI functions
+    coef, stderror, vcov,
     # Summary
     summary,
     # Utilities
     credible_interval, check_convergence,
     # AD backends
-    AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoEnzyme, AutoMooncake
+    AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoEnzyme, AutoMooncake,
+    # DGP
+    generate_dgp_table1
 
 using Turing
 using Turing.Variational
@@ -70,5 +74,9 @@ include("vi_simple/fit_vi.jl")
 
 # Summary and visualization
 include("summary.jl")
+
+# Data Generating Processes (for simulations)
+include("datasets/dgp.jl")
+using .DGP
 
 end

@@ -6,14 +6,82 @@ A Julia package for Bayesian inference in Double Machine Learning (DML) models u
 
 ## Overview
 
-BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the Double Machine Learning (Chernozhukov et al., 2018) framework. The package supports both exact MCMC inference and fast approximate VI, with multiple backend options including AutoReverseDiff, AutoMooncake, AutoZygote, and AutoForwardDiff.
+BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework demonstrated in DiTraglia & Liu (2025). It represens a Bayesian alterantive to the (Frequentist) Double Machine Learning framework (Chernozhukov et al., 2018). 
+
+The package supports both MCMC inference (as per DiTraglia & Liu (2025)), as well as fast, approximate Bayesian inference with Variational Inference methods, with multiple automatic differentiation backend options including AutoReverseDiff, AutoMooncake, AutoZygote, and AutoForwardDiff.
+
+## Paper Reference
+
+This package implements the **Bayesian Double Machine Learning (BDML)** method from:
+
+> **DiTraglia, F.J. & Liu, L. (2025).** "Bayesian Double Machine Learning for Causal Inference". arXiv:2508.12688v1.
+
+The implementation follows **Algorithm 1** from Section 4 of the paper, which uses a bivariate reduced form parameterization to avoid regularization-induced confounding (RIC).
+
+### Notation Mapping
+
+| Paper             | This Package        | Description                                            |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| **α**      | `alpha` or `α` | Causal effect of treatment on outcome                  |
+| **δ**      | `δ`              | Reduced form coefficients: Y on X (Eq. 12)             |
+| **γ**      | `γ`              | Reduced form coefficients: D on X (Eq. 5)              |
+| **Σ**      | `Σ`              | Error covariance matrix [σ²_U, σ_UV; σ_UV, σ²_V] |
+| **ρ**      | `ρ`              | Correlation between reduced form errors U and V        |
+| **σ_U**    | `σ_U`            | Std dev of outcome reduced form error                  |
+| **σ_V**    | `σ_V`            | Std dev of treatment reduced form error                |
+| **σ²_δ** | `σ²_δ`         | Hierarchical variance hyperparameter for δ            |
+| **σ²_γ** | `σ²_γ`         | Hierarchical variance hyperparameter for γ            |
+
+### The Bivariate Reduced Form Model
+
+The BDML approach avoids regularization-induced confounding via:
+
+```
+Y = X'δ + U          (Equation 12: Outcome reduced form)
+D = X'γ + V          (Equation 5: Treatment reduced form)
+
+[U; V] | X ~ N(0, Σ)  (Equation 13: Bivariate normal errors)
+```
+
+The causal effect α is recovered from error covariance (Equation 15):
+
+```
+α = Cov(U, V) / Var(V) = ρ·σ_U / σ_V
+```
+
+### Algorithm 1 Variations
+
+Two variations of Algorithm 1 are implemented:
+
+**BDML-Basic** (`model_type=:basic`):
+
+- Fixed prior variances: δ, γ ~ N(0, 25·I)
+- Corresponds to "BDML-Basic" in paper Table 1
+- Coverage: ~0.91-0.93 in simulations
+
+**BDML-Hier** (`model_type=:hier`):
+
+- Hierarchical priors: σ²_δ, σ²_γ ~ InvGamma(2, 2)
+- Adaptive shrinkage equivalent to Student-t(4) on coefficients
+- Corresponds to "BDML-Hier" in paper Table 1
+- Coverage: ~0.94 in simulations (recommended default)
+
+Both use:
+
+- σ_U, σ_V ~ Cauchy⁺(0, 2.5)
+- R ~ LKJ(4) for correlation matrix
+
+### Key References
+
+- DiTraglia & Liu (2025): [arXiv:2508.12688v1](https://arxiv.org/abs/2508.12688)
+- Chernozhukov et al. (2018): Original DML framework
 
 ### Key Features
 
 - **Causal Inference**: Estimate treatment effects α with uncertainty quantification
 - **Multiple Dispatch Interface**: Unified `fit(problem, method)` API for all algorithms
 - **MCMC Samplers**: NUTS and HMC with convergence diagnostics
-- **Variational Inference**: 
+- **Variational Inference**:
   - Unified VI (AdvancedVI with explicit bijectors) - supports subsampling for large datasets
   - Simple VI (Turing's native ADVI) - optimized for production use
 - **Multiple AD Backends**: ReverseDiff, Mooncake, Zygote, ForwardDiff
@@ -162,11 +230,13 @@ mcse(result.alpha_samples)
 ### Method Types
 
 **MCMC:**
+
 - `MCMCMethod(algorithm; kwargs...)` - Generic MCMC method
 - `MCMCNUTS(; target_acceptance=0.8, max_depth=10)` - NUTS sampler
 - `MCMCHMC(; leapfrog_steps=10, step_size=0.1)` - HMC sampler
 
 **VI:**
+
 - `UnifiedVIMethod(; ad_backend=AutoReverseDiff, subsample=nothing, batch_size=-1)` - AdvancedVI
 - `SimpleVIMethod(; ad_backend=AutoMooncake)` - Turing's native VI
 - `UnifiedVI()` - Convenience alias
@@ -238,6 +308,7 @@ test/                     # Test suite (to be implemented)
 ### Large Datasets (n > 10,000)
 
 Use UnifiedVIMethod with subsampling (auto-enabled):
+
 ```julia
 result = fit(problem, UnifiedVIMethod())  # Auto-subsamples when n >= 10000
 ```
@@ -267,11 +338,18 @@ For very large datasets, the MCMC chains can consume significant memory. Use VI 
 
 ## References
 
-Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., & Robins, J. (2018). Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21(1), C1-C68.
+**Primary Method:**
+
+- DiTraglia, F.J. & Liu, L. (2025). [Bayesian Double Machine Learning for Causal Inference](https://arxiv.org/abs/2508.12688). arXiv:2508.12688v1.
+
+**Original Framework:**
+
+- Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., & Robins, J. (2018). [Double/debiased machine learning for treatment and structural parameters](https://doi.org/10.1111/ectj.12097). The Econometrics Journal, 21(1), C1-C68.
 
 ## Contributing
 
 Contributions are welcome! Please see the development guidelines:
+
 - Follow the SciML Style Guide
 - Use 4 spaces for indentation
 - Maintain type stability
@@ -285,6 +363,7 @@ MIT License - see LICENSE file for details.
 ## Acknowledgments
 
 This package builds on the Julia probabilistic programming ecosystem:
+
 - Turing.jl for the PPL framework
 - AdvancedVI.jl for variational inference algorithms
 - LogDensityProblems.jl for the log density interface

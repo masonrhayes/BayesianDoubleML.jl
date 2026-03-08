@@ -4,12 +4,23 @@
 """
     extract_alpha(vi_samples::Matrix{Float64}, p::Int, model_type::Symbol)
 
-Extract α samples from VI posterior samples matrix.
+Extract α samples from VI posterior samples matrix using paper's Equation 15.
+
+# Mathematical Derivation (DiTraglia & Liu 2025, Section 4)
+
+From the bivariate reduced form model (Equations 13-15):
+    Y = X'δ + U,  where U = ε + αV   (Eq. 12)
+    D = X'γ + V                      (Eq. 5)
+
+The causal effect α is recovered from error covariance:
+    α = Cov(U, V) / Var(V) = σ_UV / σ²_V   (Eq. 15)
 
 For VI models, the correlation is parameterized as ρ_raw ~ Beta(2, 2) on [0, 1],
 then transformed to ρ = 2*ρ_raw - 1 on [-1, 1].
 
-The samples are in CONSTRAINED space (already transformed by bijectors).
+Therefore:
+    α = ρ * σ_U / σ_V
+      = (2*ρ_raw - 1) * σ_U / σ_V
 
 # Arguments
 - `vi_samples::Matrix{Float64}`: Samples from variational posterior (parameters × samples)
@@ -17,7 +28,21 @@ The samples are in CONSTRAINED space (already transformed by bijectors).
 - `model_type::Symbol`: :basic or :hier
 
 # Returns
-- `Vector{Float64}`: Alpha samples (α = ρ * σ_U / σ_V)
+- `Vector{Float64}`: Alpha samples (α = ρ·σ_U / σ_V)
+
+# Parameter Indexing
+
+For hierarchical models:
+- [σ²_δ, σ²_γ, δ(1:p), γ(1:p), σ_U, σ_V, ρ_raw]
+- Indices: σ²_δ=1, σ²_γ=2, δ=3:(2+p), γ=(3+p):(2+2p), σ_U=(3+2p), σ_V=(4+2p), ρ_raw=(5+2p)
+
+For basic models:
+- [δ(1:p), γ(1:p), σ_U, σ_V, ρ_raw]
+- Indices: δ=1:p, γ=(p+1):2p, σ_U=(2p+1), σ_V=(2p+2), ρ_raw=(2p+3)
+
+# References
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+  Causal Inference", arXiv:2508.12688v1, Section 4, Equation 15.
 """
 function extract_alpha(vi_samples::Matrix{Float64}, p::Int, model_type::Symbol)
     n_samples = size(vi_samples, 2)
@@ -25,12 +50,12 @@ function extract_alpha(vi_samples::Matrix{Float64}, p::Int, model_type::Symbol)
 
     # Calculate parameter indices
     if model_type == :hier
-        # Hierarchical: [σ²_δ, σ²_γ, θ_Y..., θ_D..., σ_U, σ_V, ρ_raw]
+        # Hierarchical: [σ²_δ, σ²_γ, δ(1:p), γ(1:p), σ_U, σ_V, ρ_raw]
         σ_U_idx = 3 + 2 * p
         σ_V_idx = 4 + 2 * p
         ρ_raw_idx = 5 + 2 * p
     else
-        # Basic: [θ_Y..., θ_D..., σ_U, σ_V, ρ_raw]
+        # Basic: [δ(1:p), γ(1:p), σ_U, σ_V, ρ_raw]
         σ_U_idx = 2 * p + 1
         σ_V_idx = 2 * p + 2
         ρ_raw_idx = 2 * p + 3
@@ -47,10 +72,10 @@ function extract_alpha(vi_samples::Matrix{Float64}, p::Int, model_type::Symbol)
         σ_V = vi_samples[σ_V_idx, i]
         ρ_raw = vi_samples[ρ_raw_idx, i]
 
-        # Transform ρ from [0, 1] to [-1, 1]
+        # Transform ρ from [0, 1] to [-1, 1] using paper's parameterization
         ρ = 2 * ρ_raw - 1
 
-        # Compute alpha
+        # Compute alpha using Equation 15: α = ρ·σ_U / σ_V
         α_samples[i] = ρ * σ_U / σ_V
     end
 
