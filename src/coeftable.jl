@@ -61,8 +61,38 @@ function compute_pvalue(samples::Vector{Float64})
     return min(pval, 1.0)
 end
 
-# Coeftable struct - follows StatsAPI conventions but doesn't inherit from RegressionTable
-# (RegressionTable is not available in all StatsAPI versions)
+"""
+    BDMLCoeftable
+
+Coefficient table following StatsAPI conventions for regression results.
+
+Stores parameter estimates, standard errors, credible intervals, and diagnostics
+for Bayesian Double Machine Learning models.
+
+# Fields
+- `coefnames::Vector{String}`: Parameter names
+- `coef::Vector{Float64}`: Point estimates
+- `stderror::Vector{Float64}`: Standard errors
+- `mcse::Vector{Float64}`: Monte Carlo standard errors
+- `cilower::Vector{Float64}`: Lower bound of credible interval
+- `ciupper::Vector{Float64}`: Upper bound of credible interval
+- `pvalue::Vector{Float64}`: Two-sided p-values
+- `ess::Vector{Float64}`: Effective sample sizes (MCMC only)
+- `elbo::Union{Float64, Nothing}`: Final ELBO value (VI only)
+- `level::Float64`: Credible interval level (e.g., 0.95)
+- `nsamples::Int`: Number of posterior samples
+- `model_type::Symbol`: :basic or :hier
+- `method_type::Symbol`: :mcmc or :vi
+
+# Usage
+```julia
+result = fit(problem, MCMCNUTS())
+ct = coeftable(result)
+println(ct)  # Pretty-printed table
+```
+
+See also: [`coeftable`](@ref), [`coef`](@ref), [`stderror`](@ref)
+"""
 struct BDMLCoeftable
     coefnames::Vector{String}
     coef::Vector{Float64}
@@ -379,13 +409,35 @@ end
     coef(result::AbstractBDMLResult)
 
 Return coefficient estimates from a BDML result.
+
+This function extracts the point estimates for all parameters from the fitted model.
+For BDML models, this primarily returns the causal effect α.
+
+# Arguments
+- `result::AbstractBDMLResult`: A fitted BDML result (MCMC or VI)
+
+# Returns
+- `Vector{Float64}`: Coefficient estimates
+
+# Examples
+```julia
+result = fit(problem, MCMCNUTS())
+estimates = coef(result)
+```
+
+See also: [`stderror`](@ref), [`vcov`](@ref), [`coeftable`](@ref)
 """
 function StatsAPI.coef(result::AbstractBDMLResult)
     ct = coeftable(result)
     return ct.coef
 end
 
-# Module-level wrapper
+# Module-level wrapper with docstring
+"""
+    coef(result::AbstractBDMLResult)
+
+Module-level wrapper for `StatsAPI.coef`. See `StatsAPI.coef` for details.
+"""
 function coef(result::AbstractBDMLResult)
     return StatsAPI.coef(result)
 end
@@ -394,13 +446,36 @@ end
     stderror(result::AbstractBDMLResult)
 
 Return standard errors from a BDML result.
+
+Computes the standard errors for all parameter estimates. For MCMC results,
+this is based on the posterior standard deviation. For VI results, this is
+based on the variational posterior approximation.
+
+# Arguments
+- `result::AbstractBDMLResult`: A fitted BDML result (MCMC or VI)
+
+# Returns
+- `Vector{Float64}`: Standard errors for each parameter
+
+# Examples
+```julia
+result = fit(problem, MCMCNUTS())
+se = stderror(result)
+```
+
+See also: [`coef`](@ref), [`vcov`](@ref), [`coeftable`](@ref)
 """
 function StatsAPI.stderror(result::AbstractBDMLResult)
     ct = coeftable(result)
     return ct.stderror
 end
 
-# Module-level wrapper
+# Module-level wrapper with docstring
+"""
+    stderror(result::AbstractBDMLResult)
+
+Module-level wrapper for `StatsAPI.stderror`. See `StatsAPI.stderror` for details.
+"""
 function stderror(result::AbstractBDMLResult)
     return StatsAPI.stderror(result)
 end
@@ -408,7 +483,25 @@ end
 """
     vcov(result::AbstractBDMLResult)
 
-Return variance-covariance matrix (diagonal only for single parameter α).
+Return variance-covariance matrix from a BDML result.
+
+For BDML models with a single causal effect parameter α, returns a 1×1 diagonal
+matrix containing the variance. For models with multiple parameters, returns
+the full variance-covariance matrix.
+
+# Arguments
+- `result::AbstractBDMLResult`: A fitted BDML result (MCMC or VI)
+
+# Returns
+- `Diagonal{Float64}`: Variance-covariance matrix
+
+# Examples
+```julia
+result = fit(problem, MCMCNUTS())
+varcov = vcov(result)
+```
+
+See also: [`coef`](@ref), [`stderror`](@ref), [`coeftable`](@ref)
 """
 function StatsAPI.vcov(result::AbstractBDMLResult)
     ct = coeftable(result)
@@ -416,7 +509,12 @@ function StatsAPI.vcov(result::AbstractBDMLResult)
     return Diagonal(ct.stderror .^ 2)
 end
 
-# Module-level wrapper
+# Module-level wrapper with docstring
+"""
+    vcov(result::AbstractBDMLResult)
+
+Module-level wrapper for `StatsAPI.vcov`. See `StatsAPI.vcov` for details.
+"""
 function vcov(result::AbstractBDMLResult)
     return StatsAPI.vcov(result)
 end

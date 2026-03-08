@@ -37,7 +37,7 @@ parameterization avoids the LKJCholesky structure.
 - For causal inference, α = ρ·σ_U / σ_V is computed post-hoc from posteriors
 - This implements BDML-Basic variation of Algorithm 1
 
-See also: [`bdml_basic`](@ref), [`bdml_hier_vi`](@ref)
+See also: `bdml_basic`, `bdml_hier_vi`
 """
 @model function bdml_basic_vi(Y, D, X)
     n, p = size(X)
@@ -127,7 +127,7 @@ shrinkage that learns the appropriate regularization from the data.
 - This implements BDML-Hier variation of Algorithm 1
 - Provides adaptive shrinkage compared to BDML-Basic
 
-See also: [`bdml_hier`](@ref), [`bdml_basic_vi`](@ref)
+See also: `bdml_hier`, `bdml_basic_vi`
 """
 @model function bdml_hier_vi(Y, D, X)
     n, p = size(X)
@@ -189,7 +189,7 @@ Best for: p > 50 with AutoReverseDiff(; compile=true)
 
 Implements BDML-Basic variation of Algorithm 1 with paper notation.
 
-See: [`bdml_basic_vi`](@ref), [`bdml_basic`](@ref)
+See: `bdml_basic_vi`, `bdml_basic`
 """
 @model function bdml_basic_vi_rd(Y, D, X)
     n, p = size(X)
@@ -250,7 +250,7 @@ Best for: p > 50 with AutoReverseDiff(; compile=true)
 
 Implements BDML-Hier variation of Algorithm 1 with paper notation.
 
-See: [`bdml_hier_vi`](@ref), [`bdml_hier`](@ref)
+See: `bdml_hier_vi`, `bdml_hier`
 """
 @model function bdml_hier_vi_rd(Y, D, X)
     n, p = size(X)

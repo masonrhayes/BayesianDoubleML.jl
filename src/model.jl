@@ -63,7 +63,7 @@ use `bdml_hier()` (BDML-Hierarchical) instead.
 - Chernozhukov et al. (2018). "Double/debiased machine learning for treatment 
   and structural parameters", The Econometrics Journal.
 
-See also: [`bdml_hier`](@ref), [`bdml_basic_vi`](@ref)
+See also: `bdml_hier`, `bdml_basic_vi`
 """
 @model function bdml_basic(Y, D, X)
     n, p = size(X)
@@ -205,7 +205,7 @@ For fixed shrinkage with simpler interpretation, use `bdml_basic()` instead.
 - Chernozhukov et al. (2018). "Double/debiased machine learning for treatment 
   and structural parameters", The Econometrics Journal.
 
-See also: [`bdml_basic`](@ref), [`bdml_hier_vi`](@ref)
+See also: `bdml_basic`, `bdml_hier_vi`
 """
 @model function bdml_hier(Y, D, X)
     n, p = size(X)

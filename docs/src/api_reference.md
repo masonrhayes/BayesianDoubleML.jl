@@ -4,14 +4,14 @@ Complete API documentation for BayesianDoubleML.jl.
 
 ## Contents
 
-- [Problem Types](@ref problem-types)
-- [Inference Methods](@ref inference-methods)
-- [Fitting Functions](@ref fitting-functions)
-- [Result Types](@ref result-types)
-- [Extraction Functions](@ref extraction-functions)
-- [Statistical Functions](@ref statistical-functions)
-- [Coefficient Table](@ref coefficient-table)
-- [Utility Functions](@ref utility-functions)
+- [Problem Types](#problem-types)
+- [Inference Methods](#inference-methods)
+- [Fitting Functions](#fitting-functions)
+- [Result Types](#result-types)
+- [Extraction Functions](#extraction-functions)
+- [Statistical Functions](#statistical-functions)
+- [Coefficient Table](#coefficient-table)
+- [Utility Functions](#utility-functions)
 
 ## Problem Types
 
