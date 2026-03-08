@@ -7,6 +7,11 @@ export fit, BDMLProblem,
     AbstractBDMLProblem, BDMLBasicProblem, BDMLHierarchicalProblem,
     AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod,
     MCMCNUTS, MCMCHMC, UnifiedVI, SimpleVI,
+    # Variational families
+    AbstractVariationalFamily, MeanField, LowRank, LowRankScore,
+    MeanFieldVI, LowRankVI, LowRankScoreVI,
+    # Method traits
+    uses_sampling, supports_subsampling, is_deterministic, default_n_samples, default_n_iterations,
     # Accessors
     nobs, ncovariates, model_type, standardization_stats,
     # Results
