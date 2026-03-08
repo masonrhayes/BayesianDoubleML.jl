@@ -141,50 +141,46 @@ println("True α: \$alpha_true, Estimated α: \$estimated_alpha")
 
 See also: [`generate_dgp_table1`](@ref)
 """
-function generate_dgp_table1(n::Int, p::Int, sigma_epsilon::Real; seed::Union{Int,Nothing}=nothing)
+function generate_dgp_table1(
+        n::Int, p::Int, sigma_epsilon::Real; alpha_true = 2.0, rng = Random.default_rng()
+    )
     # Validate inputs
     @assert n > 0 "n must be positive"
     @assert p > 0 "p must be positive"
     @assert sigma_epsilon > 0 "sigma_epsilon must be positive"
-    
-    # Set random seed if provided
-    if !isnothing(seed)
-        Random.seed!(seed)
-    end
-    
+
     # Fixed parameters from paper (Equation 21)
-    alpha_true = 2.0                    # True causal effect
     gamma = ones(p) ./ sqrt(p)          # γ = ι_p / √p  (treatment coefficients)
     mu_beta = -gamma ./ 2              # μ_β = -γ/2    (mean of outcome coefficients)
     sigma2_beta = 1.0 / p              # σ²_β = 1/p    (variance of outcome coefficients)
-    
+
     # Generate covariates (Equation 20): X_i ~ N(0, I_p)
-    X = randn(n, p)
-    
+    X = randn(rng, n, p)
+
     # Generate outcome coefficients (Equation 20): β ~ N(μ_β, σ²_β · I_p)
     # These are drawn fresh for each replication as per paper
-    beta = randn(p) .* sqrt(sigma2_beta) .+ mu_beta
-    
+    beta = randn(rng, p) .* sqrt(sigma2_beta) .+ mu_beta
+
     # Generate errors (Equation 20)
-    V = randn(n)                                  # Treatment error: V ~ N(0, 1)
-    epsilon = randn(n) .* sigma_epsilon           # Structural error: ε ~ N(0, σ²_ε)
-    
+    V = randn(rng, n)                                  # Treatment error: V ~ N(0, 1)
+    epsilon = randn(rng, n) .* sigma_epsilon           # Structural error: ε ~ N(0, σ²_ε)
+
     # Construct treatment D (Equation 4): D = X'γ + V
     D = X * gamma + V
-    
+
     # Construct outcome Y (Equation 5): Y = α·D + X'β + ε
     Y = alpha_true .* D + X * beta + epsilon
-    
+
     # Package ground truth parameters for validation/testing
     params = (
-        gamma=gamma,
-        beta=beta,
-        mu_beta=mu_beta,
-        sigma2_beta=sigma2_beta,
-        V=V,
-        epsilon=epsilon
+        gamma = gamma,
+        beta = beta,
+        mu_beta = mu_beta,
+        sigma2_beta = sigma2_beta,
+        V = V,
+        epsilon = epsilon,
     )
-    
+
     return Y, D, X, alpha_true, params
 end
 
@@ -207,8 +203,8 @@ Y, D, X, alpha_true, params = generate_dgp_table1()
 # All defaults: n=200, p=100, σ_ε=2.0
 ```
 """
-function generate_dgp_table1(; n::Int=200, p::Int=100, sigma_epsilon::Real=2.0, seed::Union{Int,Nothing}=nothing)
-    return generate_dgp_table1(n, p, sigma_epsilon; seed=seed)
+function generate_dgp_table1(; n::Int = 200, p::Int = 100, sigma_epsilon::Real = 2.0, seed::Union{Int, Nothing} = nothing)
+    return generate_dgp_table1(n, p, sigma_epsilon; seed = seed)
 end
 
 end # module DGP
