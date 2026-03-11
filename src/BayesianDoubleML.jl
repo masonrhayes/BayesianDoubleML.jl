@@ -34,7 +34,6 @@ using Turing.Variational
 using AdvancedVI
 using Bijectors
 using ADTypes
-using DynamicPPL
 using Distributions
 using LinearAlgebra
 using MCMCChains

@@ -12,7 +12,7 @@ include("utils.jl")
 
 @testset "AD Backend - AutoReverseDiff (Default)" begin
     Random.seed!(500)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 500)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(500))
 
     println("\n=== AD Backend: AutoReverseDiff ===")
 
@@ -41,7 +41,7 @@ end
 
 @testset "AD Backend - AutoForwardDiff" begin
     Random.seed!(501)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 501)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(501))
 
     println("\n=== AD Backend: AutoForwardDiff ===")
 
@@ -69,7 +69,7 @@ end
 
 @testset "AD Backend - AutoZygote" begin
     Random.seed!(503)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 503)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(503))
 
     println("\n=== AD Backend: AutoZygote ===")
 
@@ -89,7 +89,7 @@ end
 
 @testset "AD Backend Comparison - All Four" begin
     Random.seed!(504)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 504)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(504))
 
     println("\n=== AD Backend Comparison: All Four ===")
     println("True α: $alpha_true")
@@ -136,7 +136,7 @@ end
 
 @testset "AD Backend with SimpleVI" begin
     Random.seed!(505)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 505)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(505))
 
     println("\n=== AD Backend with SimpleVI ===")
 
@@ -166,7 +166,7 @@ end
 
 @testset "AD Backend with MCMC" begin
     Random.seed!(506)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 506)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(506))
 
     println("\n=== AD Backend with MCMC (via Turing) ===")
 
@@ -185,7 +185,7 @@ end
 
 @testset "AD Backend with Different Model Types" begin
     Random.seed!(507)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 507)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(507))
 
     println("\n=== AD Backend with Different Model Types ===")
 
@@ -212,7 +212,7 @@ end
 
 @testset "AD Backend Performance Consistency" begin
     Random.seed!(508)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 508)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(508))
 
     println("\n=== AD Backend Performance Consistency ===")
 

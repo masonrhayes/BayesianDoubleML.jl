@@ -10,7 +10,7 @@ using Statistics
 include("utils.jl")
 
 @testset "BDMLProblem Basic Constructor" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 200)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(200))
 
     prob = BDMLProblem(Y, D, X; model_type = :basic)
 
@@ -31,7 +31,7 @@ include("utils.jl")
 end
 
 @testset "BDMLProblem Hierarchical Constructor" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 201)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(201))
 
     prob = BDMLProblem(Y, D, X; model_type = :hier)
 
@@ -46,7 +46,7 @@ end
 end
 
 @testset "BDMLProblem from BDMLData" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 202)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(202))
     data = BDMLData(Y, D, X)
 
     prob = BDMLProblem(data; model_type = :basic)
@@ -56,7 +56,7 @@ end
 end
 
 @testset "BDMLProblem Error Handling" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 203)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(203))
 
     # Invalid model_type
     @test_throws ArgumentError BDMLProblem(Y, D, X; model_type = :invalid)
@@ -70,7 +70,7 @@ end
 end
 
 @testset "Pre-allocated Temporaries" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 204)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(204))
 
     # Basic problem
     prob_basic = BDMLProblem(Y, D, X; model_type = :basic)
@@ -84,7 +84,7 @@ end
 end
 
 @testset "Problem Data Handling" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 205)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(205))
     Y_original = copy(Y)
     D_original = copy(D)
 
@@ -100,7 +100,7 @@ end
 end
 
 @testset "Small Dataset Problem" begin
-    Y, D, X, _ = make_test_data(n = 20, p = 3, seed = 206)
+    Y, D, X, _ = generate_dgp_table1(20, 3, 2.0; alpha_true = 0.5, rng = MersenneTwister(206))
 
     prob = BDMLProblem(Y, D, X; model_type = :basic)
 
@@ -109,7 +109,7 @@ end
 end
 
 @testset "Large Dataset Problem" begin
-    Y, D, X, _ = make_test_data(n = 10000, p = 50, seed = 207)
+    Y, D, X, _ = generate_dgp_table1(10000, 50, 2.0; alpha_true = 0.5, rng = MersenneTwister(207))
 
     prob = BDMLProblem(Y, D, X; model_type = :hier)
 

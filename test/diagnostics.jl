@@ -65,7 +65,7 @@ end
 
 @testset "coeftable for BDMLMCMCResult (MCMC)" begin
     Random.seed!(702)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 702)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(702))
 
     println("\n=== coeftable: BDMLMCMCResult (MCMC) ===")
 
@@ -89,7 +89,7 @@ end
 
 @testset "coeftable for BDMLVIResult (VI)" begin
     Random.seed!(703)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 703)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(703))
 
     println("\n=== coeftable: BDMLVIResult (VI) ===")
 
@@ -112,7 +112,7 @@ end
 
 @testset "confint for MCMC and VI Results" begin
     Random.seed!(704)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 704)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(704))
 
     println("\n=== confint: MCMC and VI Results ===")
 
@@ -139,7 +139,7 @@ end
 
 @testset "Effective Sample Size (ESS)" begin
     Random.seed!(705)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 705)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(705))
 
     println("\n=== Effective Sample Size (ESS) ===")
 
@@ -162,7 +162,7 @@ end
 
 @testset "Monte Carlo Standard Error (MCSE)" begin
     Random.seed!(706)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 706)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(706))
 
     println("\n=== Monte Carlo Standard Error (MCSE) ===")
 
@@ -186,7 +186,7 @@ end
 
 @testset "P-values" begin
     Random.seed!(707)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 707)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(707))
 
     println("\n=== P-values ===")
 
@@ -233,7 +233,7 @@ end
 
 @testset "Convergence Diagnostics" begin
     Random.seed!(709)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 709)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(709))
 
     println("\n=== Convergence Diagnostics ===")
 
@@ -255,7 +255,7 @@ end
 
 @testset "Model Comparison Statistics" begin
     Random.seed!(710)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 710)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(710))
 
     println("\n=== Model Comparison Statistics ===")
 
@@ -275,7 +275,7 @@ end
 
 @testset "StatsAPI Integration" begin
     Random.seed!(711)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 711)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(711))
 
     println("\n=== StatsAPI Integration ===")
 

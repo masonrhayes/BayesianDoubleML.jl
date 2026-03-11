@@ -16,7 +16,7 @@ include("utils.jl")
 
 @testset "UnifiedVI Basic Model" begin
     Random.seed!(300)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 300)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(300))
 
     println("\n=== UnifiedVI: Basic Model ===")
     println("True α: $alpha_true")
@@ -50,7 +50,7 @@ end
 
 @testset "UnifiedVI Hierarchical Model" begin
     Random.seed!(301)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.8, seed = 301)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(301))
 
     println("\n=== UnifiedVI: Hierarchical Model ===")
     println("True α: $alpha_true")
@@ -82,7 +82,7 @@ end
 
 @testset "UnifiedVI with BDMLData" begin
     Random.seed!(302)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 302)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(302))
 
     println("\n=== UnifiedVI with BDMLData ===")
 
@@ -103,7 +103,7 @@ end
 
 @testset "UnifiedVI AD Backend - AutoReverseDiff" begin
     Random.seed!(303)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 303)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(303))
 
     println("\n=== UnifiedVI: AutoReverseDiff ===")
 
@@ -123,7 +123,7 @@ end
 
 @testset "UnifiedVI AD Backend - AutoForwardDiff" begin
     Random.seed!(304)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 304)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(304))
 
     println("\n=== UnifiedVI: AutoForwardDiff ===")
 
@@ -145,7 +145,7 @@ end
     using Zygote
 
     Random.seed!(306)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 306)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(306))
 
     println("\n=== UnifiedVI: AutoZygote ===")
 
@@ -165,7 +165,7 @@ end
 
 @testset "UnifiedVI with Subsampling Enabled" begin
     Random.seed!(307)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 307)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(307))
 
     println("\n=== UnifiedVI with Subsampling ===")
 
@@ -184,7 +184,7 @@ end
 
 @testset "UnifiedVI Monte Carlo Samples Variation" begin
     Random.seed!(308)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 308)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(308))
 
     println("\n=== UnifiedVI: n_montecarlo Variation ===")
 
@@ -224,7 +224,7 @@ end
 
 @testset "UnifiedVI Result Display and Credible Interval" begin
     Random.seed!(310)
-    Y, D, X, alpha_true = make_test_data(n = 50, p = 5, alpha_true = 0.5, seed = 310)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(310))
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
@@ -246,7 +246,7 @@ end
 
 @testset "UnifiedVI Convergence Detection" begin
     Random.seed!(311)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 311)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(311))
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
@@ -268,7 +268,7 @@ end
 
 @testset "SimpleVI Basic Model" begin
     Random.seed!(400)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 400)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(400))
 
     println("\n=== SimpleVI: Basic Model ===")
     println("True α: $alpha_true")
@@ -299,7 +299,7 @@ end
 
 @testset "SimpleVI Hierarchical Model" begin
     Random.seed!(401)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.8, seed = 401)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(401))
 
     println("\n=== SimpleVI: Hierarchical Model ===")
     println("True α: $alpha_true")
@@ -327,7 +327,7 @@ end
 
 @testset "SimpleVI with BDMLData" begin
     Random.seed!(402)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 402)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(402))
 
     println("\n=== SimpleVI with BDMLData ===")
 
@@ -348,7 +348,7 @@ end
 
 @testset "SimpleVI AD Backend - AutoMooncake" begin
     Random.seed!(403)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 403)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(403))
 
     println("\n=== SimpleVI: AutoMooncake Backend ===")
 
@@ -372,7 +372,7 @@ end
 
 @testset "SimpleVI AD Backend - AutoReverseDiff" begin
     Random.seed!(404)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 404)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(404))
 
     println("\n=== SimpleVI: AutoReverseDiff Backend ===")
 
@@ -394,7 +394,7 @@ end
     using Zygote
 
     Random.seed!(410)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 410)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(410))
 
     println("\n=== SimpleVI: AutoZygote Backend ===")
 
@@ -435,7 +435,7 @@ end
 
 @testset "SimpleVI Small Dataset" begin
     Random.seed!(406)
-    Y, D, X, alpha_true = make_test_data(n = 50, p = 5, alpha_true = 0.5, seed = 406)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(406))
 
     println("\n=== SimpleVI: Small Dataset (n=50, p=5) ===")
 
@@ -454,7 +454,7 @@ end
 
 @testset "SimpleVI Result Display" begin
     Random.seed!(407)
-    Y, D, X, alpha_true = make_test_data(n = 50, p = 5, alpha_true = 0.5, seed = 407)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(407))
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = SimpleVI()
@@ -473,7 +473,7 @@ end
 
 @testset "SimpleVI Different Iterations" begin
     Random.seed!(409)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 409)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(409))
 
     println("\n=== SimpleVI: Different Iteration Counts ===")
 

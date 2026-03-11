@@ -203,8 +203,5 @@ Y, D, X, alpha_true, params = generate_dgp_table1()
 # All defaults: n=200, p=100, σ_ε=2.0
 ```
 """
-function generate_dgp_table1(; n::Int = 200, p::Int = 100, sigma_epsilon::Real = 2.0, seed::Union{Int, Nothing} = nothing)
-    return generate_dgp_table1(n, p, sigma_epsilon; seed = seed)
-end
 
 end # module DGP

@@ -12,7 +12,7 @@ include("utils.jl")
 
 @testset "MCMC Single Chain - Basic Model" begin
     Random.seed!(200)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 200)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(200))
 
     println("\n=== MCMC Single Chain: Basic Model ===")
     println("True α: $alpha_true")
@@ -44,7 +44,7 @@ end
 
 @testset "MCMC Single Chain - Hierarchical Model" begin
     Random.seed!(201)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.8, seed = 201)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(201))
 
     println("\n=== MCMC Single Chain: Hierarchical Model ===")
     println("True α: $alpha_true")
@@ -75,7 +75,7 @@ end
 
 @testset "MCMC Multi-Chain - Hierarchical Model" begin
     Random.seed!(202)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.6, seed = 202)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.6, rng = MersenneTwister(202))
 
     println("\n=== MCMC Multi-Chain: Hierarchical Model ===")
     println("True α: $alpha_true")
@@ -127,7 +127,7 @@ end
 
 @testset "MCMC BDMLData Input" begin
     Random.seed!(206)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 206)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(206))
 
     println("\n=== MCMC with BDMLData Input ===")
 
@@ -148,7 +148,7 @@ end
 
 @testset "MCMC Result Display and Summary" begin
     Random.seed!(207)
-    Y, D, X, alpha_true = make_test_data(n = 50, p = 5, alpha_true = 0.5, seed = 207)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(207))
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
@@ -170,7 +170,7 @@ end
 
 @testset "MCMC Alpha Extraction Validation" begin
     Random.seed!(208)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 208)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(208))
 
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
@@ -193,7 +193,7 @@ end
 
 @testset "MCMC Target Acceptance Rate Variations" begin
     Random.seed!(209)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 209)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(209))
 
     println("\n=== MCMC Target Acceptance Rate Variations ===")
 
@@ -213,7 +213,7 @@ end
 
 @testset "MCMC Max Depth Variations" begin
     Random.seed!(210)
-    Y, D, X, alpha_true = make_test_data(n = 80, p = 8, alpha_true = 0.5, seed = 210)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(210))
 
     println("\n=== MCMC Max Depth Variations ===")
 

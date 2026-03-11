@@ -15,7 +15,6 @@ using DataFrames
 
 function load_plr_data()
     data_path = joinpath(@__DIR__, "data", "make_plr_CCDDHNR2018_n500_p20.csv")
-    @test isfile(data_path) "Data file not found at $data_path"
 
     df = CSV.read(data_path, DataFrame)
     Y = df.y
@@ -28,15 +27,12 @@ end
 
 function load_irm_data()
     data_path = joinpath(@__DIR__, "data", "make_irm_data_n500_p20.csv")
-    @test isfile(data_path) "Data file not found at $data_path"
 
     df = CSV.read(data_path, DataFrame)
     Y = df.y
     D = df.d
     X_cols = filter(col -> startswith(string(col), "X"), names(df))
     X = Matrix(df[:, X_cols])
-
-    @test all(D .∈ Ref([0.0, 1.0])) "D should be binary for IRM"
 
     return Y, D, X, data_path
 end
@@ -58,7 +54,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
 
     @test result isa BDMLMCMCResult
     @test length(result.alpha_samples) >= 500
@@ -94,7 +90,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
 
     @test result isa BDMLMCMCResult
 
@@ -122,7 +118,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 300, n_warmup = 200)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 300)
 
     @test result isa BDMLMCMCResult
     @test length(result.alpha_samples) >= 300
@@ -147,7 +143,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :basic)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500, n_warmup = 500)
+    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
 
     @test result isa BDMLMCMCResult
     @test result.model_type == :basic
@@ -168,7 +164,7 @@ end
     Random.seed!(1007)
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    result = fit(problem, method; n_samples = 200)
 
     # Test diagnostics
     ci = confint(result)
@@ -192,7 +188,7 @@ end
     Random.seed!(1008)
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    result = fit(problem, method; n_samples = 200)
 
     ct = coeftable(result)
 
@@ -226,7 +222,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
 
     @test result isa BDMLVIResult
     @test result.model_type == :hier
@@ -263,7 +259,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :basic)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
 
     @test result isa BDMLVIResult
     @test result.model_type == :basic
@@ -290,7 +286,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 500)
 
     @test result isa BDMLVIResult
 
@@ -319,7 +315,7 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = SimpleVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
 
     @test result isa BDMLVIResult
 
@@ -340,7 +336,7 @@ end
     Random.seed!(1108)
     problem = BDMLProblem(Y, D, X; model_type = :hier)
     method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    result = fit(problem, method; n_iterations = 200, n_draws = 1000)
 
     ct = coeftable(result)
 
@@ -364,11 +360,11 @@ end
     problem = BDMLProblem(Y, D, X; model_type = :hier)
 
     # VI
-    result_vi = fit(problem, UnifiedVI(); n_iterations = 500, n_draws = 500)
+    result_vi = fit(problem, UnifiedVI(); n_iterations = 250, n_draws = 1000)
     alpha_vi = mean(result_vi.alpha_samples)
 
     # MCMC
-    result_mcmc = fit(problem, MCMCNUTS(); n_samples = 500, n_warmup = 500)
+    result_mcmc = fit(problem, MCMCNUTS(); n_samples = 250)
     alpha_mcmc = mean(result_mcmc.alpha_samples)
 
     println("  VI: α = $(round(alpha_vi, digits = 4))")

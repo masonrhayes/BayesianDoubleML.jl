@@ -10,7 +10,7 @@ using Statistics
 include("utils.jl")
 
 @testset "BDMLData Construction" begin
-    Y, D, X, _ = make_test_data(n = 50, p = 5, seed = 100)
+    Y, D, X, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(100))
 
     data = BDMLData(Y, D, X)
 
@@ -41,7 +41,7 @@ end
 end
 
 @testset "BDMLData Error Handling" begin
-    Y, D, X, _ = make_test_data(n = 50, p = 5, seed = 101)
+    Y, D, X, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(101))
 
     # Dimension mismatch between Y and D
     @test_throws AssertionError BDMLData(Y[1:25], D, X)
@@ -55,7 +55,7 @@ end
 end
 
 @testset "Standardization" begin
-    Y, D, X, _ = make_test_data(n = 100, p = 10, seed = 102)
+    Y, D, X, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(102))
 
     Y_s, D_s, X_s, stats = BayesianDoubleML.standardize_data(Y, D, X)
 
