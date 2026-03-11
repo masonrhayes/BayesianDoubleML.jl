@@ -74,9 +74,9 @@ See also: `bdml_hier`, `bdml_basic_vi`
     δ ~ MvNormal(zeros(p), 25.0 * I)
     γ ~ MvNormal(zeros(p), 25.0 * I)
 
-    # Priors on error scales (Section 6, Table 1)
-    σ_U ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
-    σ_V ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
+    # Priors on error scales (Section 6, p. 25)
+    σ_V ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    σ_U ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
 
     # Prior on correlation matrix - LKJ(4) as specified in paper
     R_chol ~ LKJCholesky(2, 4)
@@ -210,7 +210,7 @@ See also: `bdml_basic`, `bdml_hier_vi`
 @model function bdml_hier(Y, D, X)
     n, p = size(X)
 
-    # Hierarchical hyperpriors on variance hyperparameters (Section 6, Table 1)
+    # Hierarchical hyperpriors on variance hyperparameters (Section 6, p. 25)
     # σ²_δ governs shrinkage of outcome coefficients δ
     # σ²_γ governs shrinkage of treatment coefficients γ
     σ²_δ ~ InverseGamma(2, 2)
@@ -223,9 +223,9 @@ See also: `bdml_basic`, `bdml_hier_vi`
     δ ~ MvNormal(zeros(p), σ²_δ * I)
     γ ~ MvNormal(zeros(p), σ²_γ * I)
 
-    # Priors on error scales (Section 6, Table 1)
-    σ_U ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
-    σ_V ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
+    # Priors on error scales (Section 6, p. 25)
+    σ_U ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    σ_V ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
 
     # Prior on correlation matrix - LKJ(4) as specified in paper
     R_chol ~ LKJCholesky(2, 4)

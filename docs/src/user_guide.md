@@ -22,9 +22,9 @@ Pkg.add("BayesianDoubleML")
 
 ## Basic Usage
 
-### Creating a Problem
+### Creating a Model
 
-All analyses start by creating a `BDMLProblem` from your data:
+All analyses start by creating a `BDMLModel` from your data:
 
 ```julia
 using BayesianDoubleML
@@ -34,38 +34,39 @@ Y = your_outcome_vector  # Vector{Float64}
 D = your_treatment_vector  # Vector{Float64}  
 X = your_covariate_matrix  # Matrix{Float64}
 
-# Create problem with hierarchical model (recommended)
-problem = BDMLProblem(Y, D, X; model_type=:hier)
+# Create model with hierarchical model (recommended)
+model = BDMLModel(Y, D, X; model_type=:hier)
 
 # Or use basic model with fixed priors
-problem = BDMLProblem(Y, D, X; model_type=:basic)
+model = BDMLModel(Y, D, X; model_type=:basic)
 ```
 
 ### Model Types
 
-**Hierarchical Model (`:hier`) - RECOMMENDED:**
+**Hierarchical Model (`:hier`) - Recommended:**
+
 - Uses adaptive shrinkage via hierarchical priors
 - Equivalent to Student-t(4) priors on coefficients
-- Better coverage in simulations (0.94 vs 0.91-0.93)
+- Better coverage in simulations (0.94 vs 0.91-0.93) from the paper.
 
 **Basic Model (`:basic`):**
+
 - Uses fixed N(0, 25·I) priors
-- Simpler interpretation
 - Good for baseline comparisons
 
 ## Inference Methods
 
 ### MCMC (NUTS)
 
-MCMC using the No-U-Turn Sampler provides exact posterior inference and is recommended for small-to-medium datasets (n < 1000).
+MCMC using the No-U-Turn Sampler provides exact posterior inference and is recommended for small-to-medium datasets.
 
 ```julia
 # Default NUTS settings
-result = fit(problem, MCMCNUTS())
+fit!(model, MCMCNUTS())
 
 # Custom settings
-result = fit(
-    problem, 
+fit!(
+    model, 
     MCMCNUTS(; target_acceptance=0.9, max_depth=12);
     n_samples=2000,
     n_chains=4
@@ -73,11 +74,13 @@ result = fit(
 ```
 
 **When to use:**
+
 - Small to medium datasets (n < 1000)
 - When exact inference is critical
 - For final published results
 
 **Key parameters:**
+
 - `target_acceptance`: Target acceptance rate (default: 0.8, range: 0.6-0.9)
 - `max_depth`: Maximum tree depth (default: 10)
 - `n_samples`: Number of posterior samples per chain (default: 2000)
@@ -89,11 +92,10 @@ Simple VI uses Turing's native ADVI implementation and works excellently with th
 
 ```julia
 # Default: SimpleVI with Mooncake
-result = fit(problem, SimpleVI())
+using Mooncake 
 
-# Or explicitly
-result = fit(
-    problem, 
+fit!(
+    model, 
     SimpleVIMethod(; ad_backend=AutoMooncake);
     n_iterations=1000,
     n_draws=2000
@@ -101,23 +103,25 @@ result = fit(
 ```
 
 **When to use:**
-- Production environments
+
 - When you can afford a warmup run
-- Small to medium data where VI approximation is acceptable
+- Small to medium data where VI approximation is acceptable.
 
 **Performance tip:** Mooncake requires compilation on first use. Run a short warmup:
 
 ```julia
 # Warmup run (slow - compiles differentiation rules)
-result_warmup = fit(
-    problem, 
+using Mooncake 
+
+fit!(
+    model, 
     SimpleVIMethod(; ad_backend=AutoMooncake);
     n_iterations=50
 )
 
 # Production runs (fast - 5-10x faster than ReverseDiff)
-result = fit(
-    problem, 
+fit!(
+    model, 
     SimpleVIMethod(; ad_backend=AutoMooncake);
     n_iterations=1000
 )
@@ -133,8 +137,8 @@ The default MeanField approximation assumes independent parameters:
 
 ```julia
 # MeanField with ReverseDiff (default)
-result = fit(
-    problem,
+fit!(
+    model,
     UnifiedVIMethod(; 
         ad_backend=AutoReverseDiff,
         family=MeanField()
@@ -144,7 +148,7 @@ result = fit(
 )
 
 # Or use the convenience constructor
-result = fit(problem, MeanFieldVI())
+fit!(model, MeanFieldVI())
 ```
 
 #### LowRank (Low-Rank + Diagonal Covariance)
@@ -153,8 +157,8 @@ LowRank captures parameter correlations with fewer parameters than full covarian
 
 ```julia
 # LowRank with rank 3
-result = fit(
-    problem,
+fit!(
+    model,
     UnifiedVIMethod(; 
         ad_backend=AutoReverseDiff,
         family=LowRank(3)
@@ -164,10 +168,11 @@ result = fit(
 )
 
 # Or use the convenience constructor
-result = fit(problem, LowRankVI(3))
+fit!(model, LowRankVI(3))
 ```
 
 **When to use:**
+
 - Large datasets (automatically enables subsampling when n ≥ 10,000)
 - When you need specific variational family control
 - For exploring mean-field vs low-rank tradeoffs
@@ -177,11 +182,11 @@ Automatically enabled for n ≥ 10,000:
 
 ```julia
 # Auto-subsampling (default batch size: min(256, ceil(n/1000)))
-result = fit(problem, UnifiedVIMethod())  # Auto-enabled for large n
+fit!(model, UnifiedVIMethod())  # Auto-enabled for large n
 
 # Explicit control
-result = fit(
-    problem,
+fit!(
+    model,
     UnifiedVIMethod(; 
         ad_backend=AutoReverseDiff,
         family=MeanField(),
@@ -194,15 +199,14 @@ result = fit(
 
 ## Understanding Results
 
-All inference methods return result objects that support common accessor functions:
+All inference methods store results in the model object. Access them using common accessor functions:
 
 ```julia
 # Extract causal effect samples
-alpha_samples = result.alpha_samples  # On original scale
-alpha_std = result.alpha_samples_standardized  # On standardized scale
+alpha_samples = extract_alpha(model)  # On original scale
 
 # Generate coefficient table with diagnostics
-coeftable(result)
+coeftable(model)
 ```
 
 ### Coefficient Table Output
@@ -231,18 +235,21 @@ Diagnostics:
 
 ```julia
 # Effective Sample Size (ESS)
-ess(result)
+ess(model)
 
 # R-hat convergence diagnostic (should be ≈ 1.0)
-rhat(result)
+rhat(model)
 
 # Monte Carlo Standard Error
-mcse(result)
+mcse(model)
 ```
 
 ### VI-Specific Information
 
 ```julia
+# Access the result object for VI-specific fields
+result = model.result
+
 # ELBO convergence history
 result.elbo_history
 
@@ -257,24 +264,25 @@ result.final_elbo
 
 ### AD Backend Selection
 
-| Backend | Speed | Stability | Warmup | Best For |
-|---------|-------|-----------|--------|----------|
-| AutoReverseDiff | Baseline | Excellent | None | Default choice |
-| AutoMooncake | 5-10x faster | Good | Required | Production/batch |
-| AutoZygote | Variable | Good | None | Experimentation |
-| AutoForwardDiff | Slow for large p | Excellent | None | Small models (p < 20) |
+| Backend         | Speed            | Stability | Warmup   | Best For              |
+| --------------- | ---------------- | --------- | -------- | --------------------- |
+| AutoReverseDiff | Baseline         | Excellent | None     | Default choice        |
+| AutoMooncake    | 5-10x faster     | Good      | Required | Production/batch      |
+| AutoZygote      | Variable         | Good      | None     | Experimentation       |
+| AutoForwardDiff | Slow for large p | Excellent | None     | Small models (p < 20) |
 
 ### Dataset Size Guidelines
 
-| Size (n) | Recommended Method | Notes |
-|----------|-------------------|-------|
-| n < 1000 | MCMCNUTS() | Exact inference |
-| 1000 ≤ n < 10000 | SimpleVI() with Mooncake | Fast with warmup |
-| n ≥ 10000 | UnifiedVI() with subsampling | Memory efficient |
+| Size (n)          | Recommended Method           | Notes            |
+| ----------------- | ---------------------------- | ---------------- |
+| n < 1000          | MCMCNUTS()                   | Exact inference  |
+| 1000 ≤ n < 10000 | SimpleVI() with Mooncake     | Fast with warmup |
+| n ≥ 10000        | UnifiedVI() with subsampling | Memory efficient |
 
 ### Memory Considerations
 
 For very large datasets:
+
 - MCMC chains consume significant memory
 - Use VI methods for memory efficiency
 - Enable subsampling in UnifiedVI for n > 10,000
@@ -286,11 +294,13 @@ For very large datasets:
 The BDML model avoids regularization-induced confounding by parameterizing the causal inference problem as a bivariate regression:
 
 **Structural Model:**
+
 ```math
 Y = \alpha D + X'\beta + \varepsilon, \quad \varepsilon \perp V
 ```
 
 **Reduced Form (substituting D = X'\gamma + V):**
+
 ```math
 \begin{aligned}
 Y &= X'\underbrace{(\beta + \alpha\gamma)}_{\delta} + \underbrace{(\varepsilon + \alpha V)}_{U} \\
@@ -299,11 +309,13 @@ D &= X'\gamma + V
 ```
 
 Since ``\varepsilon \perp V`` by assumption:
+
 ```math
 \text{Cov}(U, V) = \text{Cov}(\varepsilon + \alpha V, V) = \alpha \cdot \text{Var}(V)
 ```
 
 Therefore, the causal effect is:
+
 ```math
 \alpha = \frac{\text{Cov}(U, V)}{\text{Var}(V)} = \frac{\sigma_{UV}}{\sigma^2_V} = \rho \frac{\sigma_U}{\sigma_V}
 ```
@@ -311,6 +323,7 @@ Therefore, the causal effect is:
 ### Prior Specifications
 
 **BDML-Basic:**
+
 ```math
 \begin{aligned}
 \delta &\sim \mathcal{N}(0, 25 \cdot I_p) \\
@@ -321,6 +334,7 @@ R &\sim \text{LKJ}(4)
 ```
 
 **BDML-Hier:**
+
 ```math
 \begin{aligned}
 \sigma^2_\delta, \sigma^2_\gamma &\sim \text{InvGamma}(2, 2) \\

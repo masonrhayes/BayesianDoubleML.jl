@@ -1,5 +1,5 @@
 # Real Data Tests (Consolidated)
-# Tests for MCMC and VI inference on actual DoubleML datasets
+# Tests for MCMC and VI inference on actual DoubleML datasets with new Model API
 # Uses only the 2 existing data files in test/data/
 
 using BayesianDoubleML
@@ -51,17 +51,18 @@ end
     println("True α: 0.5")
 
     Random.seed!(1000)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
+    elapsed = @elapsed fit!(model, method; n_samples = 500)
 
-    @test result isa BDMLMCMCResult
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLMCMCResult
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("\n=== Results ===")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
@@ -87,15 +88,16 @@ end
     println("Treatment is binary: $(all(D .∈ Ref([0.0, 1.0])))")
 
     Random.seed!(1002)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
+    elapsed = @elapsed fit!(model, method; n_samples = 500)
 
-    @test result isa BDMLMCMCResult
+    @test isfitted(model)
+    @test model.result isa BDMLMCMCResult
 
-    alpha_mean = mean(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("\n=== Results ===")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
@@ -115,18 +117,19 @@ end
     println("Chains: 2")
 
     Random.seed!(1004)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 300)
+    elapsed = @elapsed fit!(model, method; n_samples = 300)
 
-    @test result isa BDMLMCMCResult
-    @test length(result.alpha_samples) >= 300
+    @test isfitted(model)
+    @test model.result isa BDMLMCMCResult
+    @test length(model.result.alpha_samples) >= 300
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
-    println("  Total samples: $(length(result.alpha_samples))")
+    println("  Total samples: $(length(model.result.alpha_samples))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
@@ -140,15 +143,16 @@ end
     println("Model: Basic")
 
     Random.seed!(1005)
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = MCMCNUTS()
 
-    elapsed = @elapsed result = fit(problem, method; n_samples = 500)
+    elapsed = @elapsed fit!(model, method; n_samples = 500)
 
-    @test result isa BDMLMCMCResult
-    @test result.model_type == :basic
+    @test isfitted(model)
+    @test model.result isa BDMLMCMCResult
+    @test model.result.model_type == :basic
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -162,14 +166,14 @@ end
     println("\n=== Real Data MCMC: Diagnostics ===")
 
     Random.seed!(1007)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200)
+    fit!(model, method; n_samples = 200)
 
-    # Test diagnostics
-    ci = confint(result)
-    ess_val = ess(result)
-    mcse_val = mcse(result)
+    # Test diagnostics via model
+    ci = confint(model)
+    ess_val = ess(model)
+    mcse_val = mcse(model)
 
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
     println("  ESS: $(round(ess_val, digits = 1))")
@@ -186,11 +190,11 @@ end
     println("\n=== Real Data MCMC: Coefficient Table ===")
 
     Random.seed!(1008)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200)
+    fit!(model, method; n_samples = 200)
 
-    ct = coeftable(result)
+    ct = coeftable(model)
 
     @test ct isa BDMLCoeftable
 
@@ -219,32 +223,33 @@ end
     println("True α: 0.5")
 
     Random.seed!(1100)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
+    elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 1000)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :hier
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :hier
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("\n=== Results ===")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
-    println("  ELBO: $(round(result.final_elbo, digits = 2))")
-    println("  Converged: $(result.converged)")
+    println("  ELBO: $(round(model.result.final_elbo, digits = 2))")
+    println("  Converged: $(model.result.converged)")
     println("  Coverage (0.5 in CI): $(ci[1] < 0.5 < ci[2])")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
     @test alpha_std > 0
     @test ci[1] < alpha_mean < ci[2]
-    @test isfinite(result.final_elbo)
+    @test isfinite(model.result.final_elbo)
 end
 
 @testset "Real Data VI - PLR Basic" begin
@@ -256,18 +261,19 @@ end
     println("Model: Basic")
 
     Random.seed!(1101)
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
+    elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 1000)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :basic
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :basic
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
-    println("  ELBO: $(round(result.final_elbo, digits = 2))")
+    println("  ELBO: $(round(model.result.final_elbo, digits = 2))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
@@ -283,20 +289,21 @@ end
     println("True θ: 0.5")
 
     Random.seed!(1102)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 500)
 
-    @test result isa BDMLVIResult
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
 
-    alpha_mean = mean(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("\n=== Results ===")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
-    println("  ELBO: $(round(result.final_elbo, digits = 2))")
+    println("  ELBO: $(round(model.result.final_elbo, digits = 2))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
@@ -312,14 +319,15 @@ end
     println("Observations: $n, Controls: $p")
 
     Random.seed!(1106)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = SimpleVI()
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    method = SimpleVIMethod()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 200, n_draws = 1000)
+    elapsed = @elapsed fit!(model, method; n_iterations = 250, n_draws = 1000)
 
-    @test result isa BDMLVIResult
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -334,11 +342,11 @@ end
     println("\n=== Real Data VI: Coefficient Table ===")
 
     Random.seed!(1108)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 200, n_draws = 1000)
+    fit!(model, method; n_iterations = 200, n_draws = 1000)
 
-    ct = coeftable(result)
+    ct = coeftable(model)
 
     @test ct isa BDMLCoeftable
 
@@ -351,21 +359,20 @@ end
     println("  Alpha estimate: $(round(alpha_estimate, digits = 4))")
 end
 
-@testset "Real Data VI - MCMC Comparison" begin
+@testset "Real Data VI - MCMC Comparison via Models" begin
     Y, D, X, _ = load_plr_data()
 
-    println("\n=== Real Data VI vs MCMC ===")
-
-    Random.seed!(1110)
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    println("\n=== Real Data VI vs MCMC via Models ===")
 
     # VI
-    result_vi = fit(problem, UnifiedVI(); n_iterations = 250, n_draws = 1000)
-    alpha_vi = mean(result_vi.alpha_samples)
+    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_vi, UnifiedVI(); n_iterations = 250, n_draws = 1000)
+    alpha_vi = mean(extract_alpha(model_vi))
 
     # MCMC
-    result_mcmc = fit(problem, MCMCNUTS(); n_samples = 250)
-    alpha_mcmc = mean(result_mcmc.alpha_samples)
+    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_mcmc, MCMCNUTS(); n_samples = 250)
+    alpha_mcmc = mean(extract_alpha(model_mcmc))
 
     println("  VI: α = $(round(alpha_vi, digits = 4))")
     println("  MCMC: α = $(round(alpha_mcmc, digits = 4))")
@@ -378,4 +385,4 @@ end
 end
 
 println("\n=== All Real Data Tests Complete ===")
-println("Tested: MCMC and VI on PLR and IRM datasets")
+println("Tested: MCMC and VI on PLR and IRM datasets with new Model API")

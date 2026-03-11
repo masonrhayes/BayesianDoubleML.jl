@@ -6,6 +6,9 @@ using StatsAPI
 # Helper function for formatting numbers with fixed width
 to_s(x, width = 12, digits = 4) = lpad(round(x, digits = digits), width)
 
+# Helper function to avoid closures in filter operations
+isfinite_and_positive(x) = isfinite(x) && x > 0
+
 """
     hpd_interval(samples::Vector{Float64}; level::Real=0.95)
 
@@ -131,13 +134,13 @@ function coeftable(result::BDMLMCMCResult; level = 0.95)
     # ESS from MCMCChains (get minimum across all parameters as conservative estimate)
     ess_df = MCMCChains.ess(result.chain)
     ess_values = ess_df.nt.ess
-    finite_ess = filter(x -> isfinite(x) && x > 0, ess_values)
+    finite_ess = filter(isfinite_and_positive, ess_values)
     ess_val = length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
 
     # MCSE from MCMCChains (get maximum across all parameters as conservative estimate)
     mcse_df = MCMCChains.mcse(result.chain)
     mcse_values = mcse_df.nt.mcse
-    finite_mcse = filter(x -> isfinite(x) && x > 0, mcse_values)
+    finite_mcse = filter(isfinite_and_positive, mcse_values)
     mcse_val = length(finite_mcse) > 0 ? maximum(finite_mcse) : std(samples) / sqrt(length(samples))
 
     # For MCMC, no ELBO
@@ -329,7 +332,7 @@ function ess(result::BDMLMCMCResult)
     ess_df = MCMCChains.ess(result.chain)
     # Get minimum ESS across all parameters (conservative estimate)
     ess_values = ess_df.nt.ess
-    finite_ess = filter(x -> isfinite(x) && x > 0, ess_values)
+    finite_ess = filter(isfinite_and_positive, ess_values)
     return length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
 end
 
@@ -345,7 +348,7 @@ function rhat(result::BDMLMCMCResult)
     gd = gelmandiag(result.chain)
     # Get maximum PSRF (R-hat) across all parameters (conservative estimate)
     rhat_values = gd.nt.psrf
-    finite_rhat = filter(x -> isfinite(x) && x > 0, rhat_values)
+    finite_rhat = filter(isfinite_and_positive, rhat_values)
     return length(finite_rhat) > 0 ? maximum(finite_rhat) : missing
 end
 
@@ -359,7 +362,7 @@ Returns the maximum MCSE across all parameters as conservative estimate.
 function mcse(result::BDMLMCMCResult)
     mcse_df = MCMCChains.mcse(result.chain)
     mcse_values = mcse_df.nt.mcse
-    finite_mcse = filter(x -> isfinite(x) && x > 0, mcse_values)
+    finite_mcse = filter(isfinite_and_positive, mcse_values)
     return length(finite_mcse) > 0 ? maximum(finite_mcse) : std(result.alpha_samples) / sqrt(length(result.alpha_samples))
 end
 
@@ -390,7 +393,9 @@ end
 Alias for `rhat(result)` - compute R-hat convergence diagnostic.
 R-hat ≈ 1.0 indicates good convergence.
 """
-const rhat_statistic = rhat
+function rhat_statistic(result::BDMLMCMCResult)
+    return rhat(result)
+end
 
 """
     chain_info(result::BDMLMCMCResult)
@@ -517,6 +522,193 @@ Module-level wrapper for `StatsAPI.vcov`. See `StatsAPI.vcov` for details.
 """
 function vcov(result::AbstractBDMLResult)
     return StatsAPI.vcov(result)
+end
+
+# Model delegation - allow calling result extraction functions directly on fitted models
+
+"""
+    coeftable(model::AbstractBDMLModel; level=0.95)
+
+Compute coefficient table for a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function coeftable(model::AbstractBDMLModel; level = 0.95)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    return coeftable(model.result; level = level)
+end
+
+"""
+    extract_alpha(model::AbstractBDMLModel)
+
+Extract alpha samples from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function extract_alpha(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult  # Type assertion after is_fitted check
+    return extract_alpha(result)
+end
+
+"""
+    coef(model::AbstractBDMLModel)
+
+Return coefficient estimates from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function StatsAPI.coef(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return StatsAPI.coef(result)
+end
+
+function coef(model::AbstractBDMLModel)
+    return StatsAPI.coef(model)
+end
+
+"""
+    stderror(model::AbstractBDMLModel)
+
+Return standard errors from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function StatsAPI.stderror(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return StatsAPI.stderror(result)
+end
+
+function stderror(model::AbstractBDMLModel)
+    return StatsAPI.stderror(model)
+end
+
+"""
+    vcov(model::AbstractBDMLModel)
+
+Return variance-covariance matrix from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function StatsAPI.vcov(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return StatsAPI.vcov(result)
+end
+
+function vcov(model::AbstractBDMLModel)
+    return StatsAPI.vcov(model)
+end
+
+"""
+    confint(model::AbstractBDMLModel; level=0.95)
+
+Return confidence/credible intervals from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function confint(model::AbstractBDMLModel; level = 0.95)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return confint(result; level = level)
+end
+
+"""
+    credible_interval(model::AbstractBDMLModel; level=0.95)
+
+Return credible intervals from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function credible_interval(model::AbstractBDMLModel; level = 0.95)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return credible_interval(extract_alpha(result); level = level)
+end
+
+"""
+    pvalues(model::AbstractBDMLModel)
+
+Return p-values from a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+"""
+function pvalues(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    return pvalues(result)
+end
+
+# MCMC-specific functions
+"""
+    ess(model::AbstractBDMLModel)
+
+Return effective sample size from a fitted BDML model (MCMC only).
+
+Delegates to the stored result. Throws an error if the model has not been fitted
+or if the model was fitted with VI.
+"""
+function ess(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    result isa BDMLMCMCResult || error("ESS only available for MCMC results.")
+    return ess(result)
+end
+
+"""
+    mcse(model::AbstractBDMLModel)
+
+Return Monte Carlo standard error from a fitted BDML model (MCMC only).
+
+Delegates to the stored result. Throws an error if the model has not been fitted
+or if the model was fitted with VI.
+"""
+function mcse(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    result isa BDMLMCMCResult || error("MCSE only available for MCMC results.")
+    return mcse(result)
+end
+
+"""
+    rhat(model::AbstractBDMLModel)
+
+Return R-hat convergence diagnostic from a fitted BDML model (MCMC only).
+
+Delegates to the stored result. Throws an error if the model has not been fitted
+or if the model was fitted with VI.
+"""
+function rhat(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    result isa BDMLMCMCResult || error("R-hat only available for MCMC results.")
+    return rhat(result)
+end
+
+"""
+    rhat_statistic(model::AbstractBDMLModel)
+
+Alias for `rhat(model)` - compute R-hat convergence diagnostic (MCMC only).
+"""
+function rhat_statistic(model::AbstractBDMLModel)
+    return rhat(model)
+end
+
+"""
+    chain_info(model::AbstractBDMLModel)
+
+Return chain summary information from a fitted BDML model (MCMC only).
+
+Delegates to the stored result. Throws an error if the model has not been fitted
+or if the model was fitted with VI.
+"""
+function chain_info(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    result = model.result::AbstractBDMLResult
+    result isa BDMLMCMCResult || error("Chain info only available for MCMC results.")
+    return chain_info(result)
 end
 
 # Export additional StatsAPI functions

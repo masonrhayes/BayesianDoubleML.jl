@@ -4,6 +4,10 @@
 #
 using SafeTestsets
 
+# Explicitly import AD backends for DifferentiationInterface compatibility
+import Enzyme
+import Mooncake
+
 # Phase 1: Core functionality tests (fast, no inference)
 # These tests verify basic types, constructors, and utilities
 println("\n=== Phase 1: Core Functionality ===")
@@ -11,9 +15,11 @@ println("\n=== Phase 1: Core Functionality ===")
 @safetestset "Core Types and Utilities" begin
     include("core.jl")
 end
-@safetestset "BDMLProblem Constructors" begin
-    include("problems.jl")
+
+@safetestset "BDMLModel Constructors" begin
+    include("models.jl")
 end
+
 @safetestset "Inference Methods" begin
     include("methods.jl")
 end

@@ -1,9 +1,9 @@
 # Extended Test Suite for BayesianDoubleML.jl
 # Run manually: julia --project=. test/extended/runtests.jl
-# 
+#
 # These tests are not run in CI but can be executed for:
 # - Release testing
-# - Performance benchmarking  
+# - Performance benchmarking
 # - AD backend comparisons
 # - Large dataset validation
 # - Comprehensive validation

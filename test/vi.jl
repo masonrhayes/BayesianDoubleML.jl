@@ -1,5 +1,5 @@
 # VI Tests (Consolidated)
-# Tests for both UnifiedVI and SimpleVI inference methods
+# Tests for both UnifiedVI and SimpleVI inference methods with fit!()
 # Basic and hierarchical models with various configurations
 
 using BayesianDoubleML
@@ -21,31 +21,32 @@ include("utils.jl")
     println("\n=== UnifiedVI: Basic Model ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :basic
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :basic
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
-    println("  ELBO: $(round(result.final_elbo, digits = 2))")
-    println("  Converged: $(result.converged)")
+    println("  ELBO: $(round(model.result.final_elbo, digits = 2))")
+    println("  Converged: $(model.result.converged)")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
     @test alpha_std > 0
     @test ci[1] < alpha_mean < ci[2]
     @test abs(alpha_mean - alpha_true) < 0.5
-    @test isfinite(result.final_elbo)
+    @test isfinite(model.result.final_elbo)
 end
 
 @testset "UnifiedVI Hierarchical Model" begin
@@ -55,23 +56,24 @@ end
     println("\n=== UnifiedVI: Hierarchical Model ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :hier
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :hier
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
-    println("  ELBO: $(round(result.final_elbo, digits = 2))")
+    println("  ELBO: $(round(model.result.final_elbo, digits = 2))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
     @test isfinite(alpha_mean)
@@ -87,15 +89,16 @@ end
     println("\n=== UnifiedVI with BDMLData ===")
 
     data = BDMLData(Y, D, X)
-    problem = BDMLProblem(data; model_type = :hier)
+    model = BDMLModel(data; model_type = :hier)
     method = UnifiedVI()
 
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -107,12 +110,12 @@ end
 
     println("\n=== UnifiedVI: AutoReverseDiff ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoReverseDiff)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 400, n_draws = 400)
+    elapsed = @elapsed fit!(model, method; n_iterations = 400, n_draws = 400)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -127,12 +130,12 @@ end
 
     println("\n=== UnifiedVI: AutoForwardDiff ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoForwardDiff)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -149,12 +152,12 @@ end
 
     println("\n=== UnifiedVI: AutoZygote ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoZygote)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -169,14 +172,15 @@ end
 
     println("\n=== UnifiedVI with Subsampling ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(; subsample = true, batch_size = 64)
 
-    result = fit(problem, method; n_iterations = 400, n_draws = 400)
+    fit!(model, method; n_iterations = 400, n_draws = 400)
 
-    @test result isa BDMLVIResult
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -188,13 +192,13 @@ end
 
     println("\n=== UnifiedVI: n_montecarlo Variation ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
 
     for n_mc in [5, 10, 20]
         method = UnifiedVI(; n_montecarlo = n_mc)
-        result = fit(problem, method; n_iterations = 300, n_draws = 300)
+        fit!(model, method; n_iterations = 300, n_draws = 300, force = true)
 
-        alpha_mean = mean(extract_alpha(result))
+        alpha_mean = mean(extract_alpha(model))
         println("  n_montecarlo=$n_mc: α = $(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)
@@ -210,12 +214,12 @@ end
 
     @test all(D .∈ Ref([0.0, 1.0]))
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -226,21 +230,25 @@ end
     Random.seed!(310)
     Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(310))
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    # Test display methods
-    @test_nowarn println(result)
-    @test_nowarn show(result)
+    # Test display methods on model
+    @test_nowarn println(model)
+    @test_nowarn show(model)
 
-    # Test credible interval
-    ci = credible_interval(result)
+    # Test display methods on result
+    @test_nowarn println(model.result)
+    @test_nowarn show(model.result)
+
+    # Test credible interval on model
+    ci = credible_interval(model)
     @test length(ci) == 2
     @test ci[1] < ci[2]
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     @test ci[1] < alpha_mean < ci[2]
 end
 
@@ -248,18 +256,18 @@ end
     Random.seed!(311)
     Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(311))
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test hasfield(typeof(result), :converged)
-    @test hasfield(typeof(result), :final_elbo)
-    @test isfinite(result.final_elbo)
+    @test hasfield(typeof(model.result), :converged)
+    @test hasfield(typeof(model.result), :final_elbo)
+    @test isfinite(model.result.final_elbo)
 
-    println("  Converged: $(result.converged)")
-    println("  Final ELBO: $(round(result.final_elbo, digits = 2))")
-    println("  Iterations: $(result.n_iterations)")
+    println("  Converged: $(model.result.converged)")
+    println("  Final ELBO: $(round(model.result.final_elbo, digits = 2))")
+    println("  Iterations: $(model.result.n_iterations)")
 end
 
 # ============================================================================
@@ -273,18 +281,19 @@ end
     println("\n=== SimpleVI: Basic Model ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = SimpleVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :basic
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :basic
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
@@ -304,17 +313,18 @@ end
     println("\n=== SimpleVI: Hierarchical Model ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test result.model_type == :hier
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test model.result.model_type == :hier
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
-    alpha_std = std(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
+    alpha_std = std(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Std α: $(round(alpha_std, digits = 4))")
@@ -332,15 +342,16 @@ end
     println("\n=== SimpleVI with BDMLData ===")
 
     data = BDMLData(Y, D, X)
-    problem = BDMLProblem(data; model_type = :hier)
+    model = BDMLModel(data; model_type = :hier)
     method = SimpleVI()
 
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    @test result isa BDMLVIResult
-    @test length(result.alpha_samples) >= 500
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -352,16 +363,16 @@ end
 
     println("\n=== SimpleVI: AutoMooncake Backend ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoMooncake)
 
     # Warmup
     println("  Warmup...")
-    _ = fit(problem, SimpleVI(; ad_backend = AutoMooncake); n_iterations = 50, n_draws = 100)
+    fit!(model, SimpleVI(; ad_backend = AutoMooncake); n_iterations = 50, n_draws = 100, force = true)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 400, n_draws = 400)
+    elapsed = @elapsed fit!(model, method; n_iterations = 400, n_draws = 400, force = true)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -376,12 +387,12 @@ end
 
     println("\n=== SimpleVI: AutoReverseDiff Backend ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoReverseDiff)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 400, n_draws = 400)
+    elapsed = @elapsed fit!(model, method; n_iterations = 400, n_draws = 400)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -398,12 +409,12 @@ end
 
     println("\n=== SimpleVI: AutoZygote Backend ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoZygote)
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
@@ -421,12 +432,12 @@ end
 
     @test all(D .∈ Ref([0.0, 1.0]))
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI()
 
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
     @test isfinite(alpha_mean)
@@ -439,12 +450,12 @@ end
 
     println("\n=== SimpleVI: Small Dataset (n=50, p=5) ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI()
 
-    result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
@@ -456,18 +467,23 @@ end
     Random.seed!(407)
     Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(407))
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI()
 
-    result = fit(problem, method; n_iterations = 300, n_draws = 300)
+    fit!(model, method; n_iterations = 300, n_draws = 300)
 
-    @test_nowarn println(result)
-    @test_nowarn show(result)
+    # Test display methods on model
+    @test_nowarn println(model)
+    @test_nowarn show(model)
 
-    ci = credible_interval(result)
+    # Test display methods on result
+    @test_nowarn println(model.result)
+    @test_nowarn show(model.result)
+
+    ci = credible_interval(model)
     @test length(ci) == 2
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
     @test ci[1] < alpha_mean < ci[2]
 end
 
@@ -477,13 +493,13 @@ end
 
     println("\n=== SimpleVI: Different Iteration Counts ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
 
     for n_iter in [200, 400]
         method = SimpleVI()
-        result = fit(problem, method; n_iterations = n_iter, n_draws = 400)
+        fit!(model, method; n_iterations = n_iter, n_draws = 400, force = true)
 
-        alpha_mean = mean(extract_alpha(result))
+        alpha_mean = mean(extract_alpha(model))
         println("  n_iterations=$n_iter: α = $(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)

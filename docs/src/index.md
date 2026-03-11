@@ -8,25 +8,24 @@ Welcome to the documentation for **BayesianDoubleML.jl**, a Julia package for Ba
 
 ## Overview
 
-BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia &amp; Liu (2025)](https://arxiv.org/abs/2508.12688). It offers both MCMC (as in the paper) as well as Variational Inference (VI) methods with multiple automatic differentiation backends.
+BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688). It offers both MCMC (as in the paper) as well as Variational Inference (VI) methods with multiple automatic differentiation backends.
 
 ## Key Features
 
 - **Causal Inference**: Estimate treatment effects with uncertainty quantification
 - **Multiple Inference Methods**:
   - MCMC with NUTS sampler
-  - Variational Inference (Simple and Unified)
+  - Variational Inference, with two primary methods:
     - The `SimpleVIMethod()` relies on Turing.jl's VI implementation, offering simplicity and ease of use at the expense of less flexibility.
-    - The `UnifiedVIMethod()` relies on `Bijectors.jl` and  `AdvancedVI.jl`, offering greater flexibility at the cost of slightly worse performance. This method supports both MeanFieldGuassian and LowRankGaussian [variational families](https://turinglang.org/AdvancedVI.jl/dev/families/) from `AdvancedVI.jl`.
-- **Multiple AD Backends**: ReverseDiff, Mooncake, Zygote, ForwardDiff
-  - Currently, Mooncake is only available with SimplifiedVIMethod, given some upstream compatibility issues
+    - The `UnifiedVIMethod()` relies on `Bijectors.jl` and  `AdvancedVI.jl`, offering greater flexibility. This method supports both MeanFieldGuassian and LowRankGaussian [variational families](https://turinglang.org/AdvancedVI.jl/dev/families/) from `AdvancedVI.jl`. However, this method does not currently support the Mooncake AD backend (which is extremely fast). Thus, for performance, it's recommended to stick with `SimpleVIMethod()` with `AutoMooncake` backend.
+- **Multiple AD Backends**: ReverseDiff, Mooncake, Zygote, ForwardDiff.
 - **Automatic Subsampling**: For large datasets (n > 10,000)
-- **Rich Diagnostics**: HPD intervals, p-values, ESS, Monte Carlo SE
-- **StatsAPI Compliance**: Native `coeftable()` support
 
 ## The BDML Model
 
-The Bayesian Double Machine Learning approach avoids regularization-induced confounding (RIC) via a bivariate reduced form parameterization:
+The Bayesian Double Machine Learning approach avoids regularization-induced confounding (RIC) via a bivariate reduced form parameterization.
+
+As from the [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688) paper, the model takes the form of a bivariate reduced form regression model:
 
 **Outcome equation:**
 
@@ -63,19 +62,24 @@ The causal effect ``\alpha`` is recovered from the error covariance via:
 
 ```julia
 using BayesianDoubleML
+using StableRNGs
 
 # Generate synthetic data
-n, p = 5000, 10
-X = randn(n, p)
-D = X[:, 1] + 0.5 * randn(n)  # Treatment
-Y = 2.0 * D + X[:, 2] - 0.5 * X[:, 3] + randn(n)  # Outcome
+n = 200
+p = 100
+alpha_true = 2.0
 
-# Create problem and fit
-problem = BDMLProblem(Y, D, X; model_type=:hier)
-result = fit(problem, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
+rng = StableRNG(42)
+
+# Generate data
+Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+
+# Create model and fit
+model = BDMLModel(Y, D, X; model_type=:hier)
+fit!(model, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
 
 # View results
-summary(result)
+summary(model)
 ```
 
 ## Documentation Structure
@@ -85,7 +89,7 @@ summary(result)
 
 ## Citation
 
-If you use this package in your research, please cite the original paper:
+If you use this package in your research, please consider citing the original paper (no affiliation):
 
 > DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for Causal Inference". arXiv:2508.12688v1.
 

@@ -23,18 +23,19 @@ include(joinpath(@__DIR__, "..", "utils.jl"))
     println("\n=== Medium Dataset: Auto Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(extract_alpha(result))
-    ci = credible_interval(result)
+    alpha_mean = mean(extract_alpha(model))
+    ci = credible_interval(model)
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  95% CI: [$(round(ci[1], digits = 4)), $(round(ci[2], digits = 4))]")
     println("  Time: $(round(elapsed, digits = 2))s")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
@@ -52,7 +53,7 @@ end
     println("\n=== Large Dataset: Explicit Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
 
     # Test with explicit batch size
     method = UnifiedVI(;
@@ -60,14 +61,15 @@ end
         batch_size = 128
     )
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Batch size: 128")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
@@ -85,16 +87,16 @@ end
     println("\n=== Subsampling: Batch Size Variations (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
 
     batch_sizes = [64, 128, 256]
 
     for bs in batch_sizes
         Random.seed!(604)
         method = UnifiedVI(; subsample = true, batch_size = bs)
-        result = fit(problem, method; n_iterations = 300, n_draws = 300)
+        fit!(model, method; n_iterations = 300, n_draws = 300, force = true)
 
-        alpha_mean = mean(extract_alpha(result))
+        alpha_mean = mean(extract_alpha(model))
         println("  Batch size $bs: α=$(round(alpha_mean, digits = 4))")
 
         @test isfinite(alpha_mean)
@@ -116,18 +118,19 @@ end
     println("True α: $alpha_true")
     println("Dataset: n=$n (would auto-subsample)")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(;
         subsample = false  # Force full-batch
     )
 
-    elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  Time: $(round(elapsed, digits = 2))s")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.6
 end
@@ -145,7 +148,7 @@ end
     println("\n=== Subsampling with Different AD Backends (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
 
     backends = [AutoReverseDiff]
 
@@ -158,8 +161,8 @@ end
             batch_size = 128
         )
 
-        elapsed = @elapsed result = fit(problem, method; n_iterations = 500, n_draws = 500)
-        alpha_mean = mean(extract_alpha(result))
+        elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500, force = true)
+        alpha_mean = mean(extract_alpha(model))
 
         println("  $(nameof(backend)): α=$(round(alpha_mean, digits = 4)), time=$(round(elapsed, digits = 2))s")
 
@@ -181,16 +184,17 @@ end
     println("\n=== Subsampling with Basic Model (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = UnifiedVI(;
         subsample = true,
         batch_size = 128
     )
-    result = fit(problem, method; n_iterations = 300, n_draws = 300)
-    alpha_mean = mean(extract_alpha(result))
+    fit!(model, method; n_iterations = 300, n_draws = 300)
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
@@ -209,19 +213,19 @@ end
     println("True α: $alpha_true")
     println("Dataset: n=$n")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-
     # Full batch (forced)
+    model_full = BDMLModel(Y, D, X; model_type = :hier)
     Random.seed!(609)
     method_full = UnifiedVI(; subsample = false)
-    result_full = fit(problem, method_full; n_iterations = 200, n_draws = 200)
-    alpha_full = mean(extract_alpha(result_full))
+    fit!(model_full, method_full; n_iterations = 200, n_draws = 200)
+    alpha_full = mean(extract_alpha(model_full))
 
     # Subsampled
+    model_sub = BDMLModel(Y, D, X; model_type = :hier)
     Random.seed!(609)
     method_sub = UnifiedVI(; subsample = true, batch_size = 128)
-    result_sub = fit(problem, method_sub; n_iterations = 300, n_draws = 300)
-    alpha_sub = mean(extract_alpha(result_sub))
+    fit!(model_sub, method_sub; n_iterations = 300, n_draws = 300)
+    alpha_sub = mean(extract_alpha(model_sub))
 
     println("  Full batch: α=$(round(alpha_full, digits = 4))")
     println("  Subsampled: α=$(round(alpha_sub, digits = 4))")

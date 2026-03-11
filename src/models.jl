@@ -1,30 +1,34 @@
-# BDML Problem Types for Multiple Dispatch
-# Defines the "what" - the problem specification with pre-computed data
+# BDML Model Types for Multiple Dispatch
+# Defines the "what" - the model specification with pre-computed data
 
-export AbstractBDMLProblem, BDMLBasicProblem, BDMLHierarchicalProblem, BDMLProblem
-export nobs, ncovariates, model_type, standardization_stats
+export AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel, BDMLModel
+export nobs, ncovariates, model_type, standardization_stats, isfitted
 
 """
-    AbstractBDMLProblem
+    AbstractBDMLModel
 
-Abstract type for all BDML problem specifications.
+Abstract type for all BDML model specifications.
 
-Problem types encapsulate:
+Model types encapsulate:
 - Data (Y, D, X) - already standardized
 - Standardization statistics (for transforming back)
 - Pre-allocated temporaries (for performance)
 - Metadata (n, p, model_type)
+- Fitting results and state (is_fitted, result, last_method)
 
 Each concrete subtype represents a different model specification
 (basic vs hierarchical) and can be fitted with different methods
 (MCMC, VI unified, VI simple) via multiple dispatch.
+
+After fitting with `fit!()`, results are stored in the model and can be
+extracted using `coeftable()`, `extract_alpha()`, `summary()`, etc.
 """
-abstract type AbstractBDMLProblem end
+abstract type AbstractBDMLModel end
 
 """
-    BDMLBasicProblem <: AbstractBDMLProblem
+    BDMLBasicModel <: AbstractBDMLModel
 
-Basic BDML model problem specification implementing BDML-Basic from 
+Basic BDML model specification implementing BDML-Basic from 
 DiTraglia & Liu (2025), Algorithm 1.
 
 # Fields
@@ -36,6 +40,9 @@ DiTraglia & Liu (2025), Algorithm 1.
 - `p::Int`: Number of control variables
 - `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
 - `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
+- `result::Union{Nothing, AbstractBDMLResult}`: Stores fitting results after `fit!()`
+- `is_fitted::Bool`: Whether the model has been fitted
+- `last_method::Union{Nothing, AbstractInferenceMethod}`: Method used in last fit
 
 # Model Specification (Section 4, Equations 12-13)
 
@@ -57,13 +64,13 @@ For VI, uses Beta(2,2) correlation parameterization instead of LKJCholesky.
 
 This is the BDML-Basic variation with fixed prior variances (Section 6, Table 1).
 
-See also: [`BDMLHierarchicalProblem`](@ref), [`BDMLProblem`](@ref)
+See also: [`BDMLHierarchicalModel`](@ref), [`BDMLModel`](@ref)
 
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 """
-struct BDMLBasicProblem <: AbstractBDMLProblem
+mutable struct BDMLBasicModel <: AbstractBDMLModel
     Y::Vector{Float64}
     D::Vector{Float64}
     X::Matrix{Float64}
@@ -73,16 +80,19 @@ struct BDMLBasicProblem <: AbstractBDMLProblem
     # Pre-allocated temporaries for performance
     μ_Y_cache::Vector{Float64}
     μ_D_cache::Vector{Float64}
+    # Result storage
+    result::Union{Nothing, AbstractBDMLResult}
+    is_fitted::Bool
+    last_method::Union{Nothing, AbstractInferenceMethod}
 end
 
 """
-    BDMLHierarchicalProblem <: AbstractBDMLProblem
+    BDMLHierarchicalModel <: AbstractBDMLModel
 
-Hierarchical BDML model problem specification implementing BDML-Hier from 
+Hierarchical BDML model specification implementing BDML-Hier from 
 DiTraglia & Liu (2025), Algorithm 1.
 
 # Fields
-Same as `BDMLBasicProblem`:
 - `Y::Vector{Float64}`: Standardized outcome variable
 - `D::Vector{Float64}`: Standardized treatment variable  
 - `X::Matrix{Float64}`: Standardized control variables (covariates)
@@ -91,6 +101,9 @@ Same as `BDMLBasicProblem`:
 - `p::Int`: Number of control variables
 - `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
 - `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
+- `result::Union{Nothing, AbstractBDMLResult}`: Stores fitting results after `fit!()`
+- `is_fitted::Bool`: Whether the model has been fitted
+- `last_method::Union{Nothing, AbstractInferenceMethod}`: Method used in last fit
 
 # Model Specification (Section 4, Equations 12-13)
 
@@ -120,13 +133,13 @@ shrinkage that learns the appropriate regularization from data (Section 6, Table
 This can improve performance when p is large relative to n, and the paper's
 simulations show BDML-Hier achieves better coverage (0.94) than BDML-Basic (0.91-0.93).
 
-See also: [`BDMLBasicProblem`](@ref), [`BDMLProblem`](@ref)
+See also: [`BDMLBasicModel`](@ref), [`BDMLModel`](@ref)
 
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 """
-struct BDMLHierarchicalProblem <: AbstractBDMLProblem
+mutable struct BDMLHierarchicalModel <: AbstractBDMLModel
     Y::Vector{Float64}
     D::Vector{Float64}
     X::Matrix{Float64}
@@ -136,12 +149,16 @@ struct BDMLHierarchicalProblem <: AbstractBDMLProblem
     # Pre-allocated temporaries for performance
     μ_Y_cache::Vector{Float64}
     μ_D_cache::Vector{Float64}
+    # Result storage
+    result::Union{Nothing, AbstractBDMLResult}
+    is_fitted::Bool
+    last_method::Union{Nothing, AbstractInferenceMethod}
 end
 
 """
-    BDMLProblem(Y, D, X; model_type=:basic)
+    BDMLModel(Y, D, X; model_type=:basic)
 
-Factory function to create appropriate BDML problem type for Algorithm 1
+Factory function to create appropriate BDML model type for Algorithm 1
 from DiTraglia & Liu (2025).
 
 Standardizes data once during creation and pre-allocates temporaries.
@@ -158,7 +175,7 @@ This ensures data is only standardized once, even if fitted multiple times.
   - `:hier` for BDML-Hier (adaptive hierarchical priors)
 
 # Returns
-`AbstractBDMLProblem`: Either `BDMLBasicProblem` or `BDMLHierarchicalProblem`
+`AbstractBDMLModel`: Either `BDMLBasicModel` or `BDMLHierarchicalModel`
 
 # Algorithm 1 Variations
 
@@ -177,28 +194,29 @@ Both variations recover α via Equation 15: α = ρ·σ_U / σ_V
 
 # Examples
 ```julia
-# Create basic model problem
-prob_basic = BDMLProblem(Y, D, X; model_type=:basic)
+# Create basic model
+model_basic = BDMLModel(Y, D, X; model_type=:basic)
 
-# Create hierarchical model problem  
-prob_hier = BDMLProblem(Y, D, X; model_type=:hier)
+# Create hierarchical model  
+model_hier = BDMLModel(Y, D, X; model_type=:hier)
 
 # Fit with different methods
-result_mcmc = fit(prob_basic, MCMCMethod(:nuts))
-result_vi = fit(prob_basic, UnifiedVIMethod())
+fit!(model_basic, MCMCMethod(:nuts))
+fit!(model_hier, UnifiedVIMethod())
 ```
 
 # Performance Notes
-Standardization is performed once during problem creation.
+Standardization is performed once during model creation.
 Pre-allocated temporaries are sized to the data dimensions.
+Results are stored in the model after calling `fit!()`.
 
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1.
 
-See also: [`BDMLBasicProblem`](@ref), [`BDMLHierarchicalProblem`](@ref)
+See also: [`BDMLBasicModel`](@ref), [`BDMLHierarchicalModel`](@ref), [`fit!`](@ref)
 """
-function BDMLProblem(Y, D, X; model_type::Symbol = :basic)
+function BDMLModel(Y, D, X; model_type::Symbol = :basic)
     # Validate inputs
     n = length(Y)
     @assert length(D) == n "D must have same length as Y, got length(D)=$(length(D)) vs length(Y)=$n"
@@ -212,46 +230,57 @@ function BDMLProblem(Y, D, X; model_type::Symbol = :basic)
     μ_Y_cache = Vector{Float64}(undef, n)
     μ_D_cache = Vector{Float64}(undef, n)
 
+    # Initialize result storage
+    result = nothing
+    is_fitted = false
+    last_method = nothing
+
     if model_type == :basic
-        return BDMLBasicProblem(Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache)
+        return BDMLBasicModel(
+            Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache,
+            result, is_fitted, last_method
+        )
     elseif model_type == :hier
-        return BDMLHierarchicalProblem(Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache)
+        return BDMLHierarchicalModel(
+            Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache,
+            result, is_fitted, last_method
+        )
     else
         throw(ArgumentError("Unknown model_type: $model_type. Must be :basic or :hier"))
     end
 end
 
-# ==================== ACCESSOR FUNCTIONS ====================
+# Accessor functions
 
 """
-    nobs(prob::AbstractBDMLProblem)
+    nobs(model::AbstractBDMLModel)
 
-Return the number of observations in the problem.
+Return the number of observations in the model.
 
 # Examples
 ```julia
-prob = BDMLProblem(Y, D, X)
-n = nobs(prob)  # Same as length(Y)
+model = BDMLModel(Y, D, X)
+n = nobs(model)  # Same as length(Y)
 ```
 """
-nobs(prob::AbstractBDMLProblem) = prob.n
+nobs(model::AbstractBDMLModel) = model.n
 
 """
-    ncovariates(prob::AbstractBDMLProblem)
+    ncovariates(model::AbstractBDMLModel)
 
-Return the number of control variables (covariates) in the problem.
+Return the number of control variables (covariates) in the model.
 
 # Examples
 ```julia
-prob = BDMLProblem(Y, D, X)
-p = ncovariates(prob)  # Same as size(X, 2)
+model = BDMLModel(Y, D, X)
+p = ncovariates(model)  # Same as size(X, 2)
 ```
 """
-ncovariates(prob::AbstractBDMLProblem) = prob.p
+ncovariates(model::AbstractBDMLModel) = model.p
 
 """
-    model_type(prob::BDMLBasicProblem)
-    model_type(prob::BDMLHierarchicalProblem)
+    model_type(model::BDMLBasicModel)
+    model_type(model::BDMLHierarchicalModel)
 
 Return the model type symbol (:basic or :hier).
 
@@ -259,44 +288,74 @@ Useful for dispatch and debugging.
 
 # Examples
 ```julia
-prob = BDMLProblem(Y, D, X; model_type=:basic)
-model_type(prob)  # Returns :basic
+model = BDMLModel(Y, D, X; model_type=:basic)
+model_type(model)  # Returns :basic
 ```
 """
-model_type(prob::BDMLBasicProblem) = :basic
-model_type(prob::BDMLHierarchicalProblem) = :hier
+model_type(model::BDMLBasicModel) = :basic
+model_type(model::BDMLHierarchicalModel) = :hier
 
 """
-    standardization_stats(prob::AbstractBDMLProblem)
+    standardization_stats(model::AbstractBDMLModel)
 
-Return the standardization statistics for the problem.
+Return the standardization statistics for the model.
 
 Used to transform results back to original scale.
 
 # Examples
 ```julia
-prob = BDMLProblem(Y, D, X)
-stats = standardization_stats(prob)
+model = BDMLModel(Y, D, X)
+stats = standardization_stats(model)
 # Use stats.Y_sd, stats.D_sd, etc.
 ```
 """
-standardization_stats(prob::AbstractBDMLProblem) = prob.stats
-
-# ==================== CONVERSION ====================
+standardization_stats(model::AbstractBDMLModel) = model.stats
 
 """
-    BDMLProblem(data::BDMLData; model_type=:basic)
+    isfitted(model::AbstractBDMLModel)
 
-Create BDML problem from BDMLData struct.
+Return `true` if the model has been fitted (i.e., `fit!()` has been called).
+
+# Examples
+```julia
+model = BDMLModel(Y, D, X)
+isfitted(model)  # Returns false
+
+fit!(model)
+isfitted(model)  # Returns true
+```
+"""
+isfitted(model::AbstractBDMLModel) = model.is_fitted
+
+"""
+    BDMLModel(data::BDMLData; model_type=:basic)
+
+Create BDML model from BDMLData struct.
 
 Convenience constructor for working with the existing BDMLData type.
 
 # Examples
 ```julia
 data = BDMLData(Y, D, X)
-prob = BDMLProblem(data; model_type=:basic)
+model = BDMLModel(data; model_type=:basic)
 ```
 """
-function BDMLProblem(data::BDMLData; model_type::Symbol = :basic)
-    return BDMLProblem(data.Y, data.D, data.X; model_type)
+function BDMLModel(data::BDMLData; model_type::Symbol = :basic)
+    return BDMLModel(data.Y, data.D, data.X; model_type)
+end
+
+# Pretty printing for models
+function Base.show(io::IO, model::AbstractBDMLModel)
+    model_type_str = model isa BDMLBasicModel ? "Basic" : "Hierarchical"
+    fitted_str = isfitted(model) ? "fitted" : "not fitted"
+    println(io, "BDML$(model_type_str)Model ($(fitted_str))")
+    println(io, "  Observations: $(nobs(model))")
+    println(io, "  Covariates: $(ncovariates(model))")
+    return if isfitted(model)
+        println(io, "  Result: $(typeof(model.result))")
+    end
+end
+
+function Base.show(io::IO, ::MIME"text/plain", model::AbstractBDMLModel)
+    return show(io, model)
 end

@@ -1,93 +1,117 @@
 # Multiple Dispatch-Based Fitting Interface for BDML
 #
-# This file provides a unified `fit()` interface that dispatches on both:
-# 1. Problem type (BDMLBasicProblem vs BDMLHierarchicalProblem)
-# 2. Inference method (MCMCMethod vs UnifiedVIMethod vs SimpleVIMethod)
+# This file provides a unified `fit!()` interface that mutates the model
+# and stores results internally. The model serves as both specification
+# and result container.
 #
-# This leverages Julia's multiple dispatch to have clean, extensible code
-# where each combination has its own implementation logic.
+# The actual implementation dispatches on both:
+# 1. Model type (BDMLBasicModel vs BDMLHierarchicalModel)
+# 2. Inference method (MCMCMethod vs UnifiedVIMethod vs SimpleVIMethod)
 
-export fit
-
-# Import the old fitting functions - we'll wrap them in dispatch
-# These are defined in fit.jl, vi/vi_fit.jl, and vi_simple/fit_vi.jl
+export fit!
 
 """
-    fit(problem::AbstractBDMLProblem, method::AbstractInferenceMethod; kwargs...)
+    fit!(model::AbstractBDMLModel, method::AbstractInferenceMethod; force=false, kwargs...)
 
-Fit a BDML problem using the specified inference method.
+Fit a BDML model using the specified inference method, storing results in the model.
 
-This is the core multiple dispatch function that routes to appropriate
-algorithm implementations based on both problem type and method type.
+This is a mutating function that modifies the model in-place. After fitting,
+results can be extracted using `coeftable()`, `extract_alpha()`, `summary()`, etc.
+
+If the model has already been fitted, a warning is shown unless `force=true`
+is passed to allow refitting.
 
 # Arguments
-- `problem::AbstractBDMLProblem`: The problem specification (data + metadata)
+- `model::AbstractBDMLModel`: The model to fit (data + metadata)
 - `method::AbstractInferenceMethod`: The inference algorithm to use
 
-# Keyword Arguments (method-dependent)
-For MCMC:
+# Keyword Arguments
+- `force::Bool=false`: Allow refitting an already-fitted model
+
+For MCMC methods:
 - `n_samples::Int=2000`: Number of posterior samples to draw
 - `n_chains::Int=4`: Number of MCMC chains to run
 
-For VI:
+For VI methods:
 - `n_iterations::Int=1000`: Number of optimization iterations
 - `n_draws::Int=2000`: Number of posterior samples to draw after fitting
 
 # Returns
-`BDMLMCMCResult` or `BDMLVIResult` depending on method type.
+`nothing` (follows standard Julia mutating function convention)
 
 # Examples
 ```julia
-# Create problem
-prob = BDMLProblem(Y, D, X; model_type=:basic)
+# Create model
+model = BDMLModel(Y, D, X; model_type=:basic)
 
 # Fit with MCMC (NUTS)
-result = fit(prob, MCMCMethod(:nuts); n_samples=2000, n_chains=4)
+fit!(model, MCMCMethod(:nuts); n_samples=2000, n_chains=4)
 
 # Fit with VI (Unified)
-result = fit(prob, UnifiedVIMethod(); n_iterations=1000)
+fit!(model, UnifiedVIMethod(); n_iterations=1000)
 
-# Fit with VI (Simple)
-result = fit(prob, SimpleVIMethod(); n_iterations=1000)
+# Extract results
+coef_table = coeftable(model)
+summary(model)
 
-# Default fit uses MCMC with NUTS
-result = fit(prob)  # Same as fit(prob, MCMCMethod(:nuts))
+# Refit with force (changes the stored result)
+fit!(model, SimpleVIMethod(); force=true)
 ```
 
 # Multiple Dispatch
-The actual implementation is dispatched based on both arguments:
-- `fit(::BDMLBasicProblem, ::MCMCMethod)` - Basic model MCMC
-- `fit(::BDMLHierarchicalProblem, ::MCMCMethod)` - Hierarchical MCMC  
-- `fit(::BDMLBasicProblem, ::UnifiedVIMethod)` - Basic model VI (Unified)
-- `fit(::BDMLHierarchicalProblem, ::UnifiedVIMethod)` - Hierarchical VI (Unified)
-- `fit(::BDMLBasicProblem, ::SimpleVIMethod)` - Basic model VI (Simple)
-- `fit(::BDMLHierarchicalProblem, ::SimpleVIMethod)` - Hierarchical VI (Simple)
+The actual implementation dispatches on both model and method:
+- `_fit_impl(::BDMLBasicModel, ::MCMCMethod)` - Basic model MCMC
+- `_fit_impl(::BDMLHierarchicalModel, ::MCMCMethod)` - Hierarchical MCMC  
+- `_fit_impl(::BDMLBasicModel, ::UnifiedVIMethod)` - Basic model VI (Unified)
+- `_fit_impl(::BDMLHierarchicalModel, ::UnifiedVIMethod)` - Hierarchical VI (Unified)
+- `_fit_impl(::BDMLBasicModel, ::SimpleVIMethod)` - Basic model VI (Simple)
+- `_fit_impl(::BDMLHierarchicalModel, ::SimpleVIMethod)` - Hierarchical VI (Simple)
 
-See also: [`BDMLProblem`](@ref), [`MCMCMethod`](@ref), [`UnifiedVIMethod`](@ref)
+See also: [`BDMLModel`](@ref), [`MCMCMethod`](@ref), [`UnifiedVIMethod`](@ref), [`isfitted`](@ref)
 """
-function fit(problem::AbstractBDMLProblem, method::AbstractInferenceMethod; kwargs...)
-    error("No fit method defined for problem type $(typeof(problem)) with method $(typeof(method))")
+function fit!(
+        model::AbstractBDMLModel, method::AbstractInferenceMethod;
+        force::Bool = false, kwargs...
+    )
+    # Check if already fitted
+    if model.is_fitted && !force
+        @warn "Model has already been fitted. Use force=true to refit."
+        return nothing
+    end
+
+    # Dispatch to implementation based on model type and method
+    result = _fit_impl(model, method; kwargs...)
+
+    # Store result in model
+    model.result = result
+    model.is_fitted = true
+    model.last_method = method
+
+    return nothing
 end
 
 """
-    fit(problem::AbstractBDMLProblem; kwargs...)
+    fit!(model::AbstractBDMLModel; force=false, kwargs...)
 
-Fit a problem using default method (MCMC with NUTS).
+Fit a model using default method (MCMC with NUTS).
 
 Convenience method that defaults to NUTS sampler.
 """
-fit(problem::AbstractBDMLProblem; kwargs...) = fit(problem, MCMCMethod(:nuts); kwargs...)
+function fit!(model::AbstractBDMLModel; force::Bool = false, kwargs...)
+    return fit!(model, MCMCMethod(:nuts); force = force, kwargs...)
+end
 
-# ==================== VARIATIONAL FAMILY INITIALIZATION ====================
-# Multiple dispatch-based initialization for different variational families
+# Error fallback for unimplemented combinations
+function _fit_impl(model::AbstractBDMLModel, method::AbstractInferenceMethod; kwargs...)
+    error("No fit implementation defined for model type $(typeof(model)) with method $(typeof(method))")
+end
+
+# Variational family initialization
 
 """
     initialize_variational_distribution(dim::Int, family::AbstractVariationalFamily)
 
 Initialize the variational distribution q0 based on the family type using multiple dispatch.
-
-This function uses Julia's multiple dispatch to select the appropriate AdvancedVI 
-distribution type based on the variational family.
 """
 function initialize_variational_distribution end
 
@@ -245,22 +269,22 @@ function configure_vi_algorithm(method::UnifiedVIMethod{LowRankScore}, use_subsa
     end
 end
 
-# ==================== MCMC DISPATCH ====================
+# MCMC dispatch
 
 """
-    fit(prob::BDMLBasicProblem, method::MCMCMethod; n_samples=2000, n_chains=4)
+    _fit_impl(model::BDMLBasicModel, method::MCMCMethod; n_samples=2000, n_chains=4)
 
 Fit basic BDML model using MCMC (NUTS or HMC).
 
 Uses LKJCholesky correlation parameterization (Turing's native approach).
 """
-function fit(
-        prob::BDMLBasicProblem, method::MCMCMethod;
+function _fit_impl(
+        model::BDMLBasicModel, method::MCMCMethod;
         n_samples::Int = 2000, n_chains::Int = 4
     )
 
     # Create Turing model (uses LKJCholesky for MCMC)
-    model = bdml_basic(prob.Y, prob.D, prob.X)
+    turing_model = bdml_basic(model.Y, model.D, model.X)
 
     # Create sampler based on method
     if method.algorithm == :nuts
@@ -275,35 +299,35 @@ function fit(
 
     # Run MCMC
     chain = if n_chains == 1
-        sample(model, mcmc_sampler, n_samples; progress = true)
+        sample(turing_model, mcmc_sampler, n_samples; progress = true)
     else
-        sample(model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
+        sample(turing_model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
     end
 
     # Extract alpha
     α_s_samples = extract_alpha(chain)
 
     # Transform back to original scale
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    return BDMLMCMCResult(chain, α_samples, α_s_samples, prob.stats, :basic)
+    return BDMLMCMCResult(chain, α_samples, α_s_samples, model.stats, :basic)
 end
 
 """
-    fit(prob::BDMLHierarchicalProblem, method::MCMCMethod; n_samples=2000, n_chains=4)
+    _fit_impl(model::BDMLHierarchicalModel, method::MCMCMethod; n_samples=2000, n_chains=4)
 
 Fit hierarchical BDML model using MCMC (NUTS or HMC).
 
 Uses LKJCholesky correlation parameterization.
 """
-function fit(
-        prob::BDMLHierarchicalProblem, method::MCMCMethod;
+function _fit_impl(
+        model::BDMLHierarchicalModel, method::MCMCMethod;
         n_samples::Int = 2000, n_chains::Int = 4
     )
 
     # Create Turing model
-    model = bdml_hier(prob.Y, prob.D, prob.X)
+    turing_model = bdml_hier(model.Y, model.D, model.X)
 
     # Create sampler
     if method.algorithm == :nuts
@@ -314,41 +338,41 @@ function fit(
 
     # Run MCMC
     chain = if n_chains == 1
-        sample(model, mcmc_sampler, n_samples; progress = true)
+        sample(turing_model, mcmc_sampler, n_samples; progress = true)
     else
-        sample(model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
+        sample(turing_model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
     end
 
     # Extract alpha
     α_s_samples = extract_alpha(chain)
 
     # Transform back
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    return BDMLMCMCResult(chain, α_samples, α_s_samples, prob.stats, :hier)
+    return BDMLMCMCResult(chain, α_samples, α_s_samples, model.stats, :hier)
 end
 
-# ==================== VI DISPATCH - UNIFIED ====================
+# VI dispatch - Unified
 
 """
-    fit(prob::BDMLBasicProblem, method::UnifiedVIMethod; n_iterations=1000, n_draws=2000)
+    _fit_impl(model::BDMLBasicModel, method::UnifiedVIMethod; n_iterations=1000, n_draws=2000)
 
 Fit basic BDML model using Unified VI (AdvancedVI with explicit Bijectors).
 
 Uses Beta(2,2) correlation parameterization (VI-compatible).
 Supports subsampling for large datasets.
 """
-function fit(
-        prob::BDMLBasicProblem, method::UnifiedVIMethod;
+function _fit_impl(
+        model::BDMLBasicModel, method::UnifiedVIMethod;
         n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
     )
 
     # Create unified VI model (uses explicit bijectors)
-    vi_model = BDMLVIModel(prob.Y, prob.D, prob.X; model_type = :basic, T = Float64)
+    vi_model = BDMLVIModel(model.Y, model.D, model.X; model_type = :basic, T = Float64)
 
     # Determine subsampling
-    n = nobs(prob)
+    n = nobs(model)
     use_subsample = if isnothing(method.subsample)
         n >= 10000  # Auto-enable
     else
@@ -371,7 +395,7 @@ function fit(
 
     # Get dimension
     d = LogDensityProblems.dimension(vi_model)
-    p = ncovariates(prob)
+    p = ncovariates(model)
 
     # Configure AD backend
     ad_kwargs = (;)
@@ -429,7 +453,7 @@ function fit(
     α_s_samples = extract_alpha(vi_samples_constrained, p, :basic)
 
     # Transform back
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
     # Determine result type based on family and subsampling
@@ -437,26 +461,26 @@ function fit(
     vi_type = use_subsample ? Symbol(base_vi_type, :_subsampled) : base_vi_type
 
     return BDMLVIResult(
-        q_result, α_samples, α_s_samples, prob.stats,
+        q_result, α_samples, α_s_samples, model.stats,
         :basic, vi_type, n_iterations, elbo_history, converged, final_elbo
     )
 end
 
 """
-    fit(prob::BDMLHierarchicalProblem, method::UnifiedVIMethod; n_iterations=1000, n_draws=2000)
+    _fit_impl(model::BDMLHierarchicalModel, method::UnifiedVIMethod; n_iterations=1000, n_draws=2000)
 
 Fit hierarchical BDML model using Unified VI.
 """
-function fit(
-        prob::BDMLHierarchicalProblem, method::UnifiedVIMethod;
+function _fit_impl(
+        model::BDMLHierarchicalModel, method::UnifiedVIMethod;
         n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
     )
 
     # Create unified VI model
-    vi_model = BDMLVIModel(prob.Y, prob.D, prob.X; model_type = :hier, T = Float64)
+    vi_model = BDMLVIModel(model.Y, model.D, model.X; model_type = :hier, T = Float64)
 
     # Determine subsampling
-    n = nobs(prob)
+    n = nobs(model)
     use_subsample = if isnothing(method.subsample)
         n >= 10000
     else
@@ -476,7 +500,7 @@ function fit(
     end
 
     d = LogDensityProblems.dimension(vi_model)
-    p = ncovariates(prob)
+    p = ncovariates(model)
 
     # Configure AD
     ad_kwargs = (;)
@@ -538,7 +562,7 @@ function fit(
         α_s_samples[i] = ρ * σ_U / σ_V
     end
 
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
     # Determine result type based on family and subsampling
@@ -546,27 +570,27 @@ function fit(
     vi_type = use_subsample ? Symbol(base_vi_type, :_subsampled) : base_vi_type
 
     return BDMLVIResult(
-        q_result, α_samples, α_s_samples, prob.stats,
+        q_result, α_samples, α_s_samples, model.stats,
         :hier, vi_type, n_iterations, elbo_history, converged, final_elbo
     )
 end
 
-# ==================== VI DISPATCH - SIMPLE ====================
+# VI dispatch - Simple
 
 """
-    fit(prob::BDMLBasicProblem, method::SimpleVIMethod; n_iterations=1000, n_draws=2000)
+    _fit_impl(model::BDMLBasicModel, method::SimpleVIMethod; n_iterations=1000, n_draws=2000)
 
 Fit basic BDML model using Simple VI (Turing's native vi() function).
 
 This works well with AutoMooncake. No subsampling support.
 """
-function fit(
-        prob::BDMLBasicProblem, method::SimpleVIMethod;
+function _fit_impl(
+        model::BDMLBasicModel, method::SimpleVIMethod;
         n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
     )
 
     # Create Turing model (uses Beta correlation for VI compatibility)
-    model = bdml_basic_vi(prob.Y, prob.D, prob.X)
+    turing_model = bdml_basic_vi(model.Y, model.D, model.X)
 
     # Configure AD
     ad_kwargs = (;)
@@ -579,11 +603,11 @@ function fit(
     ad_backend = method.ad_backend(; ad_kwargs...)
 
     # Initialize variational distribution
-    q_init = Variational.q_meanfield_gaussian(model)
+    q_init = Variational.q_meanfield_gaussian(turing_model)
 
     # Run VI
     q_result = vi(
-        model, q_init, n_iterations;
+        turing_model, q_init, n_iterations;
         show_progress = show_progress,
         adtype = ad_backend
     )
@@ -603,31 +627,31 @@ function fit(
     vi_samples = rand(q, n_draws)
 
     # Extract alpha
-    p = ncovariates(prob)
+    p = ncovariates(model)
     α_s_samples = extract_alpha(vi_samples, p, :basic)
 
     # Transform back
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
     return BDMLVIResult(
-        q, α_samples, α_s_samples, prob.stats,
+        q, α_samples, α_s_samples, model.stats,
         :basic, :meanfield, n_iterations, elbo_history, converged, final_elbo
     )
 end
 
 """
-    fit(prob::BDMLHierarchicalProblem, method::SimpleVIMethod; n_iterations=1000, n_draws=2000)
+    _fit_impl(model::BDMLHierarchicalModel, method::SimpleVIMethod; n_iterations=1000, n_draws=2000)
 
 Fit hierarchical BDML model using Simple VI.
 """
-function fit(
-        prob::BDMLHierarchicalProblem, method::SimpleVIMethod;
+function _fit_impl(
+        model::BDMLHierarchicalModel, method::SimpleVIMethod;
         n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
     )
 
     # Create Turing model
-    model = bdml_hier_vi(prob.Y, prob.D, prob.X)
+    turing_model = bdml_hier_vi(model.Y, model.D, model.X)
 
     # Configure AD
     ad_kwargs = (;)
@@ -637,10 +661,10 @@ function fit(
 
     ad_backend = method.ad_backend(; ad_kwargs...)
 
-    q_init = Variational.q_meanfield_gaussian(model)
+    q_init = Variational.q_meanfield_gaussian(turing_model)
 
     q_result = vi(
-        model, q_init, n_iterations;
+        turing_model, q_init, n_iterations;
         show_progress = show_progress,
         adtype = ad_backend
     )
@@ -668,14 +692,14 @@ function fit(
     vi_samples = rand(q, n_draws)
 
     # Extract alpha for hierarchical
-    p = ncovariates(prob)
+    p = ncovariates(model)
     α_s_samples = extract_alpha(vi_samples, p, :hier)
 
-    scaling_factor = prob.stats.Y_sd / prob.stats.D_sd
+    scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
     return BDMLVIResult(
-        q, α_samples, α_s_samples, prob.stats,
+        q, α_samples, α_s_samples, model.stats,
         :hier, :meanfield, n_iterations, elbo_history, converged, final_elbo
     )
 end

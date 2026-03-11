@@ -2,7 +2,7 @@ using Documenter
 using BayesianDoubleML
 using DocStringExtensions
 
-DocMeta.setdocmeta!(BayesianDoubleML, :DocTestSetup, :(using BayesianDoubleML); recursive=true)
+DocMeta.setdocmeta!(BayesianDoubleML, :DocTestSetup, :(using BayesianDoubleML); recursive = true)
 
 makedocs(
     sitename = "BayesianDoubleML.jl",

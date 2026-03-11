@@ -8,7 +8,7 @@ export UnifiedVI, SimpleVI
 export AbstractVariationalFamily, MeanField, LowRank, LowRankScore
 export MeanFieldVI, LowRankVI, LowRankScoreVI
 
-# ==================== ABSTRACT TYPES ====================
+# Abstract types
 
 """
     AbstractInferenceMethod
@@ -26,7 +26,7 @@ See also: [`MCMCMethod`](@ref), [`UnifiedVIMethod`](@ref), [`SimpleVIMethod`](@r
 """
 abstract type AbstractInferenceMethod end
 
-# ==================== MCMC METHODS ====================
+# MCMC methods
 
 """
     MCMCMethod <: AbstractInferenceMethod
@@ -156,9 +156,9 @@ See also: [`MCMCMethod`](@ref), [`MCMCNUTS`](@ref)
 MCMCHMC(; leapfrog_steps::Int = 10, step_size::Float64 = 0.1) =
     MCMCMethod(:hmc; leapfrog_steps, step_size)
 
-# ==================== VI METHODS ====================
+# VI methods
 
-# ==================== VARIATIONAL FAMILY TYPES ====================
+# Variational family types
 
 """
     AbstractVariationalFamily
@@ -471,7 +471,7 @@ See [`SimpleVIMethod`](@ref) for full documentation.
 """
 SimpleVI(; kwargs...) = SimpleVIMethod(; kwargs...)
 
-# ==================== TRAIT FUNCTIONS ====================
+# Trait functions
 
 """
     uses_sampling(method::AbstractInferenceMethod)

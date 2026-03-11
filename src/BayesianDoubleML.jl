@@ -2,9 +2,9 @@ module BayesianDoubleML
 
 using StatsAPI
 
-# Core exports - dispatch-based API
-export fit, BDMLProblem,
-    AbstractBDMLProblem, BDMLBasicProblem, BDMLHierarchicalProblem,
+# Core exports - dispatch-based API with mutating fit!
+export fit!, BDMLModel,
+    AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
     AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod,
     MCMCNUTS, MCMCHMC, UnifiedVI, SimpleVI,
     # Variational families
@@ -13,7 +13,7 @@ export fit, BDMLProblem,
     # Method traits
     uses_sampling, supports_subsampling, is_deterministic, default_n_samples, default_n_iterations,
     # Accessors
-    nobs, ncovariates, model_type, standardization_stats,
+    nobs, ncovariates, model_type, standardization_stats, isfitted,
     # Results
     extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult,
     # Coeftable
@@ -48,22 +48,20 @@ using LogDensityProblemsAD
 using UnicodePlots
 using Printf
 
-# Explicitly import AD backends for DifferentiationInterface compatibility
-import Enzyme
-import Mooncake
 
 include("types.jl")
 include("utils.jl")
 include("model.jl")
 include("alpha.jl")          # Basic extract_alpha for MCMC
 include("alpha_extraction.jl")  # Additional extract_alpha methods for VI
-include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals
 
 # Multiple Dispatch System for BDML
-# Provides unified fit() interface that dispatches on problem type and method type
-include("problems.jl")      # Problem types: BDMLBasicProblem, BDMLHierarchicalProblem
+# Provides unified fit!() interface that dispatches on model type and method type
 include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod
-include("fit_dispatch.jl")  # Dispatch-based fit() functions
+include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
+include("fit.jl")  # Dispatch-based fit!() functions
+
+include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals
 
 # VI model definitions (used by dispatch system)
 include("vi/vi_model.jl")

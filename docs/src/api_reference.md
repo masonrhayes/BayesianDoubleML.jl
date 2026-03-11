@@ -4,7 +4,7 @@ Complete API documentation for BayesianDoubleML.jl.
 
 ## Contents
 
-- [Problem Types](#problem-types)
+- [Model Types](#model-types)
 - [Inference Methods](#inference-methods)
 - [Fitting Functions](#fitting-functions)
 - [Result Types](#result-types)
@@ -13,22 +13,23 @@ Complete API documentation for BayesianDoubleML.jl.
 - [Coefficient Table](#coefficient-table)
 - [Utility Functions](#utility-functions)
 
-## Problem Types
+## Model Types
 
 ```@docs
-BayesianDoubleML.AbstractBDMLProblem
-BayesianDoubleML.BDMLBasicProblem
-BayesianDoubleML.BDMLHierarchicalProblem
-BayesianDoubleML.BDMLProblem
+BayesianDoubleML.AbstractBDMLModel
+BayesianDoubleML.BDMLBasicModel
+BayesianDoubleML.BDMLHierarchicalModel
+BayesianDoubleML.BDMLModel
 ```
 
-### Problem Accessors
+### Model Accessors
 
 ```@docs
 BayesianDoubleML.nobs
 BayesianDoubleML.ncovariates
 BayesianDoubleML.model_type
 BayesianDoubleML.standardization_stats
+BayesianDoubleML.isfitted
 ```
 
 ## Inference Methods
@@ -81,7 +82,7 @@ BayesianDoubleML.default_n_iterations
 ## Fitting Functions
 
 ```@docs
-BayesianDoubleML.fit
+BayesianDoubleML.fit!
 ```
 
 ## Result Types

@@ -18,20 +18,21 @@ include("utils.jl")
     println("\n=== Small Dataset: Force Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI(;
         subsample = true,
         batch_size = 32
     )
 
-    result = fit(problem, method; n_iterations = 100, n_draws = 100)
+    fit!(model, method; n_iterations = 100, n_draws = 100)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Batch size: 32")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
-    @test result isa BDMLVIResult
+    @test isfitted(model)
+    @test model.result isa BDMLVIResult
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
@@ -44,15 +45,16 @@ end
     println("\n=== Small Dataset: Auto No Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
 
-    result = fit(problem, method; n_iterations = 100, n_draws = 100)
+    fit!(model, method; n_iterations = 100, n_draws = 100)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
@@ -65,15 +67,15 @@ end
     println("\n=== BDMLVIModel Subsampling Interface ===")
 
     # Create BDMLVIModel
-    model = BayesianDoubleML.BDMLVIModel(Y, D, X; model_type = :hier)
+    vi_model = BayesianDoubleML.BDMLVIModel(Y, D, X; model_type = :hier)
 
-    @test model.n_data == n
-    @test model.model_type == :hier
+    @test vi_model.n_data == n
+    @test vi_model.model_type == :hier
 
     # Test subsampling
     idx = 1:50
     using AdvancedVI
-    model_sub = AdvancedVI.subsample(model, idx)
+    model_sub = AdvancedVI.subsample(vi_model, idx)
 
     @test model_sub.n_data == n  # Original preserved
     @test length(model_sub.Y) == 50
@@ -92,21 +94,22 @@ end
     println("\n=== Small Dataset with Basic Model: Force Subsampling ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = UnifiedVI(;
         subsample = true,
         batch_size = 32
     )
-    result = fit(problem, method; n_iterations = 100, n_draws = 100)
-    alpha_mean = mean(extract_alpha(result))
+    fit!(model, method; n_iterations = 100, n_draws = 100)
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Batch size: 32")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
 
+    @test isfitted(model)
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
 end
 
 println("\n=== All Subsampling Tests Complete ===")
-println("Tested: Forced subsampling on small datasets, interface validation")
+println("Tested: Forced subsampling on small datasets, interface validation with new Model API")
 println("Note: Large dataset tests (n>10000) are in test/extended/subsampling_extended.jl")

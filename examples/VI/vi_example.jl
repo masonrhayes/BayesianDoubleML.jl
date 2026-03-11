@@ -20,10 +20,10 @@ end
 import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
 
 # ╔═╡ a62b95cc-3877-4c62-be36-17cad34734a1
-begin 
-	using BayesianDoubleML
-	using StableRNGs 
-	using PlutoUI
+begin
+    using BayesianDoubleML
+    using StableRNGs
+    using PlutoUI
 end
 
 # ╔═╡ f95bc5b1-62a4-49a4-bc98-0e8ebf749a19
@@ -37,16 +37,16 @@ Let's generate data as per Section 6 of the paper:
 """
 
 # ╔═╡ b600a47b-d9d5-4552-b673-6eda27f04871
-begin 
-	# Define parameters
-	n = 200
-	p = 100 
-	alpha_true = 2.0
-	
-	rng = StableRNG(42)
+begin
+    # Define parameters
+    n = 200
+    p = 100
+    alpha_true = 2.0
 
-	# Generate data
-	Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+    rng = StableRNG(42)
+
+    # Generate data
+    Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
 end
 
 # ╔═╡ ebf5e3c0-3e95-45d1-a734-7177f14a0182
@@ -55,7 +55,7 @@ We then define the BDML problem, using the BDML-Hier model:
 """
 
 # ╔═╡ a9fa5ba9-f25d-4cf0-b9bb-99101c6f90af
-prob = BDMLProblem(Y, D, X, model_type=:hier)
+prob = BDMLProblem(Y, D, X, model_type = :hier)
 
 # ╔═╡ cad72553-b33b-445d-85f2-28bec0d2a20b
 md"""
@@ -66,23 +66,23 @@ In this example, we first try using the SimpleVIMethod with the AutoMooncake bac
 
 # ╔═╡ 751ef964-a74b-4a41-a9b9-799241bebda0
 sol = fit(
-	prob, 
-	SimpleVIMethod(;ad_backend = AutoMooncake), 
-	n_iterations = 2_000,
-	show_progress=false
+    prob,
+    SimpleVIMethod(; ad_backend = AutoMooncake),
+    n_iterations = 2_000,
+    show_progress = false
 );
 
 # ╔═╡ 1251af4f-8941-425a-bef4-0bbb999e420f
 summary(sol)
 
 # ╔═╡ 9a46ba39-21f4-4c32-8e55-a60cf253aab7
-begin 
-	n2 = 500
-	lower_p = floor(sqrt(n2)) |> Int 
-	upper_p = floor(n2/2) |> Int
-	default_p = Int(floor(2 * sqrt(n2)))
-	@assert lower_p < upper_p
-	@bind p2 Slider(lower_p:10:upper_p, show_value=true, default = default_p)
+begin
+    n2 = 500
+    lower_p = floor(sqrt(n2)) |> Int
+    upper_p = floor(n2 / 2) |> Int
+    default_p = Int(floor(2 * sqrt(n2)))
+    @assert lower_p < upper_p
+    @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end
 
 # ╔═╡ cf1670f6-97c5-4130-a7f3-8bf7e2e9b066
@@ -97,20 +97,20 @@ As a general rule of thumb: in anecdotal testing, VI methods are generally relia
 """
 
 # ╔═╡ a452de95-aa14-472b-8be9-50e18ecab69d
-begin 
-	# Generate data
-	Y2, D2, X2 = generate_dgp_table1(n2, p2, 2.0; alpha_true = alpha_true, rng = rng)
+begin
+    # Generate data
+    Y2, D2, X2 = generate_dgp_table1(n2, p2, 2.0; alpha_true = alpha_true, rng = rng)
 end
 
 # ╔═╡ f3c45acf-78a2-44d0-87fc-6eb472ae7d77
-prob2 = BDMLProblem(Y2, D2, X2, model_type=:hier)
+prob2 = BDMLProblem(Y2, D2, X2, model_type = :hier)
 
 # ╔═╡ 66ca6f4b-d0ae-4481-bf13-dba9f983c3fe
 sol2 = fit(
-	prob2, 
-	SimpleVIMethod(;ad_backend = AutoMooncake), 
-	n_iterations = 1_000,
-	show_progress=false
+    prob2,
+    SimpleVIMethod(; ad_backend = AutoMooncake),
+    n_iterations = 1_000,
+    show_progress = false
 );
 
 # ╔═╡ d3d7184c-094b-4a4e-b0f8-f16382e2ec76
