@@ -51,9 +51,9 @@ using Printf
 
 include("types.jl")
 include("utils.jl")
-include("model.jl")
-include("alpha.jl")          # Basic extract_alpha for MCMC
-include("alpha_extraction.jl")  # Additional extract_alpha methods for VI
+include("mcmc/mcmc_model.jl")          # MCMC model specifications (bdml_basic, bdml_hier)
+include("alpha.jl")                   # Basic extract_alpha for MCMC
+include("alpha_extraction.jl")       # Additional extract_alpha methods for VI
 
 # Multiple Dispatch System for BDML
 # Provides unified fit!() interface that dispatches on model type and method type

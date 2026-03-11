@@ -299,7 +299,7 @@ The BDML model avoids regularization-induced confounding by parameterizing the c
 Y = \alpha D + X'\beta + \varepsilon, \quad \varepsilon \perp V
 ```
 
-**Reduced Form (substituting D = X'\gamma + V):**
+**Reduced Form (substituting $D = X'\gamma + V$):**
 
 ```math
 \begin{aligned}

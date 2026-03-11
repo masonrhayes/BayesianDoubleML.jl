@@ -80,6 +80,40 @@ fit!(model, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
 
 # View results
 summary(model)
+
+```
+
+```julia-repl
+# example results
+╔══════════════════════════════════════════════════════════════════════╗
+║         Bayesian Double ML Model Summary                   ║
+╚══════════════════════════════════════════════════════════════════════╝
+Model Information
+───────────────────
+  Model Type:       hier
+  Standardization:  Y mean=0.238, sd=3.564; D mean=0.114, sd=1.490
+Inference Method
+──────────────────
+  Method:           NUTS (No-U-Turn Sampler)
+  Samples:          4000
+MCMC Diagnostics
+──────────────────
+  Chains:           4
+  Samples/Chain:    1000
+  Total Samples:    4000
+  ESS:              1779 (44.5% efficiency)
+  ✓ Good effective sample size (ESS > 400)
+  R-hat:            1.003
+  ✓ Excellent convergence (R-hat < 1.01)
+  MCSE:             0.0013
+Causal Effect (α)
+───────────────────
+  Estimate:         1.9201
+  Std Error:        0.1957
+  95% CI:           [1.5402, 2.3027]
+  95% HPD:          [1.5223, 2.2842]
+──────────────────────────────────────────────────────────────
+
 ```
 
 ## Documentation Structure

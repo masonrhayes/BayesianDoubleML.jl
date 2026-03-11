@@ -272,3 +272,5 @@ See also: `bdml_basic`, `bdml_hier_vi`
 
     Turing.@addlogprob! ll
 end
+
+export bdml_basic, bdml_hier
