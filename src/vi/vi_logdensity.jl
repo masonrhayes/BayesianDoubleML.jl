@@ -13,14 +13,12 @@ export logdensity, compute_log_likelihood
 
 Compute log-posterior for BDML model with bijector transformation.
 
-This is the core function for VI optimization. It:
-1. Receives parameters in UNCONSTRAINED space (ℝ^d) from the optimizer
-2. Applies bijector transformation to CONSTRAINED space (positive variances, ρ in [0,1])
-3. Computes log-prior + log-likelihood in constrained space
+Transforms parameters from unconstrained space (ℝ^d) to constrained space
+(positive variances, ρ ∈ [0,1]), then computes log-prior + log-likelihood.
 
 # Arguments
 - `model::BDMLVIModel`: The model instance
-- `θ_unconstrained::Vector{Float64}`: Parameters in unconstrained space (real numbers)
+- `θ_unconstrained::Vector{Float64}`: Parameters in unconstrained space
 
 # Returns
 Scalar log-posterior value: log_prior + (n_data/n) * log_likelihood
@@ -50,12 +48,11 @@ function LogDensityProblems.logdensity(model::BDMLVIModel, θ_unconstrained)
     n = length(model.Y)
     T = model.T
 
-    # STEP 1: Apply bijector to transform from unconstrained → constrained space
-    # This is the key insight: VI optimizes in ℝ^d, but model needs valid ranges
+    # Transform from unconstrained to constrained space via bijector
     b = bijector(model)
     θ_constrained, logabsdetjac = Bijectors.with_logabsdet_jacobian(b, θ_unconstrained)
 
-    # STEP 2: Extract parameters (now in constrained space)
+    # Compute log-prior
     if model.model_type == :hier
         δ, γ, σ_U, σ_V, ρ_raw, σ²_δ, σ²_γ = unpack_parameters(model, θ_constrained)
         p = length(δ)
@@ -64,40 +61,33 @@ function LogDensityProblems.logdensity(model::BDMLVIModel, θ_unconstrained)
         log_prior = logpdf(InverseGamma(2.0, 2.0), σ²_δ)
         log_prior += logpdf(InverseGamma(2.0, 2.0), σ²_γ)
 
-        # Hierarchical priors on coefficients (σ²_δ, σ²_γ are variance hyperparameters)
-        # For zero-mean normal, logpdf(MvNormal(0, Σ), x) = -0.5*(x'Σ⁻¹x + log|Σ| + d*log(2π))
-        # Compute manually to avoid type issues with AD
+        # Hierarchical priors on coefficients (zero-mean MvNormal with variance hyperparameters)
         log_prior += compute_mvnormal_logpdf_zero_mean(δ, σ²_δ)
         log_prior += compute_mvnormal_logpdf_zero_mean(γ, σ²_γ)
     else
         δ, γ, σ_U, σ_V, ρ_raw = unpack_parameters(model, θ_constrained)
         p = length(δ)
 
-        # Priors on coefficients (Equation 12, 5)
+        # Priors on coefficients (Equation 12, 5) - fixed variance
         log_prior = compute_mvnormal_logpdf_zero_mean(δ, 25.0)
         log_prior += compute_mvnormal_logpdf_zero_mean(γ, 25.0)
     end
 
-    # Common priors for variance and correlation parameters
-    # σ_U, σ_V are already positive (constrained space)
+    # Priors for variance and correlation parameters
     log_prior += logpdf(truncated(Cauchy(0.0, 2.5), 0.1, Inf), σ_U)
     log_prior += logpdf(truncated(Cauchy(0.0, 2.5), 0.1, Inf), σ_V)
-
-    # ρ_raw is already in [0,1] (constrained space via logistic)
     log_prior += logpdf(Beta(2.0, 2.0), ρ_raw)
 
-    # STEP 4: Transform correlation to [-1, 1] for bivariate normal
+    # Transform correlation to [-1, 1] for bivariate normal
     ρ = 2 * ρ_raw - 1
 
-    # STEP 5: Compute log-likelihood using pre-allocated temporaries
+    # Compute log-likelihood using pre-allocated temporaries
     log_lik = compute_log_likelihood!(model, δ, γ, σ_U, σ_V, ρ)
 
-    # STEP 6: Scale likelihood by n_data/n for subsampling
-    # When n < n_data (mini-batch), scale up to get unbiased gradient
+    # Scale likelihood by n_data/n for subsampling (mini-batch gradient correction)
     scaled_log_lik = (model.n_data / n) * log_lik
 
-    # STEP 7: Return total log-posterior with Jacobian adjustment
-    # The logabsdetjac term accounts for the change of variables from unconstrained to constrained space
+    # Total log-posterior with Jacobian adjustment for change of variables
     return log_prior + scaled_log_lik + logabsdetjac
 end
 
@@ -111,8 +101,8 @@ during AD, which significantly improves performance with all backends.
 
 # Arguments
 - `model::BDMLVIModel`: Model with pre-allocated temporaries
-- `δ::Vector{Float64}`: Reduced form coefficients for Y on X (Eq. 12)
-- `γ::Vector{Float64}`: Reduced form coefficients for D on X (Eq. 5)
+- `δ::Vector{Float64}`: Reduced form coefficients for Y on X ``(Eq. 12)``
+- `γ::Vector{Float64}`: Reduced form coefficients for D on X ``(Eq. 5)``
 - `σ_U::Float64`: Outcome standard deviation
 - `σ_V::Float64`: Treatment standard deviation
 - `ρ::Float64`: Correlation in [-1, 1]
@@ -129,46 +119,43 @@ Scalar log-likelihood value
 # Mathematical Details
 Computes bivariate normal log-likelihood from Equation 13:
 ```
-log p(Y, D | X, δ, γ, Σ) = Σᵢ -0.5 * (2*log(2π) + log|Σ| + rᵢ' Σ⁻¹ rᵢ)
+``\\log p(Y, D | X, \\delta, \\gamma, \\Sigma) = \\sum_i -0.5 \\cdot (2\\log(2\\pi) + \\log|\\Sigma| + r_i' \\Sigma^{-1} r_i)``
 ```
-where rᵢ = [Uᵢ, Vᵢ] = [Yᵢ - Xᵢ'δ, Dᵢ - Xᵢ'γ] and Σ is the 2×2 covariance matrix.
+where ``r_i = [U_i, V_i] = [Y_i - X_i'\\delta, D_i - X_i'\\gamma]`` and ``\\Sigma`` is the ``2\\times2`` covariance matrix.
 
 See DiTraglia & Liu (2025), Section 4, Equations 13-14.
 """
 function compute_log_likelihood!(model::BDMLVIModel, δ, γ, σ_U, σ_V, ρ)
     n = length(model.Y)
 
-    # Compute reduced form means (Eq. 12, 5)
-    # μ_Y = X * δ
-    # μ_D = X * γ
+    # Reduced form means (Eq. 12, 5)
     # Note: Pre-allocated caches are Float64, but AD needs TrackedReal storage
     μ_Y = model.X * δ
     μ_D = model.X * γ
 
-    # Construct covariance matrix Σ (Equation 14)
+    # Covariance matrix Σ (Equation 14)
     Σ_11 = σ_U^2
     Σ_22 = σ_V^2
     Σ_12 = ρ * σ_U * σ_V
 
-    # Compute determinant: |Σ| = σ_U^2 * σ_V^2 - (ρ*σ_U*σ_V)^2
+    # Determinant: |Σ| = σ_U^2 * σ_V^2 - (ρ*σ_U*σ_V)^2
     det_Σ = Σ_11 * Σ_22 - Σ_12^2
 
-    # Compute inverse elements (2x2 matrix inverse)
+    # 2×2 matrix inverse elements
     inv_Σ_11 = Σ_22 / det_Σ
     inv_Σ_22 = Σ_11 / det_Σ
     inv_Σ_12 = -Σ_12 / det_Σ
 
-    # Compute log-likelihood (loop is faster for AD than broadcasting)
+    # Loop is faster for AD than broadcasting
     ll = zero(eltype(σ_U))
     @inbounds for i in 1:n
-        # Reduced form residuals (Eq. 12, 5)
+        # Reduced form residuals Uᵢ, Vᵢ (Eq. 12, 5)
         U_i = model.Y[i] - μ_Y[i]
         V_i = model.D[i] - μ_D[i]
 
-        # Mahalanobis distance: [U, V]' Σ^(-1) * [U, V]
+        # Mahalanobis distance: [U, V]' Σ^(-1) [U, V]
         mahal = inv_Σ_11 * U_i^2 + 2 * inv_Σ_12 * U_i * V_i + inv_Σ_22 * V_i^2
 
-        # Log-likelihood contribution
         ll += -0.5 * (2 * log(2π) + log(det_Σ) + mahal)
     end
 
@@ -178,48 +165,47 @@ end
 """
     compute_log_likelihood(model::BDMLVIModel, δ, γ, σ_U, σ_V, ρ)
 
-Non-mutating version of log-likelihood computation with paper notation.
+Non-mutating version of log-likelihood computation.
 
 Allocates new temporaries - useful for testing or when model temporaries
 have wrong size (e.g., after subsampling with different batch size).
 
 # Arguments
 - `model::BDMLVIModel`: The model instance
-- `δ::Vector{Float64}`: Reduced form coefficients for Y on X (Eq. 12)
-- `γ::Vector{Float64}`: Reduced form coefficients for D on X (Eq. 5)
+- `δ::Vector{Float64}`: Reduced form coefficients for Y on X ``(Eq. 12)``
+- `γ::Vector{Float64}`: Reduced form coefficients for D on X ``(Eq. 5)``
 - `σ_U::Float64`: Outcome standard deviation
 - `σ_V::Float64`: Treatment standard deviation  
 - `ρ::Float64`: Correlation in [-1, 1]
 
 # Mathematical Details
 Computes bivariate normal log-likelihood from Equation 13:
-    log p(Y, D | X, δ, γ, Σ) = Σᵢ -0.5 * (2*log(2π) + log|Σ| + rᵢ' Σ⁻¹ rᵢ)
-where rᵢ = [Yᵢ - Xᵢ'δ, Dᵢ - Xᵢ'γ] = [Uᵢ, Vᵢ] and Σ is the 2×2 covariance matrix.
+    ``\\log p(Y, D | X, \\delta, \\gamma, \\Sigma) = \\sum_i -0.5 \\cdot (2\\log(2\\pi) + \\log|\\Sigma| + r_i' \\Sigma^{-1} r_i)``
+where ``r_i = [Y_i - X_i'\\delta, D_i - X_i'\\gamma] = [U_i, V_i]`` and ``\\Sigma`` is the ``2\\times2`` covariance matrix.
 
 See DiTraglia & Liu (2025), Section 4, Equations 13-14.
 """
 function compute_log_likelihood(model::BDMLVIModel, δ, γ, σ_U, σ_V, ρ)
     n = length(model.Y)
 
-    # Compute reduced form means (Eq. 12, 5)
+    # Reduced form means (Eq. 12, 5)
     μ_Y = model.X * δ
     μ_D = model.X * γ
 
-    # Construct covariance matrix Σ (Equation 14)
+    # Covariance matrix Σ (Equation 14)
     Σ_11 = σ_U^2
     Σ_22 = σ_V^2
     Σ_12 = ρ * σ_U * σ_V
 
-    # Compute determinant and inverse
+    # Determinant and inverse
     det_Σ = Σ_11 * Σ_22 - Σ_12^2
     inv_Σ_11 = Σ_22 / det_Σ
     inv_Σ_22 = Σ_11 / det_Σ
     inv_Σ_12 = -Σ_12 / det_Σ
 
-    # Compute log-likelihood
     ll = zero(eltype(σ_U))
     @inbounds for i in 1:n
-        # Reduced form residuals (Eq. 12, 5)
+        # Reduced form residuals Uᵢ, Vᵢ (Eq. 12, 5)
         U_i = model.Y[i] - μ_Y[i]
         V_i = model.D[i] - μ_D[i]
         mahal = inv_Σ_11 * U_i^2 + 2 * inv_Σ_12 * U_i * V_i + inv_Σ_22 * V_i^2
@@ -234,7 +220,7 @@ end
 
 Compute log-pdf of zero-mean multivariate normal with isotropic covariance.
 
-log p(x | 0, σ²I) = -0.5 * (x'x/σ² + d*log(σ²) + d*log(2π))
+``\\log p(x | 0, \\sigma^2I) = -0.5 \\cdot (x'x/\\sigma^2 + d\\log(\\sigma^2) + d\\log(2\\pi))``
 
 This avoids creating a mean vector which can cause type issues with AD.
 """

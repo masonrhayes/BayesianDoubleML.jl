@@ -258,3 +258,24 @@ end
 
 # Export summary function
 export summary
+
+# Model delegation - allow summary() to be called directly on fitted models
+
+"""
+    summary(model::AbstractBDMLModel)
+
+Display a comprehensive summary of a fitted BDML model.
+
+Delegates to the stored result. Throws an error if the model has not been fitted.
+
+# Examples
+```julia
+model = BDMLModel(Y, D, X; model_type=:hier)
+fit!(model)
+summary(model)
+```
+"""
+function Base.summary(model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    return Base.summary(model.result)
+end

@@ -12,47 +12,39 @@ The BDML approach avoids regularization-induced confounding by using a
 bivariate reduced form parameterization (Section 4, Equations 13-15):
 
 **Outcome equation:**
-    Y = X'δ + U          (Eq. 12)
+    ``Y = X'\\delta + U``          (Eq. 12)
 
 **Treatment equation:**
-    D = X'γ + V          (Eq. 5)
+    ``D = X'\\gamma + V``          (Eq. 5)
 
 **Joint error distribution:**
-    [U; V] | X ~ N(0, Σ)  (Eq. 13)
+    ``[U; V] | X \\sim N(0, \\Sigma)``  (Eq. 13)
 
-where Σ is the 2×2 covariance matrix:
-    Σ = [σ²_U,    σ_UV
-         σ_UV,    σ²_V]
+where ``\\Sigma`` is the ``2\\times2`` covariance matrix:
+    ``\\Sigma = [\\sigma^2_U, \\sigma_{UV}; \\sigma_{UV}, \\sigma^2_V]``
 
 **Causal effect recovery:**
-The causal effect α is recovered from the error covariance via:
-    α = Cov(U, V) / Var(V) = σ_UV / σ²_V = ρ·σ_U / σ_V   (Eq. 15)
+The causal effect ``\\alpha`` is recovered from the error covariance via:
+    ``\\alpha = \\text{Cov}(U, V) / \\text{Var}(V) = \\sigma_{UV} / \\sigma^2_V = \\rho \\cdot \\sigma_U / \\sigma_V``   (Eq. 15)
 
-This works because U = ε + αV (Eq. 6), where ε is the structural error 
-uncorrelated with V. Therefore: Cov(U, V) = Cov(ε + αV, V) = α·Var(V).
+This works because ``U = \\epsilon + \\alpha V`` (Eq. 6), where ``\\epsilon`` is the structural error 
+uncorrelated with V. Therefore: ``\\text{Cov}(U, V) = \\text{Cov}(\\epsilon + \\alpha V, V) = \\alpha \\cdot \\text{Var}(V)``.
 
 # This Variation: BDML-Basic
 
 **Priors on reduced form coefficients:**
-- δ ~ N(0, 25·I_p)    [Normal(0, 5²) for outcome coefficients]
-- γ ~ N(0, 25·I_p)    [Normal(0, 5²) for treatment coefficients]
+- ``\\delta \\sim N(0, 25 \\cdot I_p)``    [``\\text{Normal}(0, 5^2)`` for outcome coefficients]
+- ``\\gamma \\sim N(0, 25 \\cdot I_p)``    [``\\text{Normal}(0, 5^2)`` for treatment coefficients]
 
 These are fixed-variance priors that provide uniform shrinkage across all 
 covariates. This corresponds to "BDML-Basic" in paper Section 6, Table 1.
 
 **Priors on error covariance:**
-- σ_U ~ Cauchy⁺(0, 2.5)   [Half-Cauchy for outcome error scale]
-- σ_V ~ Cauchy⁺(0, 2.5)   [Half-Cauchy for treatment error scale]  
-- R ~ LKJ(4)              [LKJ prior with η=4 for correlation matrix]
+- ``\\sigma_U \\sim \\text{Cauchy}^+(0, 2.5)``   [Half-Cauchy for outcome error scale]
+- ``\\sigma_V \\sim \\text{Cauchy}^+(0, 2.5)``   [Half-Cauchy for treatment error scale]  
+- ``R \\sim \\text{LKJ}(4)``              [LKJ prior with ``\\eta=4`` for correlation matrix]
 
-The correlation parameter ρ is extracted from the LKJCholesky factor R_chol.L[2,1].
-
-# When to Use BDML-Basic
-
-Use this variation when:
-- You want simple, interpretable prior specification
-- Fixed shrinkage is appropriate for your application
-- You prefer computational simplicity over adaptive regularization
+The correlation parameter ``\\rho`` is extracted from the LKJCholesky factor ``R_\\text{chol}.L[2,1]``.
 
 For adaptive shrinkage that learns the appropriate regularization from data,
 use `bdml_hier()` (BDML-Hierarchical) instead.
@@ -60,10 +52,8 @@ use `bdml_hier()` (BDML-Hierarchical) instead.
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
-- Chernozhukov et al. (2018). "Double/debiased machine learning for treatment 
-  and structural parameters", The Econometrics Journal.
 
-See also: [`bdml_hier`](@ref), [`bdml_basic_vi`](@ref)
+See also: `bdml_hier`, `bdml_basic_vi`
 """
 @model function bdml_basic(Y, D, X)
     n, p = size(X)
@@ -74,9 +64,9 @@ See also: [`bdml_hier`](@ref), [`bdml_basic_vi`](@ref)
     δ ~ MvNormal(zeros(p), 25.0 * I)
     γ ~ MvNormal(zeros(p), 25.0 * I)
 
-    # Priors on error scales (Section 6, Table 1)
-    σ_U ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
-    σ_V ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
+    # Priors on error scales (Section 6, p. 25)
+    σ_V ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    σ_U ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
 
     # Prior on correlation matrix - LKJ(4) as specified in paper
     R_chol ~ LKJCholesky(2, 4)
@@ -139,24 +129,23 @@ The BDML approach avoids regularization-induced confounding by using a
 bivariate reduced form parameterization (Section 4, Equations 13-15):
 
 **Outcome equation:**
-    Y = X'δ + U          (Eq. 12)
+    ``Y = X'\\delta + U``          (Eq. 12)
 
 **Treatment equation:**
-    D = X'γ + V          (Eq. 5)
+    ``D = X'\\gamma + V``          (Eq. 5)
 
 **Joint error distribution:**
-    [U; V] | X ~ N(0, Σ)  (Eq. 13)
+    ``[U; V] | X \\sim N(0, \\Sigma)``  (Eq. 13)
 
-where Σ is the 2×2 covariance matrix:
-    Σ = [σ²_U,    σ_UV
-         σ_UV,    σ²_V]
+where ``\\Sigma`` is the ``2\\times2`` covariance matrix:
+    ``\\Sigma = [\\sigma^2_U, \\sigma_{UV}; \\sigma_{UV}, \\sigma^2_V]``
 
 **Causal effect recovery:**
-The causal effect α is recovered from the error covariance via:
-    α = Cov(U, V) / Var(V) = σ_UV / σ²_V = ρ·σ_U / σ_V   (Eq. 15)
+The causal effect ``\\alpha`` is recovered from the error covariance via:
+    ``\\alpha = \\text{Cov}(U, V) / \\text{Var}(V) = \\sigma_{UV} / \\sigma^2_V = \\rho \\cdot \\sigma_U / \\sigma_V``   (Eq. 15)
 
-This works because U = ε + αV (Eq. 6), where ε is the structural error 
-uncorrelated with V. Therefore: Cov(U, V) = Cov(ε + αV, V) = α·Var(V).
+This works because ``U = \\epsilon + \\alpha V`` (Eq. 6), where ``\\epsilon`` is the structural error 
+uncorrelated with V. Therefore: ``\\text{Cov}(U, V) = \\text{Cov}(\\epsilon + \\alpha V, V) = \\alpha \\cdot \\text{Var}(V)``.
 
 # This Variation: BDML-Hier
 
@@ -164,34 +153,26 @@ uncorrelated with V. Therefore: Cov(U, V) = Cov(ε + αV, V) = α·Var(V).
 The key difference from BDML-Basic is the adaptive prior structure:
 
 1. Hyperpriors on variance hyperparameters:
-   - σ²_δ ~ InvGamma(2, 2)
-   - σ²_γ ~ InvGamma(2, 2)
+   - ``\\sigma^2_\\delta \\sim \\text{InvGamma}(2, 2)``
+   - ``\\sigma^2_\\gamma \\sim \\text{InvGamma}(2, 2)``
 
 2. Conditional priors on coefficients:
-   - δ | σ²_δ ~ N(0, σ²_δ·I_p)
-   - γ | σ²_γ ~ N(0, σ²_γ·I_p)
+   - ``\\delta | \\sigma^2_\\delta \\sim N(0, \\sigma^2_\\delta \\cdot I_p)``
+   - ``\\gamma | \\sigma^2_\\gamma \\sim N(0, \\sigma^2_\\gamma \\cdot I_p)``
 
 **Why this works:**
-This hierarchical structure is equivalent to placing independent Student-t(4) 
-distributions on each coefficient δⱼ and γⱼ. The InvGamma(2, 2) hyperprior 
+This hierarchical structure is equivalent to placing independent ``\\text{Student-}t(4)`` 
+distributions on each coefficient ``\\delta_j`` and ``\\gamma_j``. The ``\\text{InvGamma}(2, 2)`` hyperprior 
 induces heavy tails that allow some coefficients to escape shrinkage while 
 regularizing others. This provides adaptive shrinkage that learns the 
 appropriate regularization level from the data (Section 6, Table 1).
 
 **Priors on error covariance:**
-- σ_U ~ Cauchy⁺(0, 2.5)   [Half-Cauchy for outcome error scale]
-- σ_V ~ Cauchy⁺(0, 2.5)   [Half-Cauchy for treatment error scale]  
-- R ~ LKJ(4)              [LKJ prior with η=4 for correlation matrix]
+- ``\\sigma_U \\sim \\text{Cauchy}^+(0, 2.5)``   [Half-Cauchy for outcome error scale]
+- ``\\sigma_V \\sim \\text{Cauchy}^+(0, 2.5)``   [Half-Cauchy for treatment error scale]  
+- ``R \\sim \\text{LKJ}(4)``              [LKJ prior with ``\\eta=4`` for correlation matrix]
 
-The correlation parameter ρ is extracted from the LKJCholesky factor R_chol.L[2,1].
-
-# When to Use BDML-Hier
-
-Use this variation when:
-- You have many covariates (high-dimensional setting)
-- You want data-driven adaptive shrinkage
-- You need the method to learn which coefficients should be regularized
-- The covariates have varying importance (heterogeneous signal strength)
+The correlation parameter ``\\rho`` is extracted from the LKJCholesky factor ``R_\\text{chol}.L[2,1]``.
 
 **Recommendation:** The paper's simulation study (Section 6, Table 1) shows 
 BDML-Hier achieves better coverage (0.94) compared to BDML-Basic (0.91-0.93), 
@@ -202,15 +183,13 @@ For fixed shrinkage with simpler interpretation, use `bdml_basic()` instead.
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
-- Chernozhukov et al. (2018). "Double/debiased machine learning for treatment 
-  and structural parameters", The Econometrics Journal.
 
-See also: [`bdml_basic`](@ref), [`bdml_hier_vi`](@ref)
+See also: `bdml_basic`, `bdml_hier_vi`
 """
 @model function bdml_hier(Y, D, X)
     n, p = size(X)
 
-    # Hierarchical hyperpriors on variance hyperparameters (Section 6, Table 1)
+    # Hierarchical hyperpriors on variance hyperparameters (Section 6, p. 25)
     # σ²_δ governs shrinkage of outcome coefficients δ
     # σ²_γ governs shrinkage of treatment coefficients γ
     σ²_δ ~ InverseGamma(2, 2)
@@ -223,9 +202,9 @@ See also: [`bdml_basic`](@ref), [`bdml_hier_vi`](@ref)
     δ ~ MvNormal(zeros(p), σ²_δ * I)
     γ ~ MvNormal(zeros(p), σ²_γ * I)
 
-    # Priors on error scales (Section 6, Table 1)
-    σ_U ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
-    σ_V ~ truncated(Cauchy(0, 2.5), 0.1, Inf)
+    # Priors on error scales (Section 6, p. 25)
+    σ_U ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    σ_V ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
 
     # Prior on correlation matrix - LKJ(4) as specified in paper
     R_chol ~ LKJCholesky(2, 4)
@@ -272,3 +251,5 @@ See also: [`bdml_basic`](@ref), [`bdml_hier_vi`](@ref)
 
     Turing.@addlogprob! ll
 end
+
+export bdml_basic, bdml_hier

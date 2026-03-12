@@ -1,12 +1,25 @@
 function standardize_data(Y, D, X)
+    # Compute statistics
     Y_mean, Y_sd = mean(Y), std(Y)
     D_mean, D_sd = mean(D), std(D)
-    X_mean = mean(X, dims = 1)[:]
-    X_sd = std(X, dims = 1)[:]
 
-    Y_s = (Y .- Y_mean) ./ Y_sd
-    D_s = (D .- D_mean) ./ D_sd
-    X_s = (X .- X_mean') ./ X_sd'
+    # For X, compute column-wise statistics (dims=1)
+    X_mean = vec(mean(X, dims = 1))
+    X_sd = vec(std(X, dims = 1))
+
+    # Standardize using broadcasting with dot fusion
+    # This creates new arrays (necessary for storage), but is efficient
+    Y_s = @. (Y - Y_mean) / Y_sd
+    D_s = @. (D - D_mean) / D_sd
+
+    # For X, we need to broadcast across columns
+    # X is n×p, X_mean and X_sd are length p vectors
+    X_s = similar(X)
+    @inbounds for j in axes(X, 2)
+        @simd for i in axes(X, 1)
+            X_s[i, j] = (X[i, j] - X_mean[j]) / X_sd[j]
+        end
+    end
 
     stats = StandardizationStats(Y_mean, Y_sd, D_mean, D_sd, X_mean, X_sd)
 

@@ -1,5 +1,5 @@
 # Alpha Extraction Tests
-# Tests for all alpha extraction methods from MCMC and VI results
+# Tests for all alpha extraction methods from MCMC and VI results via Model API
 # Correct parameter indexing and extraction validation
 
 using BayesianDoubleML
@@ -12,26 +12,26 @@ include("utils.jl")
 
 @testset "Alpha Extraction from MCMC - Hierarchical Model" begin
     Random.seed!(800)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 800)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(800))
 
     println("\n=== Alpha Extraction: MCMC Hierarchical ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    fit!(model, method; n_samples = 200)
 
-    # Check alpha_samples field exists
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 200
+    # Check alpha_samples field exists on stored result
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 200
 
     # Check all samples are finite
-    @test all(isfinite.(result.alpha_samples))
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
-    println("  All samples finite: $(all(isfinite.(result.alpha_samples)))")
+    println("  All samples finite: $(all(isfinite.(model.result.alpha_samples)))")
     println("  ✓ Alpha extraction from MCMC hierarchical works")
 
     @test isfinite(alpha_mean)
@@ -40,20 +40,20 @@ end
 
 @testset "Alpha Extraction from MCMC - Basic Model" begin
     Random.seed!(801)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.8, seed = 801)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(801))
 
     println("\n=== Alpha Extraction: MCMC Basic ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    fit!(model, method; n_samples = 200)
 
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 200
-    @test all(isfinite.(result.alpha_samples))
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 200
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from MCMC basic works")
@@ -64,20 +64,20 @@ end
 
 @testset "Alpha Extraction from VI - Hierarchical Model" begin
     Random.seed!(802)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 802)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(802))
 
     println("\n=== Alpha Extraction: VI Hierarchical ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 500
-    @test all(isfinite.(result.alpha_samples))
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 500
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI hierarchical works")
@@ -88,20 +88,20 @@ end
 
 @testset "Alpha Extraction from VI - Basic Model" begin
     Random.seed!(803)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.6, seed = 803)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.6, rng = MersenneTwister(803))
 
     println("\n=== Alpha Extraction: VI Basic ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :basic)
+    model = BDMLModel(Y, D, X; model_type = :basic)
     method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 500
-    @test all(isfinite.(result.alpha_samples))
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 500
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI basic works")
@@ -112,20 +112,20 @@ end
 
 @testset "Alpha Extraction from SimpleVI" begin
     Random.seed!(804)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 804)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(804))
 
     println("\n=== Alpha Extraction: SimpleVI ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = SimpleVI()
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 500
-    @test all(isfinite.(result.alpha_samples))
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 500
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from SimpleVI works")
@@ -134,44 +134,44 @@ end
     @test abs(alpha_mean - alpha_true) < 0.5
 end
 
-@testset "Alpha Range Validation" begin
+@testset "Alpha Range Validation via Models" begin
     Random.seed!(805)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 805)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(805))
 
     println("\n=== Alpha Range Validation ===")
 
     # Test MCMC
-    problem_mcmc = BDMLProblem(Y, D, X; model_type = :hier)
-    result_mcmc = fit(problem_mcmc, MCMCNUTS(; n_samples = 200, n_warmup = 100))
+    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_mcmc, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
-    @test minimum(result_mcmc.alpha_samples) > -10
-    @test maximum(result_mcmc.alpha_samples) < 10
+    @test minimum(model_mcmc.result.alpha_samples) > -10
+    @test maximum(model_mcmc.result.alpha_samples) < 10
 
     # Test VI
-    problem_vi = BDMLProblem(Y, D, X; model_type = :hier)
-    result_vi = fit(problem_vi, UnifiedVI())
+    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_vi, UnifiedVI())
 
-    @test minimum(result_vi.alpha_samples) > -10
-    @test maximum(result_vi.alpha_samples) < 10
+    @test minimum(model_vi.result.alpha_samples) > -10
+    @test maximum(model_vi.result.alpha_samples) < 10
 
-    println("  MCMC α range: [$(round(minimum(result_mcmc.alpha_samples), digits = 4)), $(round(maximum(result_mcmc.alpha_samples), digits = 4))]")
-    println("  VI α range: [$(round(minimum(result_vi.alpha_samples), digits = 4)), $(round(maximum(result_vi.alpha_samples), digits = 4))]")
+    println("  MCMC α range: [$(round(minimum(model_mcmc.result.alpha_samples), digits = 4)), $(round(maximum(model_mcmc.result.alpha_samples), digits = 4))]")
+    println("  VI α range: [$(round(minimum(model_vi.result.alpha_samples), digits = 4)), $(round(maximum(model_vi.result.alpha_samples), digits = 4))]")
     println("  ✓ Alpha values in reasonable range")
 end
 
-@testset "Alpha Statistics Consistency" begin
+@testset "Alpha Statistics Consistency via Model" begin
     Random.seed!(806)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 806)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(806))
 
     println("\n=== Alpha Statistics Consistency ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    fit!(model, method; n_samples = 200, n_chains = 3)
 
     # Manual calculation should match result.mean_alpha if available
-    alpha_manual_mean = mean(extract_alpha(result))
-    alpha_manual_std = std(extract_alpha(result))
+    alpha_manual_mean = mean(extract_alpha(model))
+    alpha_manual_std = std(extract_alpha(model))
 
     # Basic sanity checks
     @test alpha_manual_mean > -5
@@ -179,7 +179,7 @@ end
     @test alpha_manual_std > 0
 
     # CI should contain mean
-    ci = credible_interval(result)
+    ci = credible_interval(model)
     @test ci[1] < alpha_manual_mean < ci[2]
 
     println("  Mean: $(round(alpha_manual_mean, digits = 4))")
@@ -188,7 +188,7 @@ end
     println("  ✓ Alpha statistics consistent")
 end
 
-@testset "Alpha Extraction with Binary Treatment" begin
+@testset "Alpha Extraction with Binary Treatment via Model" begin
     Random.seed!(807)
     Y, D, X, alpha_true = make_binary_treatment_data(n = 100, p = 10, alpha_true = 0.5, seed = 807)
 
@@ -198,16 +198,16 @@ end
     @test all(D .∈ Ref([0.0, 1.0]))
 
     # MCMC
-    problem_mcmc = BDMLProblem(Y, D, X; model_type = :hier)
-    result_mcmc = fit(problem_mcmc, MCMCNUTS(; n_samples = 200, n_warmup = 100))
+    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_mcmc, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
-    alpha_mcmc = mean(result_mcmc.alpha_samples)
+    alpha_mcmc = mean(model_mcmc.result.alpha_samples)
 
     # VI
-    problem_vi = BDMLProblem(Y, D, X; model_type = :hier)
-    result_vi = fit(problem_vi, UnifiedVI())
+    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_vi, UnifiedVI())
 
-    alpha_vi = mean(result_vi.alpha_samples)
+    alpha_vi = mean(model_vi.result.alpha_samples)
 
     println("  MCMC α: $(round(alpha_mcmc, digits = 4))")
     println("  VI α: $(round(alpha_vi, digits = 4))")
@@ -217,9 +217,9 @@ end
     @test isfinite(alpha_vi)
 end
 
-@testset "Alpha Extraction with Different Seeds" begin
+@testset "Alpha Extraction with Different Seeds via Model" begin
     Random.seed!(808)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 808)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(808))
 
     println("\n=== Alpha Extraction: Different Seeds ===")
 
@@ -227,11 +227,11 @@ end
 
     for seed in [100, 200, 300]
         Random.seed!(seed)
-        problem = BDMLProblem(Y, D, X; model_type = :hier)
+        model = BDMLModel(Y, D, X; model_type = :hier)
         method = UnifiedVI()
-        result = fit(problem, method; n_iterations = 400, n_draws = 400)
+        fit!(model, method; n_iterations = 500, n_draws = 1_000, force = true)
 
-        alpha_mean = mean(extract_alpha(result))
+        alpha_mean = mean(extract_alpha(model))
         push!(alphas, alpha_mean)
 
         println("  Seed $seed: α = $(round(alpha_mean, digits = 4))")
@@ -248,41 +248,41 @@ end
     println("  ✓ Alpha extraction stable across seeds")
 end
 
-@testset "Alpha Extraction with Multi-Chain MCMC" begin
+@testset "Alpha Extraction with Multi-Chain MCMC via Model" begin
     Random.seed!(809)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 809)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(809))
 
     println("\n=== Alpha Extraction: Multi-Chain MCMC ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 150, n_warmup = 100, n_chains = 2)
+    fit!(model, method; n_samples = 150, n_chains = 2)
 
-    @test length(result.alpha_samples) >= 300  # 150 * 2
-    @test all(isfinite.(result.alpha_samples))
+    @test length(model.result.alpha_samples) >= 300  # 150 * 2
+    @test all(isfinite.(model.result.alpha_samples))
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Chains: 2")
-    println("  Total samples: $(length(result.alpha_samples))")
+    println("  Total samples: $(length(model.result.alpha_samples))")
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from multi-chain works")
 
     @test isfinite(alpha_mean)
 end
 
-@testset "Alpha Posterior Distribution Shape" begin
+@testset "Alpha Posterior Distribution Shape via Model" begin
     Random.seed!(810)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 810)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(810))
 
     println("\n=== Alpha Posterior Distribution Shape ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 200)
+    fit!(model, method; n_samples = 200)
 
-    samples = result.alpha_samples
+    samples = model.result.alpha_samples
 
     # Distribution properties
     alpha_mean = mean(samples)
@@ -305,24 +305,24 @@ end
     @test abs(skewness_approx) < 2.0
 end
 
-@testset "Alpha Coefficient Table Extraction" begin
+@testset "Alpha Coefficient Table Extraction via Model" begin
     Random.seed!(811)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 811)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(811))
 
     println("\n=== Alpha from Coefficient Table ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCNUTS()
-    result = fit(problem, method; n_samples = 200, n_warmup = 100)
+    fit!(model, method; n_samples = 200)
 
-    ct = coeftable(result)
+    ct = coeftable(model)
 
     # Find alpha in coefficient table
-    alpha_idx = findfirst(contains("alpha"), ct.rownms)
+    alpha_idx = findfirst(contains("α"), ct.coefnames)
     @test alpha_idx !== nothing
 
-    alpha_from_ct = ct.mat[alpha_idx, 1]
-    alpha_from_samples = mean(extract_alpha(result))
+    alpha_from_ct = ct.coef[alpha_idx]
+    alpha_from_samples = mean(extract_alpha(model))
 
     println("  From samples: $(round(alpha_from_samples, digits = 4))")
     println("  From coeftable: $(round(alpha_from_ct, digits = 4))")
@@ -332,17 +332,17 @@ end
     @test abs(alpha_from_ct - alpha_from_samples) < 0.01
 end
 
-@testset "Alpha from MCMC Result" begin
+@testset "Alpha from MCMC Result via Model" begin
     Random.seed!(812)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 812)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(812))
 
     println("\n=== Alpha from MCMC Result ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    result = fit(problem, MCMCNUTS(); n_samples = 200, n_warmup = 100)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCNUTS(); n_samples = 200)
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from MCMC works")
@@ -351,25 +351,20 @@ end
     @test abs(alpha_mean - alpha_true) < 0.5
 end
 
-@testset "Alpha from VI Result" begin
+@testset "Alpha from VI Result via Model" begin
     Random.seed!(813)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 813)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(813))
 
     println("\n=== Alpha from VI Result ===")
     println("True α: $alpha_true")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    result = fit(
-        problem, UnifiedVIMethod();
-        n_iterations = 500,
-        n_draws = 500,
-        show_progress = false
-    )
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, UnifiedVIMethod(); n_iterations = 500, n_draws = 1_000, show_progress = false)
 
-    @test hasfield(typeof(result), :alpha_samples)
-    @test length(result.alpha_samples) >= 500
+    @test hasfield(typeof(model.result), :alpha_samples)
+    @test length(model.result.alpha_samples) >= 500
 
-    alpha_mean = mean(extract_alpha(result))
+    alpha_mean = mean(extract_alpha(model))
 
     println("  Mean α: $(round(alpha_mean, digits = 4))")
     println("  ✓ Alpha extraction from VI works")
@@ -379,4 +374,4 @@ end
 end
 
 println("\n=== All Alpha Extraction Tests Complete ===")
-println("Tested: MCMC, VI, SimpleVI, binary treatment, multi-chain")
+println("Tested: MCMC, VI, SimpleVI, binary treatment, multi-chain via Model API")

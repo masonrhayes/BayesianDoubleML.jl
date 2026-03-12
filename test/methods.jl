@@ -16,12 +16,6 @@ using Test
     @test method_custom.target_acceptance ≈ 0.9
     @test method_custom.max_depth == 12
 
-    # HMC
-    method_hmc = MCMCMethod(:hmc; leapfrog_steps = 20, step_size = 0.05)
-    @test method_hmc.algorithm == :hmc
-    @test method_hmc.leapfrog_steps == 20
-    @test method_hmc.step_size ≈ 0.05
-
     # Convenience constructors
     nuts = MCMCNUTS()
     @test nuts.algorithm == :nuts
@@ -30,11 +24,6 @@ using Test
     nuts_custom = MCMCNUTS(; target_acceptance = 0.85, max_depth = 11)
     @test nuts_custom.target_acceptance ≈ 0.85
     @test nuts_custom.max_depth == 11
-
-    hmc = MCMCHMC()
-    @test hmc.algorithm == :hmc
-    @test hmc.leapfrog_steps == 10
-    @test hmc.step_size ≈ 0.1
 end
 
 @testset "MCMCMethod Validation" begin
@@ -47,17 +36,10 @@ end
     @test_throws AssertionError MCMCMethod(:nuts; max_depth = 0)
     @test_throws AssertionError MCMCMethod(:nuts; max_depth = -5)
 
-    # Invalid leapfrog_steps
-    @test_throws AssertionError MCMCMethod(:hmc; leapfrog_steps = 0)
-    @test_throws AssertionError MCMCMethod(:hmc; leapfrog_steps = -10)
-
-    # Invalid step_size
-    @test_throws AssertionError MCMCMethod(:hmc; step_size = -0.1)
-    @test_throws AssertionError MCMCMethod(:hmc; step_size = 0.0)
-
     # Invalid algorithm
     @test_throws ArgumentError MCMCMethod(:invalid)
     @test_throws ArgumentError MCMCMethod(:nuts_custom)
+    @test_throws ArgumentError MCMCMethod(:hmc)
 end
 
 @testset "UnifiedVIMethod Constructors" begin
@@ -110,7 +92,7 @@ end
 @testset "Method Traits - uses_sampling" begin
     # All methods use sampling
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
-    @test BayesianDoubleML.uses_sampling(MCMCMethod(:hmc)) == true
+    @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
     @test BayesianDoubleML.uses_sampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.uses_sampling(SimpleVIMethod()) == true
 end
@@ -118,7 +100,6 @@ end
 @testset "Method Traits - supports_subsampling" begin
     # Only UnifiedVIMethod supports subsampling
     @test BayesianDoubleML.supports_subsampling(MCMCMethod(:nuts)) == false
-    @test BayesianDoubleML.supports_subsampling(MCMCMethod(:hmc)) == false
     @test BayesianDoubleML.supports_subsampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.supports_subsampling(SimpleVIMethod()) == false
 end
@@ -150,12 +131,8 @@ end
     @test typeof(method_nuts) == MCMCMethod
     @test method_nuts.algorithm == :nuts
 
-    method_hmc = MCMCHMC()
-    @test typeof(method_hmc) == MCMCMethod
-    @test method_hmc.algorithm == :hmc
-
     method_unified = UnifiedVI()
-    @test typeof(method_unified) == UnifiedVIMethod
+    @test typeof(method_unified) <: UnifiedVIMethod  # Now parametric type
 
     method_simple = SimpleVI()
     @test typeof(method_simple) == SimpleVIMethod

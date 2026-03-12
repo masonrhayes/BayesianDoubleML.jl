@@ -1,6 +1,6 @@
 # Diagnostics Tests
 # Tests for coeftable, HPD intervals, MCSE, ESS, p-values
-# Statistical diagnostics and inference summaries
+# Statistical diagnostics and inference summaries with new Model API
 
 using BayesianDoubleML
 using Test
@@ -63,17 +63,17 @@ end
     println("  ✓ Posterior summary works correctly")
 end
 
-@testset "coeftable for BDMLMCMCResult (MCMC)" begin
+@testset "coeftable for BDMLMCMCResult (MCMC) via Model" begin
     Random.seed!(702)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 702)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(702))
 
-    println("\n=== coeftable: BDMLMCMCResult (MCMC) ===")
+    println("\n=== coeftable: BDMLMCMCResult via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200)
+    fit!(model, method; n_samples = 200)
 
-    ct = coeftable(result)
+    ct = coeftable(model)
 
     @test ct isa BDMLCoeftable
     @test length(ct.coefnames) >= 1  # At least alpha parameter
@@ -84,20 +84,20 @@ end
 
     println("  Coefficient table rows: $(length(ct.coefnames))")
     println("  Alpha estimate: $(round(ct.coef[alpha_idx], digits = 4))")
-    println("  ✓ coeftable works for MCMC results")
+    println("  ✓ coeftable works for MCMC via Model")
 end
 
-@testset "coeftable for BDMLVIResult (VI)" begin
+@testset "coeftable for BDMLVIResult (VI) via Model" begin
     Random.seed!(703)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 703)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(703))
 
-    println("\n=== coeftable: BDMLVIResult (VI) ===")
+    println("\n=== coeftable: BDMLVIResult via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
+    model = BDMLModel(Y, D, X; model_type = :hier)
     method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 500, n_draws = 500)
+    fit!(model, method; n_iterations = 500, n_draws = 500)
 
-    ct = coeftable(result)
+    ct = coeftable(model)
 
     @test ct isa BDMLCoeftable
     @test length(ct.coefnames) >= 1
@@ -107,95 +107,92 @@ end
 
     println("  Coefficient table rows: $(length(ct.coefnames))")
     println("  Alpha estimate: $(round(ct.coef[alpha_idx], digits = 4))")
-    println("  ✓ coeftable works for VI results")
+    println("  ✓ coeftable works for VI via Model")
 end
 
-@testset "confint for MCMC and VI Results" begin
+@testset "confint for MCMC and VI via Model" begin
     Random.seed!(704)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 704)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(704))
 
-    println("\n=== confint: MCMC and VI Results ===")
+    println("\n=== confint: MCMC and VI via Model ===")
 
     # MCMC
-    problem_mcmc = BDMLProblem(Y, D, X; model_type = :hier)
-    result_mcmc = fit(problem_mcmc, MCMCMethod(:nuts), n_samples = 200)
+    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_mcmc, MCMCMethod(:nuts); n_samples = 200)
 
-    ci_mcmc = confint(result_mcmc)
+    ci_mcmc = confint(model_mcmc)
     @test length(ci_mcmc) == 2
     @test ci_mcmc[1] < ci_mcmc[2]
 
     # VI
-    problem_vi = BDMLProblem(Y, D, X; model_type = :hier)
-    result_vi = fit(problem_vi, UnifiedVI())
+    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model_vi, UnifiedVI())
 
-    ci_vi = confint(result_vi)
+    ci_vi = confint(model_vi)
     @test length(ci_vi) == 2
     @test ci_vi[1] < ci_vi[2]
 
     println("  MCMC 95% CI: [$(round(ci_mcmc[1], digits = 4)), $(round(ci_mcmc[2], digits = 4))]")
     println("  VI 95% CI: [$(round(ci_vi[1], digits = 4)), $(round(ci_vi[2], digits = 4))]")
-    println("  ✓ confint works for both MCMC and VI")
+    println("  ✓ confint works for both MCMC and VI via Model")
 end
 
-@testset "Effective Sample Size (ESS)" begin
+@testset "Effective Sample Size (ESS) via Model" begin
     Random.seed!(705)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 705)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(705))
 
-    println("\n=== Effective Sample Size (ESS) ===")
+    println("\n=== Effective Sample Size (ESS) via Model ===")
 
     # MCMC with multiple chains for ESS calculation
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200, n_chains = 2)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
     # ESS function should exist and return positive value
-    ess_value = ess(result)
+    ess_value = ess(model)
 
     @test ess_value > 0
-    @test ess_value <= length(result.alpha_samples)
+    @test ess_value <= length(extract_alpha(model))
 
-    println("  Total samples: $(length(result.alpha_samples))")
+    println("  Total samples: $(length(extract_alpha(model)))")
     println("  ESS: $(round(ess_value, digits = 1))")
-    println("  Efficiency: $(round(ess_value / length(result.alpha_samples) * 100, digits = 1))%")
-    println("  ✓ ESS calculation works")
+    println("  Efficiency: $(round(ess_value / length(extract_alpha(model)) * 100, digits = 1))%")
+    println("  ✓ ESS calculation works via Model")
 end
 
-@testset "Monte Carlo Standard Error (MCSE)" begin
+@testset "Monte Carlo Standard Error (MCSE) via Model" begin
     Random.seed!(706)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 706)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(706))
 
-    println("\n=== Monte Carlo Standard Error (MCSE) ===")
+    println("\n=== Monte Carlo Standard Error (MCSE) via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
     # MCSE should exist and be positive
-    mcse_value = mcse(result)
+    mcse_value = mcse(model)
 
     @test mcse_value > 0
     @test isfinite(mcse_value)
 
     # MCSE should be smaller than posterior std
-    @test mcse_value < std(extract_alpha(result))
+    @test mcse_value < std(extract_alpha(model))
 
-    println("  Posterior std: $(round(std(extract_alpha(result)), digits = 4))")
+    println("  Posterior std: $(round(std(extract_alpha(model)), digits = 4))")
     println("  MCSE: $(round(mcse_value, digits = 4))")
-    println("  ✓ MCSE calculation works")
+    println("  ✓ MCSE calculation works via Model")
 end
 
-@testset "P-values" begin
+@testset "P-values via Model" begin
     Random.seed!(707)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 707)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(707))
 
-    println("\n=== P-values ===")
+    println("\n=== P-values via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
     # pvalues function
-    pval = pvalues(result)
+    pval = pvalues(model)
 
     @test isfinite(pval)
     @test 0 <= pval <= 1
@@ -205,7 +202,7 @@ end
     @test pval >= 0
 
     println("  P-value: $(round(pval, digits = 4))")
-    println("  ✓ P-value calculation works")
+    println("  ✓ P-value calculation works via Model")
 end
 
 @testset "HPD Interval" begin
@@ -231,66 +228,63 @@ end
     println("  ✓ HPD interval works correctly")
 end
 
-@testset "Convergence Diagnostics" begin
+@testset "Convergence Diagnostics via Model" begin
     Random.seed!(709)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 709)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(709))
 
-    println("\n=== Convergence Diagnostics ===")
+    println("\n=== Convergence Diagnostics via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200, n_chains = 2)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
     # R-hat (potential scale reduction factor)
-    rhat = rhat_statistic(result)
+    rhat_val = rhat_statistic(model)
 
-    @test isfinite(rhat)
-    @test rhat > 0
+    @test isfinite(rhat_val)
+    @test rhat_val > 0
     # R-hat should be close to 1.0 for converged chains
-    @test rhat < 2.0  # Loose threshold for small test
+    @test rhat_val < 2.0  # Loose threshold for small test
 
-    println("  R-hat: $(round(rhat, digits = 3))")
-    println("  ✓ Convergence diagnostics work")
+    println("  R-hat: $(round(rhat_val, digits = 3))")
+    println("  ✓ Convergence diagnostics work via Model")
 end
 
-@testset "Model Comparison Statistics" begin
+@testset "Model Comparison Statistics via Model" begin
     Random.seed!(710)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 710)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(710))
 
-    println("\n=== Model Comparison Statistics ===")
+    println("\n=== Model Comparison Statistics via Model ===")
 
     # VI result with ELBO
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = UnifiedVI()
-    result = fit(problem, method; n_iterations = 400, n_draws = 400)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, UnifiedVI(); n_iterations = 400, n_draws = 400)
 
     # ELBO should be present in VI results
-    @test hasfield(typeof(result), :final_elbo)
-    @test isfinite(result.final_elbo)
+    @test hasfield(typeof(model.result), :final_elbo)
+    @test isfinite(model.result.final_elbo)
 
-    println("  Final ELBO: $(round(result.final_elbo, digits = 2))")
-    println("  Converged: $(result.converged)")
-    println("  ✓ Model comparison statistics available")
+    println("  Final ELBO: $(round(model.result.final_elbo, digits = 2))")
+    println("  Converged: $(model.result.converged)")
+    println("  ✓ Model comparison statistics available via Model")
 end
 
-@testset "StatsAPI Integration" begin
+@testset "StatsAPI Integration via Model" begin
     Random.seed!(711)
-    Y, D, X, alpha_true = make_test_data(n = 100, p = 10, alpha_true = 0.5, seed = 711)
+    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(711))
 
-    println("\n=== StatsAPI Integration ===")
+    println("\n=== StatsAPI Integration via Model ===")
 
-    problem = BDMLProblem(Y, D, X; model_type = :hier)
-    method = MCMCMethod(:nuts)
-    result = fit(problem, method; n_samples = 200)
+    model = BDMLModel(Y, D, X; model_type = :hier)
+    fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
-    # Test StatsAPI functions work
-    @test BayesianDoubleML.coef(result) isa AbstractVector
-    @test BayesianDoubleML.stderror(result) isa AbstractVector
-    @test BayesianDoubleML.vcov(result) isa AbstractMatrix
+    # Test StatsAPI functions work on model
+    @test BayesianDoubleML.coef(model) isa AbstractVector
+    @test BayesianDoubleML.stderror(model) isa AbstractVector
+    @test BayesianDoubleML.vcov(model) isa AbstractMatrix
 
-    println("  coef: $(round.(BayesianDoubleML.coef(result), digits = 4))")
-    println("  stderror: $(round.(BayesianDoubleML.stderror(result), digits = 4))")
-    println("  ✓ StatsAPI integration works")
+    println("  coef: $(round.(BayesianDoubleML.coef(model), digits = 4))")
+    println("  stderror: $(round.(BayesianDoubleML.stderror(model), digits = 4))")
+    println("  ✓ StatsAPI integration works via Model")
 end
 
 @testset "Diagnostics on Edge Cases" begin
@@ -317,4 +311,4 @@ end
 end
 
 println("\n=== All Diagnostics Tests Complete ===")
-println("Tested: Credible intervals, HPD, MCSE, ESS, p-values, coeftable, StatsAPI")
+println("Tested: Credible intervals, HPD, MCSE, ESS, p-values, coeftable, StatsAPI via Model API")

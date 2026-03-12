@@ -1,44 +1,44 @@
 """
     extract_alpha(chain::MCMCChains.Chains)
 
-Extract α samples from MCMC chain using the paper's transformation (Equation 15).
+Extract ``\\alpha`` samples from MCMC chain using the paper's transformation ``(Eq. 15)``.
 
 # Mathematical Derivation (DiTraglia & Liu 2025)
 
 The BDML model uses a bivariate reduced form parameterization (Section 4):
 
 **Structural equation:**
-    Y = αD + X'β + ε,    where ε ⊥ V (Eq. 6)
+    ``Y = \\alpha D + X'\\beta + \\epsilon``,    where ``\\epsilon \\perp V`` (Eq. 6)
 
 **Reduced form:**
-    Y = X'δ + U,  where U = ε + αV   (Eq. 12)
-    D = X'γ + V                      (Eq. 5)
+    ``Y = X'\\delta + U``,  where ``U = \\epsilon + \\alpha V``   (Eq. 12)
+    ``D = X'\\gamma + V``                      (Eq. 5)
 
-Since ε is uncorrelated with V by assumption, the covariance between the 
+Since ``\\epsilon`` is uncorrelated with V by assumption, the covariance between the 
 reduced form errors is:
-    Cov(U, V) = Cov(ε + αV, V) = α·Var(V)
+    ``\\text{Cov}(U, V) = \\text{Cov}(\\epsilon + \\alpha V, V) = \\alpha \\cdot \\text{Var}(V)``
 
-Therefore, the causal effect α can be recovered from the error covariance:
-    α = Cov(U, V) / Var(V) = σ_UV / σ²_V   (Eq. 15)
+Therefore, the causal effect ``\\alpha`` can be recovered from the error covariance:
+    ``\\alpha = \\text{Cov}(U, V) / \\text{Var}(V) = \\sigma_{UV} / \\sigma^2_V``   (Eq. 15)
 
-Using the correlation parameterization σ_UV = ρ·σ_U·σ_V:
-    α = ρ·σ_U·σ_V / σ²_V = ρ·σ_U / σ_V
+Using the correlation parameterization ``\\sigma_{UV} = \\rho \\cdot \\sigma_U \\cdot \\sigma_V``:
+    ``\\alpha = \\rho \\cdot \\sigma_U \\cdot \\sigma_V / \\sigma^2_V = \\rho \\cdot \\sigma_U / \\sigma_V``
 
 # Implementation
 
 For MCMC with LKJCholesky, the chain stores the Cholesky factor L where:
-    ρ = L[2,1] / L[1,1]
+    ``\\rho = L[2,1] / L[1,1]``
 
-Since L[1,1] = 1 for correlation matrices, ρ = L[2,1].
+Since ``L[1,1] = 1`` for correlation matrices, ``\\rho = L[2,1]``.
 
-This function extracts σ_U, σ_V, and ρ from the MCMC chain, then computes:
-    α = ρ * σ_U / σ_V
+This function extracts ``\\sigma_U``, ``\\sigma_V``, and ``\\rho`` from the MCMC chain, then computes:
+    ``\\alpha = \\rho \\cdot \\sigma_U / \\sigma_V``
 
 # Arguments
 - `chain::MCMCChains.Chains`: MCMC chain containing posterior samples
 
 # Returns
-- `Vector{Float64}`: Posterior samples of α
+- `Vector{Float64}`: Posterior samples of ``\\alpha``
 
 # References
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
@@ -77,7 +77,7 @@ end
 """
     extract_alpha(result::BDMLVIResult)
 
-Extract α samples from a BDMLVIResult.
+Extract ``\\alpha`` samples from a BDMLVIResult.
 """
 function extract_alpha(result::BDMLVIResult)
     return result.alpha_samples
