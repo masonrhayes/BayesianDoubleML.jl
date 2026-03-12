@@ -290,11 +290,8 @@ function _fit_impl(
     if method.algorithm == :nuts
         # Use Turing's NUTS with parameters from method
         mcmc_sampler = NUTS(method.target_acceptance; adtype = AutoForwardDiff())
-    elseif method.algorithm == :hmc
-        # HMC not yet implemented via this interface
-        error("HMC via dispatch interface not yet implemented. Use fit_bdml() directly.")
     else
-        error("Unknown MCMC algorithm: $(method.algorithm)")
+        error("Unknown MCMC algorithm: $(method.algorithm). Only :nuts is supported.")
     end
 
     # Run MCMC

@@ -106,12 +106,15 @@ end
 # Show methods are defined in coeftable.jl
 
 """
-    BDMLVIResult <: AbstractBDMLResult
+    BDMLVIResult{P} <: AbstractBDMLResult
 
 Results from Variational Inference (ADVI) approximation.
 
+# Type Parameters
+- `P`: The concrete type of the variational posterior distribution
+
 # Fields
-- `variational_posterior::Any`: Variational distribution from AdvancedVI
+- `variational_posterior::P`: Variational distribution from AdvancedVI
 - `alpha_samples::Vector{Float64}`: Causal effect samples (original scale)
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation
@@ -132,15 +135,15 @@ println("Final ELBO: ", result.final_elbo)
 
 See also: [`BDMLMCMCResult`](@ref), [`AbstractBDMLResult`](@ref)
 """
-struct BDMLVIResult <: AbstractBDMLResult
-    variational_posterior::Any  # Bijectors.TransformedDistribution or similar
+struct BDMLVIResult{P} <: AbstractBDMLResult
+    variational_posterior::P
     alpha_samples::Vector{Float64}
     alpha_samples_standardized::Vector{Float64}
     std_stats::StandardizationStats
     model_type::Symbol
-    variational_family::Symbol  # :fullrank or :meanfield
+    variational_family::Symbol
     n_iterations::Int
-    elbo_history::Vector{Float64}  # For convergence monitoring
+    elbo_history::Vector{Float64}
     converged::Bool
     final_elbo::Float64
 end

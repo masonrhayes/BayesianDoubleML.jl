@@ -2,7 +2,7 @@
 # Defines the "how" - the algorithm/method for fitting problems
 
 export AbstractInferenceMethod
-export MCMCMethod, MCMCNUTS, MCMCHMC
+export MCMCMethod, MCMCNUTS
 export UnifiedVIMethod, SimpleVIMethod
 export UnifiedVI, SimpleVI
 export AbstractVariationalFamily, MeanField, LowRank, LowRankScore
@@ -35,21 +35,16 @@ MCMC (Markov Chain Monte Carlo) inference method.
 
 Supports multiple MCMC algorithms via the `algorithm` field:
 - :nuts - No-U-Turn Sampler (default, recommended)
-- :hmc - Hamiltonian Monte Carlo
 
 # Fields
-- `algorithm::Symbol`: Which MCMC algorithm (:nuts, :hmc)
+- `algorithm::Symbol`: Which MCMC algorithm (:nuts)
 - `target_acceptance::Float64`: Target acceptance rate for NUTS (default: 0.8)
 - `max_depth::Int`: Maximum tree depth for NUTS (default: 10)
-- `leapfrog_steps::Int`: Number of leapfrog steps for HMC (default: 10)
-- `step_size::Float64`: Step size (ϵ) for HMC (default: 0.1)
 
 # Constructors
 ```julia
 MCMCMethod(:nuts; target_acceptance=0.8, max_depth=10)
-MCMCMethod(:hmc; leapfrog_steps=10, step_size=0.1)
 MCMCNUTS(; target_acceptance=0.8, max_depth=10)  # Convenience
-MCMCHMC(; leapfrog_steps=10, step_size=0.1)     # Convenience
 ```
 
 # Examples
@@ -60,20 +55,16 @@ method = MCMCMethod(:nuts)
 # Custom NUTS settings
 method = MCMCMethod(:nuts; target_acceptance=0.9, max_depth=12)
 
-# HMC sampler
-method = MCMCMethod(:hmc; leapfrog_steps=20, step_size=0.05)
-
-# Convenience constructors
+# Convenience constructor
 method = MCMCNUTS()
-method = MCMCHMC(; leapfrog_steps=15)
+method = MCMCNUTS(; target_acceptance=0.9, max_depth=12)
 ```
 
 # Notes
-NUTS is generally preferred over HMC as it automatically tunes
-the trajectory length and is more robust to poor step size choices.
-HMC can be faster for simple models with good step size tuning.
+NUTS is the recommended MCMC algorithm. It automatically tunes
+the trajectory length and is robust to step size choices.
 
-See also: [`MCMCNUTS`](@ref), [`MCMCHMC`](@ref)
+See also: [`MCMCNUTS`](@ref)
 """
 struct MCMCMethod <: AbstractInferenceMethod
     algorithm::Symbol
@@ -94,12 +85,8 @@ struct MCMCMethod <: AbstractInferenceMethod
             @assert 0 < target_acceptance < 1 "target_acceptance must be in (0, 1)"
             @assert max_depth > 0 "max_depth must be positive"
             new(:nuts, target_acceptance, max_depth, 0, 0.0)
-        elseif algorithm == :hmc
-            @assert leapfrog_steps > 0 "leapfrog_steps must be positive"
-            @assert step_size > 0 "step_size must be positive"
-            new(:hmc, 0.0, 0, leapfrog_steps, step_size)
         else
-            throw(ArgumentError("Unknown MCMC algorithm: $algorithm. Use :nuts or :hmc"))
+            throw(ArgumentError("Unknown MCMC algorithm: $algorithm. Use :nuts"))
         end
     end
 end
@@ -125,36 +112,10 @@ method = MCMCNUTS()
 method = MCMCNUTS(; target_acceptance=0.9)
 ```
 
-See also: [`MCMCMethod`](@ref), [`MCMCHMC`](@ref)
+See also: [`MCMCMethod`](@ref)
 """
 MCMCNUTS(; target_acceptance::Float64 = 0.8, max_depth::Int = 10) =
     MCMCMethod(:nuts; target_acceptance, max_depth)
-
-"""
-    MCMCHMC(; leapfrog_steps=10, step_size=0.1)
-
-Convenience constructor for HMC (Hamiltonian Monte Carlo) method.
-
-HMC uses a fixed number of leapfrog steps. Can be faster than NUTS
-for simple models but requires good step size tuning.
-
-# Arguments
-- `leapfrog_steps::Int=10`: Number of leapfrog integrator steps
-- `step_size::Float64=0.1`: Step size (ϵ) for leapfrog integrator
-
-# Examples
-```julia
-# Default HMC
-method = MCMCHMC()
-
-# More steps for better approximation
-method = MCMCHMC(; leapfrog_steps=20, step_size=0.05)
-```
-
-See also: [`MCMCMethod`](@ref), [`MCMCNUTS`](@ref)
-"""
-MCMCHMC(; leapfrog_steps::Int = 10, step_size::Float64 = 0.1) =
-    MCMCMethod(:hmc; leapfrog_steps, step_size)
 
 # VI methods
 
@@ -255,7 +216,7 @@ This is the primary VI implementation with:
 - `F<:AbstractVariationalFamily`: The variational family type (MeanField, LowRank)
 
 # Fields
-- `ad_backend::Type`: AD backend (AutoReverseDiff, AutoMooncake, etc.)
+- `ad_backend::Type{<:AbstractADType}`: AD backend (AutoReverseDiff, AutoMooncake, etc.)
 - `subsample::Union{Bool, Nothing}`: Whether to use mini-batch gradients
 - `batch_size::Int`: Mini-batch size (auto-computed if -1)
 - `n_montecarlo::Int`: Number of Monte Carlo samples for gradient estimation (default: 10)
@@ -320,14 +281,14 @@ The variational family determines the covariance structure:
 See also: [`MeanField`](@ref), [`LowRank`](@ref), [`SimpleVIMethod`](@ref)
 """
 struct UnifiedVIMethod{F <: AbstractVariationalFamily} <: AbstractInferenceMethod
-    ad_backend::Type
+    ad_backend::Type{<:AbstractADType}
     subsample::Union{Bool, Nothing}
     batch_size::Int
     n_montecarlo::Int
     family::F
 
     function UnifiedVIMethod(;
-            ad_backend::Type = AutoReverseDiff,
+            ad_backend::Type{<:AbstractADType} = AutoReverseDiff,
             subsample::Union{Bool, Nothing} = nothing,
             batch_size::Int = -1,
             n_montecarlo::Int = 10,
@@ -353,7 +314,7 @@ Best for: Production use with Mooncake when n < 10,000 and you want
 maximum performance after initial warmup.
 
 # Fields
-- `ad_backend::Type`: AD backend (AutoMooncake recommended, AutoReverseDiff works)
+- `ad_backend::Type{<:AbstractADType}`: AD backend (AutoMooncake recommended, AutoReverseDiff works)
 
 # Constructor
 ```julia
@@ -386,9 +347,9 @@ method = SimpleVI()
 See also: [`UnifiedVIMethod`](@ref), [`SimpleVI`](@ref)
 """
 struct SimpleVIMethod <: AbstractInferenceMethod
-    ad_backend::Type
+    ad_backend::Type{<:AbstractADType}
 
-    function SimpleVIMethod(; ad_backend::Type = AutoMooncake)
+    function SimpleVIMethod(; ad_backend::Type{<:AbstractADType} = AutoMooncake)
         return new(ad_backend)
     end
 end

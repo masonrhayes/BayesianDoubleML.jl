@@ -5,7 +5,6 @@
 using SafeTestsets
 
 # Explicitly import AD backends for DifferentiationInterface compatibility
-import Enzyme
 import Mooncake
 
 # Phase 1: Core functionality tests (fast, no inference)

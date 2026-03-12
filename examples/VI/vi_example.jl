@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.23
+# v0.20.24
 
 using Markdown
 using InteractiveUtils
@@ -17,13 +17,23 @@ macro bind(def, element)
 end
 
 # ╔═╡ 206fed88-1b2a-11f1-891f-7fd268f9692b
-import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+import Pkg; Pkg.develop(path = "../..")
+
+# ╔═╡ 605ae330-1557-4146-8c4a-ea1342fca1b1
+Pkg.activate("..")
+
+# ╔═╡ 33683fcc-4fe1-4300-a9a5-2e8c369d66c4
+Pkg.add("Turing")
 
 # ╔═╡ a62b95cc-3877-4c62-be36-17cad34734a1
 begin
     using BayesianDoubleML
     using StableRNGs
     using PlutoUI
+    using Turing
+    using Mooncake # explictly import Mooncake for AD
+    using ADTypes, DifferentiationInterface
+    using ADTypes: AutoMooncake
 end
 
 # ╔═╡ f95bc5b1-62a4-49a4-bc98-0e8ebf749a19
@@ -55,7 +65,7 @@ We then define the BDML problem, using the BDML-Hier model:
 """
 
 # ╔═╡ a9fa5ba9-f25d-4cf0-b9bb-99101c6f90af
-prob = BDMLProblem(Y, D, X, model_type = :hier)
+model = BDMLModel(Y, D, X, model_type = :hier)
 
 # ╔═╡ cad72553-b33b-445d-85f2-28bec0d2a20b
 md"""
@@ -65,8 +75,8 @@ In this example, we first try using the SimpleVIMethod with the AutoMooncake bac
 """
 
 # ╔═╡ 751ef964-a74b-4a41-a9b9-799241bebda0
-sol = fit(
-    prob,
+fit!(
+    model,
     SimpleVIMethod(; ad_backend = AutoMooncake),
     n_iterations = 2_000,
     show_progress = false
@@ -118,13 +128,15 @@ summary(sol2)
 
 # ╔═╡ Cell order:
 # ╠═206fed88-1b2a-11f1-891f-7fd268f9692b
+# ╠═605ae330-1557-4146-8c4a-ea1342fca1b1
+# ╠═33683fcc-4fe1-4300-a9a5-2e8c369d66c4
 # ╠═a62b95cc-3877-4c62-be36-17cad34734a1
 # ╟─f95bc5b1-62a4-49a4-bc98-0e8ebf749a19
 # ╠═b26f4d74-e791-4435-860c-c0ebfb9b6dbc
 # ╠═b600a47b-d9d5-4552-b673-6eda27f04871
 # ╟─ebf5e3c0-3e95-45d1-a734-7177f14a0182
 # ╠═a9fa5ba9-f25d-4cf0-b9bb-99101c6f90af
-# ╠═cad72553-b33b-445d-85f2-28bec0d2a20b
+# ╟─cad72553-b33b-445d-85f2-28bec0d2a20b
 # ╠═751ef964-a74b-4a41-a9b9-799241bebda0
 # ╠═1251af4f-8941-425a-bef4-0bbb999e420f
 # ╟─cf1670f6-97c5-4130-a7f3-8bf7e2e9b066

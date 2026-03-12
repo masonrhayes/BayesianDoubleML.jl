@@ -145,7 +145,7 @@ end
 end
 
 @testset "UnifiedVI AD Backend - AutoZygote" begin
-    using Zygote
+    import Zygote
 
     Random.seed!(306)
     Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(306))

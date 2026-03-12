@@ -6,7 +6,7 @@ using StatsAPI
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
     AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod,
-    MCMCNUTS, MCMCHMC, UnifiedVI, SimpleVI,
+    MCMCNUTS, UnifiedVI, SimpleVI,
     # Variational families
     AbstractVariationalFamily, MeanField, LowRank, LowRankScore,
     MeanFieldVI, LowRankVI, LowRankScoreVI,
@@ -24,8 +24,8 @@ export fit!, BDMLModel,
     summary,
     # Utilities
     credible_interval, check_convergence,
-    # AD backends
-    AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoEnzyme, AutoMooncake,
+    # AD backends for VI configuration
+    AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoMooncake,
     # DGP
     generate_dgp_table1
 
