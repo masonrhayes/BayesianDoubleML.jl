@@ -47,7 +47,6 @@ BayesianDoubleML.SimpleVIMethod
 
 ```@docs
 BayesianDoubleML.MCMCNUTS
-BayesianDoubleML.MCMCHMC
 ```
 
 ### VI Method Constructors
