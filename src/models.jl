@@ -47,20 +47,20 @@ DiTraglia & Liu (2025), Algorithm 1.
 # Model Specification (Section 4, Equations 12-13)
 
 **Reduced form:**
-    Y = X'δ + U          (Eq. 12)
-    D = X'γ + V          (Eq. 5)
+    ``Y = X'\\delta + U``          (Eq. 12)
+    ``D = X'\\gamma + V``          (Eq. 5)
 
 **Priors:**
-- δ ~ N(0, 25·I_p)      [Outcome reduced form coefficients]
-- γ ~ N(0, 25·I_p)      [Treatment reduced form coefficients]  
-- σ_U ~ Cauchy⁺(0, 2.5) [Outcome error scale]
-- σ_V ~ Cauchy⁺(0, 2.5) [Treatment error scale]
-- R ~ LKJ(4)            [Correlation matrix]
+- ``\\delta \\sim N(0, 25\\cdot I_p)``      [Outcome reduced form coefficients]
+- ``\\gamma \\sim N(0, 25\\cdot I_p)``      [Treatment reduced form coefficients]  
+- ``\\sigma_U \\sim \\text{Cauchy}^+(0, 2.5)`` [Outcome error scale]
+- ``\\sigma_V \\sim \\text{Cauchy}^+(0, 2.5)`` [Treatment error scale]
+- ``R \\sim \\text{LKJ}(4)``            [Correlation matrix]
 
-For VI, uses Beta(2,2) correlation parameterization instead of LKJCholesky.
+For VI, uses ``\\text{Beta}(2,2)`` correlation parameterization instead of LKJCholesky.
 
 **Causal effect recovery:**
-    α = ρ·σ_U / σ_V       (Eq. 15)
+    ``\\alpha = \\rho\\cdot\\sigma_U / \\sigma_V``       (Eq. 15)
 
 This is the BDML-Basic variation with fixed prior variances (Section 6, Table 1).
 
@@ -108,26 +108,26 @@ DiTraglia & Liu (2025), Algorithm 1.
 # Model Specification (Section 4, Equations 12-13)
 
 **Reduced form:**
-    Y = X'δ + U          (Eq. 12)
-    D = X'γ + V          (Eq. 5)
+    ``Y = X'\\delta + U``          (Eq. 12)
+    ``D = X'\\gamma + V``          (Eq. 5)
 
 **Hierarchical priors:**
-- σ²_δ ~ InvGamma(2, 2)       [Variance hyperparameter for δ]
-- σ²_γ ~ InvGamma(2, 2)       [Variance hyperparameter for γ]
-- δ ~ N(0, σ²_δ·I_p)         [Outcome coefficients with adaptive shrinkage]
-- γ ~ N(0, σ²_γ·I_p)         [Treatment coefficients with adaptive shrinkage]
-- σ_U ~ Cauchy⁺(0, 2.5)       [Outcome error scale]
-- σ_V ~ Cauchy⁺(0, 2.5)       [Treatment error scale]
-- R ~ LKJ(4)                 [Correlation matrix]
+- ``\\sigma^2_\\delta \\sim \\text{InvGamma}(2, 2)``       [Variance hyperparameter for ``\\delta``]
+- ``\\sigma^2_\\gamma \\sim \\text{InvGamma}(2, 2)``       [Variance hyperparameter for ``\\gamma``]
+- ``\\delta \\sim N(0, \\sigma^2_\\delta\\cdot I_p)``         [Outcome coefficients with adaptive shrinkage]
+- ``\\gamma \\sim N(0, \\sigma^2_\\gamma\\cdot I_p)``         [Treatment coefficients with adaptive shrinkage]
+- ``\\sigma_U \\sim \\text{Cauchy}^+(0, 2.5)``       [Outcome error scale]
+- ``\\sigma_V \\sim \\text{Cauchy}^+(0, 2.5)``       [Treatment error scale]
+- ``R \\sim \\text{LKJ}(4)``                 [Correlation matrix]
 
-For VI, uses Beta(2,2) correlation parameterization.
+For VI, uses ``\\text{Beta}(2,2)`` correlation parameterization.
 
 **Causal effect recovery:**
-    α = ρ·σ_U / σ_V            (Eq. 15)
+    ``\\alpha = \\rho\\cdot\\sigma_U / \\sigma_V``            (Eq. 15)
 
 **Hierarchical structure:**
-This is equivalent to placing independent Student-t(4) distributions on each 
-coefficient marginally. The InvGamma(2, 2) hyperprior provides adaptive 
+This is equivalent to placing independent ``\\text{Student-}t(4)`` distributions on each 
+coefficient marginally. The ``\\text{InvGamma}(2, 2)`` hyperprior provides adaptive 
 shrinkage that learns the appropriate regularization from data (Section 6, Table 1).
 
 This can improve performance when p is large relative to n, and the paper's
@@ -180,17 +180,17 @@ This ensures data is only standardized once, even if fitted multiple times.
 # Algorithm 1 Variations
 
 **BDML-Basic** (`model_type=:basic`):
-- Places independent N(0, 25·I) priors on δ and γ
+- Places independent ``N(0, 25\\cdot I)`` priors on ``\\delta`` and ``\\gamma``
 - Fixed shrinkage across all covariates
 - Recommended for interpretability and simplicity
 
 **BDML-Hier** (`model_type=:hier`):
-- Places hierarchical InvGamma(2, 2) priors on σ²_δ and σ²_γ
-- Adaptive shrinkage equivalent to Student-t(4) on coefficients
+- Places hierarchical ``\\text{InvGamma}(2, 2)`` priors on ``\\sigma^2_\\delta`` and ``\\sigma^2_\\gamma``
+- Adaptive shrinkage equivalent to ``\\text{Student-}t(4)`` on coefficients
 - Better coverage in simulations (Table 1: 0.94 vs 0.91-0.93)
 - Recommended as default choice
 
-Both variations recover α via Equation 15: α = ρ·σ_U / σ_V
+Both variations recover ``\\alpha`` via Equation 15: ``\\alpha = \\rho\\cdot\\sigma_U / \\sigma_V``
 
 # Examples
 ```julia

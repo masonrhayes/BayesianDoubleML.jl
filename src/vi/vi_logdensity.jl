@@ -101,8 +101,8 @@ during AD, which significantly improves performance with all backends.
 
 # Arguments
 - `model::BDMLVIModel`: Model with pre-allocated temporaries
-- `δ::Vector{Float64}`: Reduced form coefficients for Y on X (Eq. 12)
-- `γ::Vector{Float64}`: Reduced form coefficients for D on X (Eq. 5)
+- `δ::Vector{Float64}`: Reduced form coefficients for Y on X ``(Eq. 12)``
+- `γ::Vector{Float64}`: Reduced form coefficients for D on X ``(Eq. 5)``
 - `σ_U::Float64`: Outcome standard deviation
 - `σ_V::Float64`: Treatment standard deviation
 - `ρ::Float64`: Correlation in [-1, 1]
@@ -119,9 +119,9 @@ Scalar log-likelihood value
 # Mathematical Details
 Computes bivariate normal log-likelihood from Equation 13:
 ```
-log p(Y, D | X, δ, γ, Σ) = Σᵢ -0.5 * (2*log(2π) + log|Σ| + rᵢ' Σ⁻¹ rᵢ)
+``\\log p(Y, D | X, \\delta, \\gamma, \\Sigma) = \\sum_i -0.5 \\cdot (2\\log(2\\pi) + \\log|\\Sigma| + r_i' \\Sigma^{-1} r_i)``
 ```
-where rᵢ = [Uᵢ, Vᵢ] = [Yᵢ - Xᵢ'δ, Dᵢ - Xᵢ'γ] and Σ is the 2×2 covariance matrix.
+where ``r_i = [U_i, V_i] = [Y_i - X_i'\\delta, D_i - X_i'\\gamma]`` and ``\\Sigma`` is the ``2\\times2`` covariance matrix.
 
 See DiTraglia & Liu (2025), Section 4, Equations 13-14.
 """
@@ -172,16 +172,16 @@ have wrong size (e.g., after subsampling with different batch size).
 
 # Arguments
 - `model::BDMLVIModel`: The model instance
-- `δ::Vector{Float64}`: Reduced form coefficients for Y on X (Eq. 12)
-- `γ::Vector{Float64}`: Reduced form coefficients for D on X (Eq. 5)
+- `δ::Vector{Float64}`: Reduced form coefficients for Y on X ``(Eq. 12)``
+- `γ::Vector{Float64}`: Reduced form coefficients for D on X ``(Eq. 5)``
 - `σ_U::Float64`: Outcome standard deviation
 - `σ_V::Float64`: Treatment standard deviation  
 - `ρ::Float64`: Correlation in [-1, 1]
 
 # Mathematical Details
 Computes bivariate normal log-likelihood from Equation 13:
-    log p(Y, D | X, δ, γ, Σ) = Σᵢ -0.5 * (2*log(2π) + log|Σ| + rᵢ' Σ⁻¹ rᵢ)
-where rᵢ = [Yᵢ - Xᵢ'δ, Dᵢ - Xᵢ'γ] = [Uᵢ, Vᵢ] and Σ is the 2×2 covariance matrix.
+    ``\\log p(Y, D | X, \\delta, \\gamma, \\Sigma) = \\sum_i -0.5 \\cdot (2\\log(2\\pi) + \\log|\\Sigma| + r_i' \\Sigma^{-1} r_i)``
+where ``r_i = [Y_i - X_i'\\delta, D_i - X_i'\\gamma] = [U_i, V_i]`` and ``\\Sigma`` is the ``2\\times2`` covariance matrix.
 
 See DiTraglia & Liu (2025), Section 4, Equations 13-14.
 """
@@ -220,7 +220,7 @@ end
 
 Compute log-pdf of zero-mean multivariate normal with isotropic covariance.
 
-log p(x | 0, σ²I) = -0.5 * (x'x/σ² + d*log(σ²) + d*log(2π))
+``\\log p(x | 0, \\sigma^2I) = -0.5 \\cdot (x'x/\\sigma^2 + d\\log(\\sigma^2) + d\\log(2\\pi))``
 
 This avoids creating a mean vector which can cause type issues with AD.
 """

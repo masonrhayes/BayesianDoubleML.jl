@@ -25,14 +25,14 @@ Implements the bivariate reduced form model from DiTraglia & Liu (2025),
 Equations 13-15:
 
 **Reduced form equations:**
-    Y = X'δ + U          (Eq. 12)
-    D = X'γ + V          (Eq. 5)
+    ``Y = X'\\delta + U``          (Eq. 12)
+    ``D = X'\\gamma + V``          (Eq. 5)
 
 **Joint error distribution:**
-    [U; V] | X ~ N(0, Σ)  (Eq. 13)
+    ``[U; V] | X \\sim N(0, \\Sigma)``  (Eq. 13)
 
-where the causal effect α is recovered via:
-    α = Cov(U, V) / Var(V) = ρ·σ_U / σ_V   (Eq. 15)
+where the causal effect ``\\alpha`` is recovered via:
+    ``\\alpha = \\text{Cov}(U, V) / \\text{Var}(V) = \\rho\\cdot\\sigma_U / \\sigma_V``   (Eq. 15)
 
 # Fields
 - `Y::YType`: Outcome variable (Vector{Float64})
@@ -41,8 +41,8 @@ where the causal effect α is recovered via:
 - `n_data::Int`: Total number of observations (for likelihood scaling with subsampling)
 - `model_type::Symbol`: :hier (hierarchical) or :basic
 - `T::Type{T}`: Element type (Float64)
-- `μ_Y_cache::Vector{T}`: Pre-allocated temporary for outcome mean (X'δ)
-- `μ_D_cache::Vector{T}`: Pre-allocated temporary for treatment mean (X'γ)
+- `μ_Y_cache::Vector{T}`: Pre-allocated temporary for outcome mean ``(X'\\delta)``
+- `μ_D_cache::Vector{T}`: Pre-allocated temporary for treatment mean ``(X'\\gamma)``
 
 # Example
 ```julia
@@ -123,11 +123,11 @@ end
 
 Return the number of parameters in the model.
 
-Parameter counts (paper notation δ for outcome, γ for treatment):
-- Basic: 2p (δ, γ) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 3
-- Hierarchical: 2 (log_σ²_δ, log_σ²_γ) + 2p (δ, γ) + 2 (σ_U, σ_V) + 1 (ρ_raw) = 2p + 5
+Parameter counts (paper notation ``\\delta`` for outcome, ``\\gamma`` for treatment):
+- Basic: ``2p`` (``\\delta``, ``\\gamma``) + 2 (``\\sigma_U``, ``\\sigma_V``) + 1 (``\\rho_\\text{raw}``) = ``2p + 3``
+- Hierarchical: 2 (``\\log_\\sigma^2_\\delta``, ``\\log_\\sigma^2_\\gamma``) + ``2p`` (``\\delta``, ``\\gamma``) + 2 (``\\sigma_U``, ``\\sigma_V``) + 1 (``\\rho_\\text{raw}``) = ``2p + 5``
 
-where p = number of control variables (size(X, 2))
+where ``p`` = number of control variables (size(X, 2))
 
 See DiTraglia & Liu (2025), Section 4, Equations 12-13.
 
@@ -172,13 +172,13 @@ For basic models:
 - `(δ, γ, σ_U, σ_V, ρ_raw)`
 
 where:
-- `δ`: Reduced form coefficients for Y on X (Eq. 12)
-- `γ`: Reduced form coefficients for D on X (Eq. 5)
-- `σ_U`: Outcome error standard deviation
-- `σ_V`: Treatment error standard deviation  
-- `ρ_raw`: Correlation parameter in [0,1] (transforms to ρ = 2ρ_raw - 1)
-- `σ²_δ`: Hierarchical variance hyperparameter for δ
-- `σ²_γ`: Hierarchical variance hyperparameter for γ
+- ``\\delta``: Reduced form coefficients for Y on X ``(Eq. 12)``
+- ``\\gamma``: Reduced form coefficients for D on X ``(Eq. 5)``
+- ``\\sigma_U``: Outcome error standard deviation
+- ``\\sigma_V``: Treatment error standard deviation  
+- ``\\rho_\\text{raw}``: Correlation parameter in [0,1] (transforms to ``\\rho = 2\\rho_\\text{raw} - 1``)
+- ``\\sigma^2_\\delta``: Hierarchical variance hyperparameter for ``\\delta``
+- ``\\sigma^2_\\gamma``: Hierarchical variance hyperparameter for ``\\gamma``
 
 # Notes
 Assumes parameters are already in constrained space (positive variances, ρ_raw in [0,1]).
