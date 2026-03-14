@@ -1,4 +1,5 @@
 [deps]
+BayesianDoubleML = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"

@@ -1,12 +1,16 @@
 ### A Pluto.jl notebook ###
-# v0.20.23
+# v0.20.24
 
 using Markdown
 using InteractiveUtils
 
 # ╔═╡ 7b485e44-306d-4459-92de-3e1464fc54a9
 # ╠═╡ show_logs = false
-import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+import Pkg; Pkg.develop(path = "../..")
+
+# ╔═╡ b0422dcb-72f8-4689-8b60-4ce6af4456c6
+# ╠═╡ show_logs = false
+Pkg.activate("..")
 
 # ╔═╡ f0f80cb4-70e6-4b95-bc14-e43d01f5a9e5
 # ╠═╡ show_logs = false
@@ -44,7 +48,7 @@ We then define the BDML problem, using the BDML-Hier model
 """
 
 # ╔═╡ cc0e76e1-2932-44de-93af-5f66da7d95e6
-prob = BDMLProblem(Y, D, X, model_type = :hier)
+model = BDMLModel(Y, D, X, model_type = :hier)
 
 # ╔═╡ 7b94053d-4e78-47fe-8a54-e618a97e6221
 md"""
@@ -52,18 +56,22 @@ We then solve the inference problem via MCMC, using the No-U-Turn Sampler (NUTS)
 """
 
 # ╔═╡ c69bb099-62ab-4ecc-a2f3-77bb3b644a57
-sol = fit(
-    prob,
+fit!(
+    model,
     MCMCMethod(:nuts),
-    n_chains = 4,
-    n_samples = 500
+    n_chains = 5,
+    n_samples = 300
 )
 
 # ╔═╡ 3ae9455f-70b4-42a1-8a28-42d0a11e0722
-summary(sol)
+begin 
+	summary(model);
+	coeftable(model)
+end
 
 # ╔═╡ Cell order:
-# ╠═7b485e44-306d-4459-92de-3e1464fc54a9
+# ╟─7b485e44-306d-4459-92de-3e1464fc54a9
+# ╟─b0422dcb-72f8-4689-8b60-4ce6af4456c6
 # ╠═f0f80cb4-70e6-4b95-bc14-e43d01f5a9e5
 # ╟─7eca318e-81c6-413c-8562-8038876024dd
 # ╟─6fa27fdd-413f-4841-b49d-a7fd3d513d8f
