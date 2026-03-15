@@ -26,10 +26,10 @@ Pkg.activate("..")
 
 # ╔═╡ a62b95cc-3877-4c62-be36-17cad34734a1
 begin
+    using Mooncake # explictly import Mooncake for AD
     using BayesianDoubleML
     using StableRNGs
     using PlutoUI
-    using Mooncake # explictly import Mooncake for AD
 end
 
 # ╔═╡ f95bc5b1-62a4-49a4-bc98-0e8ebf749a19
