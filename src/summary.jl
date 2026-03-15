@@ -75,12 +75,20 @@ function Base.summary(result::AbstractBDMLResult)
 end
 
 function print_title_box(io::IO)
-    println(io, COLOR_BOLD, "╔══════════════════════════════════════════════════════════════════════╗")
-    println(io, "║         Bayesian Double ML Model Summary                   ║")
-    return println(io, "╚══════════════════════════════════════════════════════════════════════╝", COLOR_RESET)
+    title = "Bayesian Double ML Model Summary"
+    box_width = 70
+    content_width = box_width - 2  # Exclude borders
+    padding = div(content_width - length(title), 2)
+    left_pad = padding
+    right_pad = content_width - length(title) - left_pad
+    
+    println(io, COLOR_BOLD, "╔", "═"^(box_width-2), "╗")
+    println(io, "║", " "^left_pad, title, " "^right_pad, "║")
+    return println(io, "╚", "═"^(box_width-2), "╝", COLOR_RESET)
 end
 
 function print_section_header(io::IO, color::String, title::String)
+    println(io)  # Add small amount of whitespace before heading
     line = "─"^(length(title) + 2)
     println(io, color, COLOR_BOLD, title, COLOR_RESET)
     return println(io, color, line, COLOR_RESET)
