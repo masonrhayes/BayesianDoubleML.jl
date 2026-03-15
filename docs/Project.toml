@@ -4,6 +4,8 @@ DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
+PlutoStaticHTML = "359b1769-a58e-495b-9770-312e911026ad"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [compat]
 DocStringExtensions = "0.9"
