@@ -633,7 +633,7 @@ function _fit_impl(
 
     return BDMLVIResult(
         q, α_samples, α_s_samples, model.stats,
-        :basic, :meanfield, n_iterations, elbo_history, converged, final_elbo
+        :basic, :meanfield, :simple, n_iterations, elbo_history, converged, final_elbo
     )
 end
 

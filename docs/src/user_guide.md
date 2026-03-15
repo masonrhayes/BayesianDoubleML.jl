@@ -17,7 +17,7 @@ This guide demonstrates how to use BayesianDoubleML.jl for causal inference with
 
 ```julia
 using Pkg
-Pkg.add("BayesianDoubleML")
+Pkg.add(url = "https://github.com/masonrhayes/BayesianDoubleML.jl")
 ```
 
 ## Basic Usage
@@ -28,11 +28,16 @@ All analyses start by creating a `BDMLModel` from your data:
 
 ```julia
 using BayesianDoubleML
+using StableRNGs
 
 # Your data
-Y = your_outcome_vector  # Vector{Float64}
-D = your_treatment_vector  # Vector{Float64}  
-X = your_covariate_matrix  # Matrix{Float64}
+n = 200
+p = 100
+alpha_true = 2.0 # true causal effect
+
+# Generate data as per the DGP of the paper
+Y, D, X, _ = generate_dgp_table1(n, p; alpha_true = alpha_true, rng = rng)
+
 
 # Create model with hierarchical model (recommended)
 model = BDMLModel(Y, D, X; model_type=:hier)
@@ -58,7 +63,7 @@ model = BDMLModel(Y, D, X; model_type=:basic)
 
 ### MCMC (NUTS)
 
-MCMC using the No-U-Turn Sampler provides exact posterior inference and is recommended for small-to-medium datasets.
+MCMC using the No-U-Turn Sampler provides great posterior inference and is recommended for small-to-medium datasets or where fitting time is not a large concern.
 
 ```julia
 # Default NUTS settings
@@ -75,9 +80,8 @@ fit!(
 
 **When to use:**
 
-- Small to medium datasets (n < 1000)
+- Small to medium datasets
 - When exact inference is critical
-- For final published results
 
 **Key parameters:**
 
@@ -88,7 +92,7 @@ fit!(
 
 ### Simple VI with Mooncake
 
-Simple VI uses Turing's native ADVI implementation and works excellently with the Mooncake AD backend for 5-10x speedup after warmup.
+Simple VI uses Turing's native ADVI implementation and works excellently with the Mooncake AD backend, which provides  5-10x speedup (after initial warmup).
 
 ```julia
 # Default: SimpleVI with Mooncake
@@ -99,31 +103,6 @@ fit!(
     SimpleVIMethod(; ad_backend=AutoMooncake);
     n_iterations=1000,
     n_draws=2000
-)
-```
-
-**When to use:**
-
-- When you can afford a warmup run
-- Small to medium data where VI approximation is acceptable.
-
-**Performance tip:** Mooncake requires compilation on first use. Run a short warmup:
-
-```julia
-# Warmup run (slow - compiles differentiation rules)
-using Mooncake 
-
-fit!(
-    model, 
-    SimpleVIMethod(; ad_backend=AutoMooncake);
-    n_iterations=50
-)
-
-# Production runs (fast - 5-10x faster than ReverseDiff)
-fit!(
-    model, 
-    SimpleVIMethod(; ad_backend=AutoMooncake);
-    n_iterations=1000
 )
 ```
 
@@ -207,6 +186,9 @@ alpha_samples = extract_alpha(model)  # On original scale
 
 # Generate coefficient table with diagnostics
 coeftable(model)
+
+# See full model result summary
+summary(model)
 ```
 
 ### Coefficient Table Output
@@ -264,28 +246,12 @@ result.final_elbo
 
 ### AD Backend Selection
 
-| Backend         | Speed            | Stability | Warmup   | Best For              |
-| --------------- | ---------------- | --------- | -------- | --------------------- |
-| AutoReverseDiff | Baseline         | Excellent | None     | Default choice        |
-| AutoMooncake    | 5-10x faster     | Good      | Required | Production/batch      |
-| AutoZygote      | Variable         | Good      | None     | Experimentation       |
-| AutoForwardDiff | Slow for large p | Excellent | None     | Small models (p < 20) |
-
-### Dataset Size Guidelines
-
-| Size (n)          | Recommended Method           | Notes            |
-| ----------------- | ---------------------------- | ---------------- |
-| n < 1000          | MCMCNUTS()                   | Exact inference  |
-| 1000 ≤ n < 10000 | SimpleVI() with Mooncake     | Fast with warmup |
-| n ≥ 10000        | UnifiedVI() with subsampling | Memory efficient |
-
-### Memory Considerations
-
-For very large datasets:
-
-- MCMC chains consume significant memory
-- Use VI methods for memory efficiency
-- Enable subsampling in UnifiedVI for n > 10,000
+| Backend         | Speed                                         | Stability | Best For        |
+| --------------- | --------------------------------------------- | --------- | --------------- |
+| AutoReverseDiff | Baseline                                      | Excellent | Default choice  |
+| AutoMooncake    | 5-10x faster                                  | Good      | Speed           |
+| AutoZygote      | Typically slower than ReverseDiff or Mooncake | Good      | Not recommended |
+| AutoForwardDiff | Typically very slow                           | Excellent | Not recommended |
 
 ## Mathematical Background
 

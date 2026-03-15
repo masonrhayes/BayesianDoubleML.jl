@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "fd1972166cb7995656109da4f250e330ce15b2a904f22a8e4c4486ba43c351a6"
+    input_sha = "2b54f71bce971988c7454325f11f2c2b82bfba56715dd86c88828c0ee1be1832"
     julia_version = "1.12.5"
 -->
 
@@ -91,10 +91,10 @@ end</code></pre>
 
 
 <pre class='language-julia'><code class='language-julia'>begin
-    summary(model);
+    summary(model)
     coeftable(model)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash115066">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash123630">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -104,17 +104,17 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.0310       0.1718       0.0000       0.0000
+  α               1.0147       0.1771       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [0.6961, 1.3535]
+  α: [0.6629, 1.362]
 
 Diagnostics:
-  Final ELBO: -740.18
+  Final ELBO: -732.59
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.03.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.01.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
     n2 = 1_000
@@ -124,7 +124,7 @@ Diagnostics:
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="qcmoukmbcagh"><input max="47" min="1" type="range" value="1"/><script>
+<bond def="p2" unique_id="hwjnermclylm"><input max="47" min="1" type="range" value="1"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["31", "41", "51", "61", "71", "81", "91", "101", "111", "121", "131", "141", "151", "161", "171", "181", "191", "201", "211", "221", "231", "241", "251", "261", "271", "281", "291", "301", "311", "321", "331", "341", "351", "361", "371", "381", "391", "401", "411", "421", "431", "441", "451", "461", "471", "481", "491"]
@@ -169,10 +169,10 @@ end</code></pre>
 
 
 <pre class='language-julia'><code class='language-julia'>begin
-    summary(model2);
+    summary(model2)
     coeftable(model2)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash193579">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash178616">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -182,13 +182,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9554       0.0642       0.0000       0.0000
+  α               1.9565       0.0656       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.8331, 2.0873]
+  α: [1.8192, 2.076]
 
 Diagnostics:
-  Final ELBO: -2153.53
+  Final ELBO: -2156.73
 </pre>
 
 <!-- PlutoStaticHTML.End -->
