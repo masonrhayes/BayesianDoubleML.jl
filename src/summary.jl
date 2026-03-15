@@ -81,10 +81,10 @@ function print_title_box(io::IO)
     padding = div(content_width - length(title), 2)
     left_pad = padding
     right_pad = content_width - length(title) - left_pad
-    
-    println(io, COLOR_BOLD, "╔", "═"^(box_width-2), "╗")
+
+    println(io, COLOR_BOLD, "╔", "═"^(box_width - 2), "╗")
     println(io, "║", " "^left_pad, title, " "^right_pad, "║")
-    return println(io, "╚", "═"^(box_width-2), "╝", COLOR_RESET)
+    return println(io, "╚", "═"^(box_width - 2), "╝", COLOR_RESET)
 end
 
 function print_section_header(io::IO, color::String, title::String)
@@ -106,10 +106,16 @@ function print_method_info(io::IO, result::BDMLMCMCResult)
 end
 
 function print_method_info(io::IO, result::BDMLVIResult)
-    # Determine VI type from variational family field
-    vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :
-        result.variational_family == :lowrank ? "Low-Rank Gaussian" : "Mean-Field Gaussian"
-    @printf io "  Method:           Unified VI (%s)\n" vi_type
+    # Determine VI method and family
+    if result.vi_method == :simple
+        # Simple VI only supports Mean-Field Gaussian
+        @printf io "  Method:           Simple VI (Mean-Field Gaussian)\n"
+    else
+        # Unified VI supports multiple families
+        vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :
+            result.variational_family == :lowrank ? "Low-Rank Gaussian" : "Mean-Field Gaussian"
+        @printf io "  Method:           Unified VI (%s)\n" vi_type
+    end
     @printf io "  Iterations:       %d\n" result.n_iterations
     return @printf io "  Samples Drawn:    %d\n" length(result.alpha_samples)
 end

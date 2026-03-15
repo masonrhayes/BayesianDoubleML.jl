@@ -86,9 +86,9 @@ md"""
 """
 
 # ╔═╡ 3ae9455f-70b4-42a1-8a28-42d0a11e0722
-begin 
-	summary(model);
-	coeftable(model)
+begin
+    summary(model)
+    coeftable(model)
 end
 
 # ╔═╡ Cell order:

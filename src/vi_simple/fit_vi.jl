@@ -163,6 +163,7 @@ function fit_bdml_vi_simple_legacy(
             stats,
             model_type,
             :meanfield,
+            :simple,
             n_vi_iterations,
             elbo_history,
             converged,

@@ -119,7 +119,8 @@ Results from Variational Inference (ADVI) approximation.
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation
 - `model_type::Symbol`: :basic or :hier
-- `variational_family::Symbol`: :meanfield or :lowrank
+- `variational_family::Symbol`: :meanfield, :lowrank, or :fullrank
+- `vi_method::Symbol`: :unified or :simple (which VI method was used)
 - `n_iterations::Int`: Number of optimization iterations performed
 - `elbo_history::Vector{Float64}`: ELBO values during optimization
 - `converged::Bool`: Whether convergence criteria were met
@@ -142,6 +143,7 @@ struct BDMLVIResult{P} <: AbstractBDMLResult
     std_stats::StandardizationStats
     model_type::Symbol
     variational_family::Symbol
+    vi_method::Symbol
     n_iterations::Int
     elbo_history::Vector{Float64}
     converged::Bool

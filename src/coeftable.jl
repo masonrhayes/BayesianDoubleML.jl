@@ -235,16 +235,22 @@ function Base.show(io::IO, ct::BDMLCoeftable)
     println(io, "")
 
     # Header - using Printf for consistent alignment
-    Printf.@printf(io, "  %-9s %12s %12s %12s %12s\n", 
-            "Parameter", "Estimate", "Std. Error", "MCSE", "P-value")
-    Printf.@printf(io, "  %-9s %12s %12s %12s %12s\n", 
-            "---------", "--------", "----------", "----", "-------")
+    Printf.@printf(
+        io, "  %-9s %12s %12s %12s %12s\n",
+        "Parameter", "Estimate", "Std. Error", "MCSE", "P-value"
+    )
+    Printf.@printf(
+        io, "  %-9s %12s %12s %12s %12s\n",
+        "---------", "--------", "----------", "----", "-------"
+    )
 
     # Data rows - using Printf for consistent alignment
     for i in 1:length(ct.coef)
-        Printf.@printf(io, "  %-9s %12.4f %12.4f %12.4f %12.4f\n",
-                ct.coefnames[i], ct.coef[i], ct.stderror[i], 
-                ct.mcse[i], ct.pvalue[i])
+        Printf.@printf(
+            io, "  %-9s %12.4f %12.4f %12.4f %12.4f\n",
+            ct.coefnames[i], ct.coef[i], ct.stderror[i],
+            ct.mcse[i], ct.pvalue[i]
+        )
     end
 
     println(io, "")
@@ -283,8 +289,9 @@ end
 
 # Pretty printing for BDMLVIResult using coeftable
 function Base.show(io::IO, r::BDMLVIResult)
-    # First show the basic info
-    println(io, "BDMLVIResult ($(r.model_type), $(r.variational_family))")
+    # First show the basic info with method type
+    method_name = r.vi_method == :simple ? "SimpleVI" : "UnifiedVI"
+    println(io, "BDMLVIResult ($(r.model_type), $(method_name), $(r.variational_family))")
 
     # Then show the coeftable
     ct = coeftable(r)

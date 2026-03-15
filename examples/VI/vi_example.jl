@@ -97,8 +97,8 @@ fit!(
 
 # ╔═╡ 1251af4f-8941-425a-bef4-0bbb999e420f
 begin
-	summary(model);
-	coeftable(model)
+    summary(model)
+    coeftable(model)
 end
 
 # ╔═╡ 9a46ba39-21f4-4c32-8e55-a60cf253aab7
@@ -141,8 +141,8 @@ fit!(
 
 # ╔═╡ d3d7184c-094b-4a4e-b0f8-f16382e2ec76
 begin
-	summary(model2);
-	coeftable(model2)
+    summary(model2)
+    coeftable(model2)
 end
 
 # ╔═╡ Cell order:
