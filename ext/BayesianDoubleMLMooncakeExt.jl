@@ -12,7 +12,7 @@ using ADTypes
 # so this extension primarily ensures Mooncake is loaded when AutoMooncake is used.
 
 function __init__()
-    @debug "BayesianDoubleMLMooncakeExt loaded - Mooncake AD backend is available"
+    return @debug "BayesianDoubleMLMooncakeExt loaded - Mooncake AD backend is available"
 end
 
 end

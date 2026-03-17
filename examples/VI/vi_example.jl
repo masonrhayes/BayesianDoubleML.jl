@@ -18,16 +18,16 @@ end
 
 # ╔═╡ 206fed88-1b2a-11f1-891f-7fd268f9692b
 # ╠═╡ show_logs = false
-import Pkg; Pkg.develop(path = "../..")
-
-# ╔═╡ 605ae330-1557-4146-8c4a-ea1342fca1b1
-# ╠═╡ show_logs = false
-Pkg.activate("..")
+begin
+    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    Pkg.activate(joinpath(@__DIR__, "../../examples"))
+    Pkg.instantiate()
+end
 
 # ╔═╡ a62b95cc-3877-4c62-be36-17cad34734a1
 begin
-    using Mooncake # explictly import Mooncake for AD
     using BayesianDoubleML
+    using Mooncake # explictly import Mooncake for AD
     using StableRNGs
     using PlutoUI
 end
@@ -147,7 +147,6 @@ end
 
 # ╔═╡ Cell order:
 # ╟─206fed88-1b2a-11f1-891f-7fd268f9692b
-# ╟─605ae330-1557-4146-8c4a-ea1342fca1b1
 # ╟─f95bc5b1-62a4-49a4-bc98-0e8ebf749a19
 # ╠═a62b95cc-3877-4c62-be36-17cad34734a1
 # ╟─668d4810-707d-4fad-ad0e-de354df5c382

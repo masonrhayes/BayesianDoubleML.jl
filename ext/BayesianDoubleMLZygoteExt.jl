@@ -12,7 +12,7 @@ using ADTypes
 # so this extension primarily ensures Zygote is loaded when AutoZygote is used.
 
 function __init__()
-    @debug "BayesianDoubleMLZygoteExt loaded - Zygote AD backend is available"
+    return @debug "BayesianDoubleMLZygoteExt loaded - Zygote AD backend is available"
 end
 
 end

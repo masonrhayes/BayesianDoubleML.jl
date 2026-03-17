@@ -6,11 +6,11 @@ using InteractiveUtils
 
 # ╔═╡ 7b485e44-306d-4459-92de-3e1464fc54a9
 # ╠═╡ show_logs = false
-import Pkg; Pkg.develop(path = "../..")
-
-# ╔═╡ b0422dcb-72f8-4689-8b60-4ce6af4456c6
-# ╠═╡ show_logs = false
-Pkg.activate("..")
+begin
+    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    Pkg.activate(joinpath(@__DIR__, "../../examples"))
+    Pkg.instantiate()
+end
 
 # ╔═╡ f0f80cb4-70e6-4b95-bc14-e43d01f5a9e5
 # ╠═╡ show_logs = false
@@ -92,8 +92,7 @@ begin
 end
 
 # ╔═╡ Cell order:
-# ╟─7b485e44-306d-4459-92de-3e1464fc54a9
-# ╟─b0422dcb-72f8-4689-8b60-4ce6af4456c6
+# ╠═7b485e44-306d-4459-92de-3e1464fc54a9
 # ╟─7eca318e-81c6-413c-8562-8038876024dd
 # ╠═f0f80cb4-70e6-4b95-bc14-e43d01f5a9e5
 # ╟─d0feb7d0-bde7-40da-8e78-6dcbfaadb859
