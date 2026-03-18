@@ -1,7 +1,7 @@
 name = "BayesianDoubleML"
 uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-version = "0.1.0"
-authors = ["Mason Hayes <mason.hayes@example.com>"]
+version = "0.1.1"
+authors = ["Mason Hayes <masonrhayes@protonmail.com"]
 
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
