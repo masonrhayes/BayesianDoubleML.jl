@@ -2,6 +2,7 @@
 # Provides statistical summaries for BDML results with HPD intervals
 
 using StatsAPI
+using Printf
 
 # Helper function for formatting numbers with fixed width
 to_s(x, width = 12, digits = 4) = lpad(round(x, digits = digits), width)
@@ -233,18 +234,22 @@ function Base.show(io::IO, ct::BDMLCoeftable)
     println(io, "Number of posterior samples: $(ct.nsamples)")
     println(io, "")
 
-    # Header
-    println(io, "  Parameter    Estimate  Std. Error        MCSE     P-value")
-    println(io, "  ---------    --------  ----------        ----     -------")
+    # Header - using Printf for consistent alignment
+    Printf.@printf(
+        io, "  %-9s %12s %12s %12s %12s\n",
+        "Parameter", "Estimate", "Std. Error", "MCSE", "P-value"
+    )
+    Printf.@printf(
+        io, "  %-9s %12s %12s %12s %12s\n",
+        "---------", "--------", "----------", "----", "-------"
+    )
 
-    # Data row
+    # Data rows - using Printf for consistent alignment
     for i in 1:length(ct.coef)
-        println(
-            io, "  ", lpad(ct.coefnames[i], 9), " ",
-            to_s(ct.coef[i], 12, 4), " ",
-            to_s(ct.stderror[i], 12, 4), " ",
-            to_s(ct.mcse[i], 12, 4), " ",
-            to_s(ct.pvalue[i], 12, 4)
+        Printf.@printf(
+            io, "  %-9s %12.4f %12.4f %12.4f %12.4f\n",
+            ct.coefnames[i], ct.coef[i], ct.stderror[i],
+            ct.mcse[i], ct.pvalue[i]
         )
     end
 
@@ -284,8 +289,9 @@ end
 
 # Pretty printing for BDMLVIResult using coeftable
 function Base.show(io::IO, r::BDMLVIResult)
-    # First show the basic info
-    println(io, "BDMLVIResult ($(r.model_type), $(r.variational_family))")
+    # First show the basic info with method type
+    method_name = r.vi_method == :simple ? "SimpleVI" : "UnifiedVI"
+    println(io, "BDMLVIResult ($(r.model_type), $(method_name), $(r.variational_family))")
 
     # Then show the coeftable
     ct = coeftable(r)

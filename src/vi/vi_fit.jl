@@ -309,6 +309,7 @@ function fit_bdml_vi(
         stats,
         model_type,
         use_subsample ? :meanfield_subsampled : :meanfield,
+        :unified,
         n_vi_iterations,
         elbo_history,
         converged,
