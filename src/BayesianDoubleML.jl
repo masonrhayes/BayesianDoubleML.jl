@@ -27,13 +27,14 @@ export fit!, BDMLModel,
     # AD backends for VI configuration
     AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoMooncake,
     # DGP
-    generate_dgp_table1
+    make_plr_DTL2025
 
 using Turing
 using Turing.Variational
 using AdvancedVI
 using Bijectors
 using ADTypes
+using DataFrames
 using Distributions
 using LinearAlgebra
 using MCMCChains

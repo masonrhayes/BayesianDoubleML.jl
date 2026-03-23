@@ -56,8 +56,8 @@ begin
 
     rng = StableRNG(42)
 
-    # Generate data
-    Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+    # Generate data as DataFrame
+    df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 end
 
 # ╔═╡ eacec63a-2d16-4f52-ac22-c8ba2add8a03
@@ -73,7 +73,7 @@ As per Section 6 of the paper, the BDML-Hier model "allows different standard de
 """
 
 # ╔═╡ a9fa5ba9-f25d-4cf0-b9bb-99101c6f90af
-model = BDMLModel(Y, D, X, model_type = :hier)
+model = BDMLModel(df, :y, :d; model_type = :hier)
 
 # ╔═╡ 3e5ab29c-0961-4c34-83dc-2c8ca295fef8
 md"""
@@ -124,12 +124,12 @@ As a general rule of thumb: in anecdotal testing, ADVI methods are generally rel
 
 # ╔═╡ a452de95-aa14-472b-8be9-50e18ecab69d
 begin
-    # Generate data
-    Y2, D2, X2 = generate_dgp_table1(n2, p2, 2.0; alpha_true = alpha_true, rng = rng)
+    # Generate data as DataFrame
+    df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng)
 end
 
 # ╔═╡ f3c45acf-78a2-44d0-87fc-6eb472ae7d77
-model2 = BDMLModel(Y2, D2, X2, model_type = :hier)
+model2 = BDMLModel(df2, :y, :d; model_type = :hier)
 
 # ╔═╡ 66ca6f4b-d0ae-4481-bf13-dba9f983c3fe
 fit!(

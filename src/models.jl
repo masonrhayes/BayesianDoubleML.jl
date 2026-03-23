@@ -359,3 +359,62 @@ end
 function Base.show(io::IO, ::MIME"text/plain", model::AbstractBDMLModel)
     return show(io, model)
 end
+
+"""
+    BDMLModel(df::DataFrame, y::Symbol, d::Symbol; model_type::Symbol=:basic, x_cols=nothing)
+
+Create a BDML model from a DataFrame, specifying the outcome and treatment columns.
+
+# Arguments
+- `df::DataFrame`: The data as a DataFrame
+- `y::Symbol`: Column name for the outcome variable
+- `d::Symbol`: Column name for the treatment variable
+
+# Keyword Arguments
+- `model_type::Symbol=:basic`: 
+  - `:basic` for BDML-Basic (fixed prior variances)
+  - `:hier` for BDML-Hier (adaptive hierarchical priors)
+- `x_cols`: Column names for covariates. If `nothing` (default), uses all columns except `y` and `d`
+
+# Returns
+`AbstractBDMLModel`: Either `BDMLBasicModel` or `BDMLHierarchicalModel`
+
+# Examples
+```julia
+using DataFrames
+
+# Generate data
+df = make_plr_DTL2025(200, 100, 2.0)
+
+# Default: use all columns except :y and :d as covariates
+model = BDMLModel(df, :y, :d; model_type=:hier)
+
+# Explicit covariate selection
+model = BDMLModel(df, :y, :d; model_type=:hier, x_cols=[:X1, :X2, :X3])
+
+# Using column indices or regex
+model = BDMLModel(df, :y, :d; model_type=:hier, x_cols=names(df, r"^X"))
+```
+
+See also: [`BDMLModel`](@ref), [`BDMLBasicModel`](@ref), [`BDMLHierarchicalModel`](@ref)
+"""
+function BDMLModel(df::DataFrame, y::Symbol, d::Symbol; model_type::Symbol = :basic, x_cols = nothing)
+    # Extract Y and D
+    Y = df[:, y]
+    D = df[:, d]
+
+    # Determine X columns
+    if x_cols === nothing
+        # Default: all columns except y and d
+        all_cols = Symbol.(names(df))
+        x_cols_sym = filter(col -> col != y && col != d, all_cols)
+    else
+        x_cols_sym = Symbol.(x_cols)
+    end
+
+    # Extract X as Matrix
+    X = Matrix(df[:, x_cols_sym])
+
+    # Create the model using the standard constructor
+    return BDMLModel(Y, D, X; model_type)
+end

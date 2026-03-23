@@ -65,11 +65,12 @@ end
 
 @testset "coeftable for BDMLMCMCResult (MCMC) via Model" begin
     Random.seed!(702)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(702))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(702))
+    alpha_true = 0.5
 
     println("\n=== coeftable: BDMLMCMCResult via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCMethod(:nuts)
     fit!(model, method; n_samples = 200)
 
@@ -89,11 +90,12 @@ end
 
 @testset "coeftable for BDMLVIResult (VI) via Model" begin
     Random.seed!(703)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(703))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(703))
+    alpha_true = 0.5
 
     println("\n=== coeftable: BDMLVIResult via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
     fit!(model, method; n_iterations = 500, n_draws = 500)
 
@@ -112,12 +114,16 @@ end
 
 @testset "confint for MCMC and VI via Model" begin
     Random.seed!(704)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(704))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(704))
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
+    alpha_true = 0.5
 
     println("\n=== confint: MCMC and VI via Model ===")
 
     # MCMC
-    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    model_mcmc = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model_mcmc, MCMCMethod(:nuts); n_samples = 200)
 
     ci_mcmc = confint(model_mcmc)
@@ -125,7 +131,7 @@ end
     @test ci_mcmc[1] < ci_mcmc[2]
 
     # VI
-    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    model_vi = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model_vi, UnifiedVI())
 
     ci_vi = confint(model_vi)
@@ -139,12 +145,13 @@ end
 
 @testset "Effective Sample Size (ESS) via Model" begin
     Random.seed!(705)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(705))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(705))
+    alpha_true = 0.5
 
     println("\n=== Effective Sample Size (ESS) via Model ===")
 
     # MCMC with multiple chains for ESS calculation
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
     # ESS function should exist and return positive value
@@ -161,11 +168,12 @@ end
 
 @testset "Monte Carlo Standard Error (MCSE) via Model" begin
     Random.seed!(706)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(706))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(706))
+    alpha_true = 0.5
 
     println("\n=== Monte Carlo Standard Error (MCSE) via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
     # MCSE should exist and be positive
@@ -184,11 +192,12 @@ end
 
 @testset "P-values via Model" begin
     Random.seed!(707)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(707))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(707))
+    alpha_true = 0.5
 
     println("\n=== P-values via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
     # pvalues function
@@ -230,11 +239,12 @@ end
 
 @testset "Convergence Diagnostics via Model" begin
     Random.seed!(709)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(709))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(709))
+    alpha_true = 0.5
 
     println("\n=== Convergence Diagnostics via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
     # R-hat (potential scale reduction factor)
@@ -251,12 +261,13 @@ end
 
 @testset "Model Comparison Statistics via Model" begin
     Random.seed!(710)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(710))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(710))
+    alpha_true = 0.5
 
     println("\n=== Model Comparison Statistics via Model ===")
 
     # VI result with ELBO
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, UnifiedVI(); n_iterations = 400, n_draws = 400)
 
     # ELBO should be present in VI results
@@ -270,11 +281,12 @@ end
 
 @testset "StatsAPI Integration via Model" begin
     Random.seed!(711)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(711))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(711))
+    alpha_true = 0.5
 
     println("\n=== StatsAPI Integration via Model ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCMethod(:nuts); n_samples = 200)
 
     # Test StatsAPI functions work on model

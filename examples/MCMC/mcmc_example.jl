@@ -43,8 +43,8 @@ begin
 
     rng = StableRNG(42)
 
-    # Generate data
-    Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+    # Generate data as DataFrame
+    df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 end;
 
 # ╔═╡ 85d4a20b-812f-493a-bc53-1cd1ae750234
@@ -60,7 +60,7 @@ As per Section 6 of the paper, the BDML-Hier model "allows different standard de
 """
 
 # ╔═╡ cc0e76e1-2932-44de-93af-5f66da7d95e6
-model = BDMLModel(Y, D, X, model_type = :hier)
+model = BDMLModel(df, :y, :d; model_type = :hier)
 
 # ╔═╡ aa8bc797-3255-4f85-83a5-24adf7e3c0f9
 md"""
@@ -92,7 +92,7 @@ begin
 end
 
 # ╔═╡ Cell order:
-# ╠═7b485e44-306d-4459-92de-3e1464fc54a9
+# ╟─7b485e44-306d-4459-92de-3e1464fc54a9
 # ╟─7eca318e-81c6-413c-8562-8038876024dd
 # ╠═f0f80cb4-70e6-4b95-bc14-e43d01f5a9e5
 # ╟─d0feb7d0-bde7-40da-8e78-6dcbfaadb859

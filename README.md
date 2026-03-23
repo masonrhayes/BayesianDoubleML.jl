@@ -27,11 +27,11 @@ Pkg.add(url = "https://github.com/masonrhayes/BayesianDoubleML.jl")
 ```julia
 using BayesianDoubleML
 
-# Generate synthetic data
-Y, D, X, alpha_true, _ = generate_dgp_table1(200, 100, 2.0; alpha_true = 2.0)
+# Generate synthetic data as DataFrame
+df = make_plr_DTL2025(200, 100, 2.0; alpha = 2.0)
 
-# Create and fit model
-model = BDMLModel(Y, D, X; model_type = :hier)
+# Create and fit model - all columns except :y and :d are covariates
+model = BDMLModel(df, :y, :d; model_type = :hier)
 fit!(model, MCMCNUTS(); n_samples = 1000, n_chains = 4)
 
 # View results
@@ -44,10 +44,14 @@ summary(model)
 
 ```julia
 # Hierarchical (recommended - adaptive shrinkage)
-model = BDMLModel(Y, D, X; model_type = :hier)
+# Pass DataFrame with outcome column :y and treatment column :d
+model = BDMLModel(df, :y, :d; model_type = :hier)
 
 # Basic (fixed variance priors)
-model = BDMLModel(Y, D, X; model_type = :basic)
+model = BDMLModel(df, :y, :d; model_type = :basic)
+
+# Or use the original Y, D, X interface
+model = BDMLModel(Y, D, X; model_type = :hier)
 ```
 
 ### Inference Methods

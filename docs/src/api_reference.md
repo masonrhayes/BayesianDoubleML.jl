@@ -151,7 +151,7 @@ BayesianDoubleML.bdml_hier
 ### Data Functions
 
 ```@docs
-BayesianDoubleML.generate_dgp_table1
+BayesianDoubleML.make_plr_DTL2025
 ```
 
 ## Index

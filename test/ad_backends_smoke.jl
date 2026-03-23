@@ -12,9 +12,10 @@ include("utils.jl")
 
 @testset "AD Backend Smoke Test - AutoReverseDiff" begin
     Random.seed!(500)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(300, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(500))
+    df = make_plr_DTL2025(300, 5, 2.0; alpha = 0.5, rng = MersenneTwister(500))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoReverseDiff)
     fit!(model, method; n_iterations = 100, n_draws = 100)
 
@@ -27,9 +28,10 @@ end
 
 @testset "AD Backend Smoke Test - Basic Model" begin
     Random.seed!(501)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(300, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(501))
+    df = make_plr_DTL2025(300, 5, 2.0; alpha = 0.5, rng = MersenneTwister(501))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = UnifiedVI(; ad_backend = AutoReverseDiff)
     fit!(model, method; n_iterations = 100, n_draws = 100)
 
