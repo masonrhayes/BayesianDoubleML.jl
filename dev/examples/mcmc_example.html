@@ -25,14 +25,10 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "b7d9d01afb7e1aae1a17cb02ced03d0428cf1734dd52d1bfb7079758592246d3"
+    input_sha = "95f631d9a8f8f5dac736ba646093672a01ee8f75c402f61e9df89585031d34aa"
     julia_version = "1.12.5"
 -->
-<pre class='language-julia'><code class='language-julia'>begin
-    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
-    Pkg.activate(joinpath(@__DIR__, "../../examples"))
-    Pkg.instantiate()
-end</code></pre>
+
 
 
 
@@ -58,8 +54,8 @@ end</code></pre>
 
     rng = StableRNG(42)
 
-    # Generate data
-    Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+    # Generate data as DataFrame
+    df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 end;</code></pre>
 
 
@@ -69,7 +65,7 @@ end;</code></pre>
 
 <div class="markdown"><p>We then define the <code>BDMLModel</code>, using the BDML-Hier model. </p><p>As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for <span class="tex">\(\delta\)</span> and <span class="tex">\(\gamma\)</span> ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on <span class="tex">\(\sigma^2_\delta\)</span> and <span class="tex">\(\sigma^2_\gamma\)</span>."</p></div>
 
-<pre class='language-julia'><code class='language-julia'>model = BDMLModel(Y, D, X, model_type = :hier)</code></pre>
+<pre class='language-julia'><code class='language-julia'>model = BDMLModel(df, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model">BDMLHierarchicalModel (not fitted)
   Observations: 200
   Covariates: 100
@@ -106,13 +102,13 @@ Number of posterior samples: 3200
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9169       0.1945       0.0015       0.0000
+  α               1.9170       0.1967       0.0015       0.0000
 
 HPD Credible Intervals:
-  α: [1.553, 2.3057]
+  α: [1.5347, 2.2952]
 
 Diagnostics:
-  Effective Sample Size (ESS): 1763.4
+  Effective Sample Size (ESS): 1747.9
 </pre>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../user_guide.html">« User Guide</a><a class="docs-footer-nextpage" href="vi_example.html">VI Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 09:28">Wednesday 18 March 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../user_guide.html">« User Guide</a><a class="docs-footer-nextpage" href="vi_example.html">VI Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 24 March 2026 12:15">Tuesday 24 March 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
