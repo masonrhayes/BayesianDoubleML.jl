@@ -12,12 +12,13 @@ include("utils.jl")
 
 @testset "Alpha Extraction from MCMC - Hierarchical Model" begin
     Random.seed!(800)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(800))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(800))
+    alpha_true = 0.5
 
     println("\n=== Alpha Extraction: MCMC Hierarchical ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 200)
 
@@ -40,12 +41,13 @@ end
 
 @testset "Alpha Extraction from MCMC - Basic Model" begin
     Random.seed!(801)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(801))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.8, rng = MersenneTwister(801))
+    alpha_true = 0.8
 
     println("\n=== Alpha Extraction: MCMC Basic ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 200)
 
@@ -64,12 +66,13 @@ end
 
 @testset "Alpha Extraction from VI - Hierarchical Model" begin
     Random.seed!(802)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(802))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(802))
+    alpha_true = 0.5
 
     println("\n=== Alpha Extraction: VI Hierarchical ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
@@ -88,12 +91,13 @@ end
 
 @testset "Alpha Extraction from VI - Basic Model" begin
     Random.seed!(803)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.6, rng = MersenneTwister(803))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.6, rng = MersenneTwister(803))
+    alpha_true = 0.6
 
     println("\n=== Alpha Extraction: VI Basic ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = UnifiedVI()
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
@@ -112,12 +116,13 @@ end
 
 @testset "Alpha Extraction from SimpleVI" begin
     Random.seed!(804)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(804))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(804))
+    alpha_true = 0.5
 
     println("\n=== Alpha Extraction: SimpleVI ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI()
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
@@ -136,19 +141,20 @@ end
 
 @testset "Alpha Range Validation via Models" begin
     Random.seed!(805)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(805))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(805))
+    alpha_true = 0.5
 
     println("\n=== Alpha Range Validation ===")
 
     # Test MCMC
-    model_mcmc = BDMLModel(Y, D, X; model_type = :hier)
+    model_mcmc = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model_mcmc, MCMCMethod(:nuts); n_samples = 200, n_chains = 2)
 
     @test minimum(model_mcmc.result.alpha_samples) > -10
     @test maximum(model_mcmc.result.alpha_samples) < 10
 
     # Test VI
-    model_vi = BDMLModel(Y, D, X; model_type = :hier)
+    model_vi = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model_vi, UnifiedVI())
 
     @test minimum(model_vi.result.alpha_samples) > -10
@@ -161,11 +167,12 @@ end
 
 @testset "Alpha Statistics Consistency via Model" begin
     Random.seed!(806)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(806))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(806))
+    alpha_true = 0.5
 
     println("\n=== Alpha Statistics Consistency ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 200, n_chains = 3)
 
@@ -219,7 +226,11 @@ end
 
 @testset "Alpha Extraction with Different Seeds via Model" begin
     Random.seed!(808)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(808))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(808))
+    alpha_true = 0.5
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
 
     println("\n=== Alpha Extraction: Different Seeds ===")
 
@@ -227,7 +238,7 @@ end
 
     for seed in [100, 200, 300]
         Random.seed!(seed)
-        model = BDMLModel(Y, D, X; model_type = :hier)
+        model = BDMLModel(df, :y, :d; model_type = :hier)
         method = UnifiedVI()
         fit!(model, method; n_iterations = 500, n_draws = 1_000, force = true)
 
@@ -250,12 +261,13 @@ end
 
 @testset "Alpha Extraction with Multi-Chain MCMC via Model" begin
     Random.seed!(809)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(809))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(809))
+    alpha_true = 0.5
 
     println("\n=== Alpha Extraction: Multi-Chain MCMC ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 150, n_chains = 2)
 
@@ -274,11 +286,12 @@ end
 
 @testset "Alpha Posterior Distribution Shape via Model" begin
     Random.seed!(810)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(810))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(810))
+    alpha_true = 0.5
 
     println("\n=== Alpha Posterior Distribution Shape ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 200)
 
@@ -307,11 +320,12 @@ end
 
 @testset "Alpha Coefficient Table Extraction via Model" begin
     Random.seed!(811)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(811))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(811))
+    alpha_true = 0.5
 
     println("\n=== Alpha from Coefficient Table ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
     fit!(model, method; n_samples = 200)
 
@@ -334,12 +348,13 @@ end
 
 @testset "Alpha from MCMC Result via Model" begin
     Random.seed!(812)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(812))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(812))
+    alpha_true = 0.5
 
     println("\n=== Alpha from MCMC Result ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, MCMCNUTS(); n_samples = 200)
 
     alpha_mean = mean(extract_alpha(model))
@@ -353,12 +368,13 @@ end
 
 @testset "Alpha from VI Result via Model" begin
     Random.seed!(813)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(813))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(813))
+    alpha_true = 0.5
 
     println("\n=== Alpha from VI Result ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model, UnifiedVIMethod(); n_iterations = 500, n_draws = 1_000, show_progress = false)
 
     @test hasfield(typeof(model.result), :alpha_samples)

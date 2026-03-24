@@ -12,13 +12,14 @@ include("utils.jl")
 
 @testset "MCMC Single Chain - Basic Model" begin
     Random.seed!(200)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(200))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(200))
+    alpha_true = 0.5
 
     println("\n=== MCMC Single Chain: Basic Model ===")
     println("True α: $alpha_true")
 
     # Create model and fit with NUTS
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = MCMCNUTS()  # Method only takes algorithm params
 
     elapsed = @elapsed fit!(model, method; n_samples = 200, n_chains = 1)
@@ -46,12 +47,13 @@ end
 
 @testset "MCMC Single Chain - Hierarchical Model" begin
     Random.seed!(201)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(201))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.8, rng = MersenneTwister(201))
+    alpha_true = 0.8
 
     println("\n=== MCMC Single Chain: Hierarchical Model ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
 
     elapsed = @elapsed fit!(model, method; n_samples = 200, n_chains = 1)
@@ -78,13 +80,14 @@ end
 
 @testset "MCMC Multi-Chain - Hierarchical Model" begin
     Random.seed!(202)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.6, rng = MersenneTwister(202))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.6, rng = MersenneTwister(202))
+    alpha_true = 0.6
 
     println("\n=== MCMC Multi-Chain: Hierarchical Model ===")
     println("True α: $alpha_true")
     println("Chains: 2")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
 
     elapsed = @elapsed fit!(model, method; n_samples = 150, n_chains = 2)
@@ -131,7 +134,11 @@ end
 
 @testset "MCMC BDMLData Input" begin
     Random.seed!(206)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(206))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(206))
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
+    alpha_true = 0.5
 
     println("\n=== MCMC with BDMLData Input ===")
 
@@ -153,9 +160,10 @@ end
 
 @testset "MCMC Result Display and Summary" begin
     Random.seed!(207)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(207))
+    df = make_plr_DTL2025(50, 5, 2.0; alpha = 0.5, rng = MersenneTwister(207))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
 
     fit!(model, method; n_samples = 200, n_chains = 1)
@@ -179,9 +187,10 @@ end
 
 @testset "MCMC Alpha Extraction Validation" begin
     Random.seed!(208)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(208))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(208))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
 
     fit!(model, method; n_samples = 200, n_chains = 1)
@@ -202,11 +211,12 @@ end
 
 @testset "MCMC Target Acceptance Rate Variations" begin
     Random.seed!(209)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(209))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(209))
+    alpha_true = 0.5
 
     println("\n=== MCMC Target Acceptance Rate Variations ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Test with different target acceptance rates
     for target_acc in [0.65, 0.8, 0.95]
@@ -222,11 +232,12 @@ end
 
 @testset "MCMC Max Depth Variations" begin
     Random.seed!(210)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(210))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(210))
+    alpha_true = 0.5
 
     println("\n=== MCMC Max Depth Variations ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Test with different max depths
     for max_d in [5, 10, 15]

@@ -6,11 +6,12 @@ module DGP
 using Random
 using LinearAlgebra
 using Statistics
+using DataFrames
 
-export generate_dgp_table1
+export make_plr_DTL2025
 
 """
-    generate_dgp_table1(n::Int, p::Int, sigma_epsilon::Real; alpha_true=2.0, rng=Random.default_rng())
+    make_plr_DTL2025(n::Int, p::Int, sigma_epsilon::Real; alpha=2.0, rng=Random.default_rng())
 
 Generate synthetic data matching the simulation design from 
 DiTraglia & Liu (2025), Section 6, Table 1.
@@ -48,21 +49,22 @@ where:
 - `n::Int`: Number of observations (paper uses: 200)
 - `p::Int`: Number of covariates (paper uses: 100)
 - `sigma_epsilon::Real`: Std dev of structural error ``\\epsilon \\in \\{1, 2, 4\\}``
-- `alpha_true::Real`: True causal effect (default: 2.0)
+- `alpha::Real`: True causal effect (default: 2.0)
 - `rng::AbstractRNG`: Random number generator for reproducibility (default: `Random.default_rng()`)
 
 # Returns
-- `Y::Vector{Float64}`: Outcome variable (length n)
-- `D::Vector{Float64}`: Treatment variable (length n)
-- `X::Matrix{Float64}`: Covariates (n×p matrix)
-- `alpha_true::Float64`: True causal effect (always 2.0)
-- `params::NamedTuple`: Ground truth parameters for validation/testing:
-  - `gamma::Vector{Float64}`: Treatment coefficients (``\\gamma = \\iota_p/\\sqrt{p}``)
-  - `beta::Vector{Float64}`: Outcome coefficients (drawn from ``N(\\mu_\\beta, \\sigma^2_\\beta\\cdot I)``)
-  - `mu_beta::Vector{Float64}`: Mean of ``\\beta`` distribution (``-\\gamma/2``)
-  - `sigma2_beta::Float64`: Variance of ``\\beta`` distribution (``1/p``)
-  - `V::Vector{Float64}`: Treatment errors
-  - `epsilon::Vector{Float64}`: Structural errors
+- `df::DataFrame`: DataFrame containing:
+  - `y::Vector{Float64}`: Outcome variable (length n)
+  - `d::Vector{Float64}`: Treatment variable (length n)
+  - `X1, X2, ..., Xp::Vector{Float64}`: Covariates as columns
+
+Extract the components for use with `BDMLModel`:
+```julia
+df = make_plr_DTL2025(n, p, sigma_epsilon; alpha=2.0, rng)
+Y = df.y
+D = df.d
+X = Matrix(df[:, r"^X"])
+```
 
 # Paper Reference
 Section 6, "Simulation Study", Equations (20)-(21):
@@ -86,21 +88,23 @@ All settings use n=200, p=100, and ``\\alpha=2``.
 ```julia
 # Replicate one row of Table 1 (n=200, p=100, σ_ε=2)
 using Random
-Y, D, X, alpha_true, params = generate_dgp_table1(200, 100, 2.0; rng=MersenneTwister(42))
+df = make_plr_DTL2025(200, 100, 2.0; rng=MersenneTwister(42))
+Y = df.y
+D = df.d
+X = Matrix(df[:, r"^X"])
 
 # Verify dimensions
 @assert length(Y) == 200
 @assert length(D) == 200
 @assert size(X) == (200, 100)
-@assert alpha_true == 2.0
 ```
 
 ## Generate all three σ_ε settings
 ```julia
 using Random
 for σ in [1.0, 2.0, 4.0]
-    Y, D, X, alpha_true, params = generate_dgp_table1(200, 100, σ; rng=MersenneTwister(123))
-    println("σ_ε = " * string(σ) * ": generated " * string(length(Y)) * " observations")
+    df = make_plr_DTL2025(200, 100, σ; rng=MersenneTwister(123))
+    println("σ_ε = " * string(σ) * ": generated " * string(nrow(df)) * " observations")
 end
 ```
 
@@ -110,15 +114,15 @@ using Random
 using BayesianDoubleML
 
 # Generate data
-Y, D, X, alpha_true, params = generate_dgp_table1(200, 100, 2.0; rng=MersenneTwister(42))
+df = make_plr_DTL2025(200, 100, 2.0; rng=MersenneTwister(42))
+Y = df.y
+D = df.d
+X = Matrix(df[:, r"^X"])
 
 # Create problem and fit
 problem = BDMLProblem(Y, D, X; model_type=:hier)
 result = fit(problem, MCMCNUTS(); n_samples=1000, n_chains=1)
 
-# Check if we recover α
-estimated_alpha = mean(result.alpha_samples)
-println("True α: \$alpha_true, Estimated α: \$estimated_alpha")
 ```
 
 # Implementation Notes
@@ -143,11 +147,12 @@ println("True α: \$alpha_true, Estimated α: \$estimated_alpha")
 - This creates confounding that BDML is designed to handle
 - The specific structure (``\\gamma = \\iota_p/\\sqrt{p}``, ``\\mu_\\beta = -\\gamma/2``) creates realistic correlation
 
-See also: [`generate_dgp_table1`](@ref)
+See also: [`make_plr_DTL2025`](@ref)
 """
-function generate_dgp_table1(
-        n::Int, p::Int, sigma_epsilon::Real; alpha_true = 2.0, rng = Random.default_rng()
+function make_plr_DTL2025(
+        n::Int, p::Int, sigma_epsilon::Real; alpha = 2.0, rng = Random.default_rng()
     )
+
     # Validate inputs
     @assert n > 0 "n must be positive"
     @assert p > 0 "p must be positive"
@@ -173,7 +178,7 @@ function generate_dgp_table1(
     D = X * gamma + V
 
     # Construct outcome Y (Equation 5): Y = α·D + X'β + ε
-    Y = alpha_true .* D + X * beta + epsilon
+    Y = alpha .* D + X * beta + epsilon
 
     # Package ground truth parameters for validation/testing
     params = (
@@ -185,29 +190,11 @@ function generate_dgp_table1(
         epsilon = epsilon,
     )
 
-    return Y, D, X, alpha_true, params
+    df = DataFrame(X, [Symbol("X$i") for i in 1:p])
+    df.y = Y
+    df.d = D
+
+    return df
 end
-
-"""
-    generate_dgp_table1(; n=200, p=100, sigma_epsilon=2.0, alpha_true=2.0, rng=Random.default_rng())
-
-Convenience method with default parameters matching Table 1 of the paper.
-
-# Default Parameters
-- n = 200 (number of observations)
-- p = 100 (number of covariates)  
-- sigma_epsilon = 2.0 (middle value from Table 1)
-- alpha_true = 2.0 (true causal effect)
-- rng = Random.default_rng() (random number generator)
-
-# Example
-```julia
-using Random
-# Generate standard Table 1 data
-Y, D, X, alpha_true, params = generate_dgp_table1()
-
-# All defaults: n=200, p=100, σ_ε=2.0
-```
-"""
 
 end # module DGP

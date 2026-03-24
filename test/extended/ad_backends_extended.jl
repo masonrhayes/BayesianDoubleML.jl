@@ -12,11 +12,12 @@ include("utils.jl")
 
 @testset "AD Backend - AutoReverseDiff (Default)" begin
     Random.seed!(500)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(500))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(500))
+    alpha_true = 0.5
 
     println("\n=== AD Backend: AutoReverseDiff ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Default (compile=true)
     method1 = UnifiedVI(; ad_backend = AutoReverseDiff)
@@ -37,11 +38,12 @@ end
 
 @testset "AD Backend - AutoForwardDiff" begin
     Random.seed!(501)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(501))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(501))
+    alpha_true = 0.5
 
     println("\n=== AD Backend: AutoForwardDiff ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Default chunksize
     method1 = UnifiedVI(; ad_backend = AutoForwardDiff)
@@ -62,11 +64,12 @@ end
 
 @testset "AD Backend - AutoZygote" begin
     Random.seed!(503)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(503))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(503))
+    alpha_true = 0.5
 
     println("\n=== AD Backend: AutoZygote ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoZygote)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -83,12 +86,13 @@ end
 
 @testset "AD Backend Comparison - All Four" begin
     Random.seed!(504)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(504))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(504))
+    alpha_true = 0.5
 
     println("\n=== AD Backend Comparison: All Four ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     backends = [
         ("AutoReverseDiff", AutoReverseDiff),
@@ -130,11 +134,12 @@ end
 
 @testset "AD Backend with SimpleVI" begin
     Random.seed!(505)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(505))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(505))
+    alpha_true = 0.5
 
     println("\n=== AD Backend with SimpleVI ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Test Mooncake with SimpleVI
     method_mooncake = SimpleVI(; ad_backend = AutoMooncake)
@@ -160,12 +165,13 @@ end
 
 @testset "AD Backend with MCMC" begin
     Random.seed!(506)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(506))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(506))
+    alpha_true = 0.5
 
     println("\n=== AD Backend with MCMC (via Turing) ===")
 
     # Note: MCMC uses Turing's internal AD, but we can verify it works
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = MCMCNUTS()
 
     elapsed = @elapsed fit!(model, method; n_samples = 300, n_chains = 1)
@@ -180,7 +186,8 @@ end
 
 @testset "AD Backend with Different Model Types" begin
     Random.seed!(507)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(507))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(507))
+    alpha_true = 0.5
 
     println("\n=== AD Backend with Different Model Types ===")
 
@@ -189,7 +196,7 @@ end
     for mt in [:basic, :hier]
         println("\n  Model type: $mt")
 
-        model = BDMLModel(Y, D, X; model_type = mt)
+        model = BDMLModel(df, :y, :d; model_type = mt)
 
         for backend in backends
             Random.seed!(507)
@@ -207,11 +214,12 @@ end
 
 @testset "AD Backend Performance Consistency" begin
     Random.seed!(508)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(508))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(508))
+    alpha_true = 0.5
 
     println("\n=== AD Backend Performance Consistency ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoReverseDiff)
 
     # Run multiple times to check consistency

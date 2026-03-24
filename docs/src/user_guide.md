@@ -35,15 +35,18 @@ n = 200
 p = 100
 alpha_true = 2.0 # true causal effect
 
-# Generate data as per the DGP of the paper
-Y, D, X, _ = generate_dgp_table1(n, p; alpha_true = alpha_true, rng = rng)
-
+# Generate data as DataFrame
+df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 
 # Create model with hierarchical model (recommended)
-model = BDMLModel(Y, D, X; model_type=:hier)
+# All columns except :y and :d are automatically used as covariates
+model = BDMLModel(df, :y, :d; model_type=:hier)
 
 # Or use basic model with fixed priors
-model = BDMLModel(Y, D, X; model_type=:basic)
+model = BDMLModel(df, :y, :d; model_type=:basic)
+
+# Explicit covariate selection (optional)
+# model = BDMLModel(df, :y, :d; model_type=:hier, x_cols=[:X1, :X2, :X3])
 ```
 
 ### Model Types

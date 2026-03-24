@@ -7,6 +7,7 @@ authors = ["Mason Hayes <masonrhayes@protonmail.com"]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 AdvancedVI = "b5ca4192-6429-45e5-a2d9-87aec30a685c"
 Bijectors = "76274a88-744f-5084-9051-94815aaf08c4"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -32,6 +33,7 @@ BayesianDoubleMLZygoteExt = "Zygote"
 
 [compat]
 ADTypes = "1.21.0"
+DataFrames = "1.8.1"
 DifferentiationInterface = "0.7.16"
 LogDensityProblems = "2.2.0"
 LogDensityProblemsAD = "1.13.1"

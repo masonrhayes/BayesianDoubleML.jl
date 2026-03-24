@@ -25,12 +25,9 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "421d818c3bce878af529bdf2a44fa1e07a68000411386766fbd84c09737ae19a"
+    input_sha = "95f631d9a8f8f5dac736ba646093672a01ee8f75c402f61e9df89585031d34aa"
     julia_version = "1.12.5"
 -->
-
-
-
 
 
 
@@ -57,8 +54,8 @@ end</code></pre>
 
     rng = StableRNG(42)
 
-    # Generate data
-    Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+    # Generate data as DataFrame
+    df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 end;</code></pre>
 
 
@@ -68,7 +65,7 @@ end;</code></pre>
 
 <div class="markdown"><p>We then define the <code>BDMLModel</code>, using the BDML-Hier model. </p><p>As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for <span class="tex">\(\delta\)</span> and <span class="tex">\(\gamma\)</span> ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on <span class="tex">\(\sigma^2_\delta\)</span> and <span class="tex">\(\sigma^2_\gamma\)</span>."</p></div>
 
-<pre class='language-julia'><code class='language-julia'>model = BDMLModel(Y, D, X, model_type = :hier)</code></pre>
+<pre class='language-julia'><code class='language-julia'>model = BDMLModel(df, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model">BDMLHierarchicalModel (not fitted)
   Observations: 200
   Covariates: 100
@@ -105,13 +102,13 @@ Number of posterior samples: 3200
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9207       0.1942       0.0014       0.0000
+  α               1.9170       0.1967       0.0015       0.0000
 
 HPD Credible Intervals:
-  α: [1.521, 2.2811]
+  α: [1.5347, 2.2952]
 
 Diagnostics:
-  Effective Sample Size (ESS): 1860.6
+  Effective Sample Size (ESS): 1747.9
 </pre>
 
 <!-- PlutoStaticHTML.End -->

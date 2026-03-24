@@ -13,12 +13,13 @@ include("utils.jl")
 @testset "Small Dataset - Force Subsampling on Small Data" begin
     Random.seed!(601)
     n, p = 100, 5
-    Y, D, X, alpha_true, _ = generate_dgp_table1(n, p, 2.0; alpha_true = 0.5, rng = MersenneTwister(601))
+    df = make_plr_DTL2025(n, p, 2.0; alpha = 0.5, rng = MersenneTwister(601))
+    alpha_true = 0.5
 
     println("\n=== Small Dataset: Force Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(;
         subsample = true,
         batch_size = 32
@@ -40,12 +41,13 @@ end
 @testset "Small Dataset - No Subsampling (Auto)" begin
     Random.seed!(600)
     n, p = 100, 5
-    Y, D, X, alpha_true, _ = generate_dgp_table1(n, p, 2.0; alpha_true = 0.5, rng = MersenneTwister(600))
+    df = make_plr_DTL2025(n, p, 2.0; alpha = 0.5, rng = MersenneTwister(600))
+    alpha_true = 0.5
 
     println("\n=== Small Dataset: Auto No Subsampling (n=$n) ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
 
     fit!(model, method; n_iterations = 100, n_draws = 100)
@@ -62,7 +64,11 @@ end
 @testset "BDMLVIModel Subsampling Interface" begin
     Random.seed!(606)
     n, p = 100, 5
-    Y, D, X, alpha_true, _ = generate_dgp_table1(n, p, 2.0; alpha_true = 0.5, rng = MersenneTwister(606))
+    df = make_plr_DTL2025(n, p, 2.0; alpha = 0.5, rng = MersenneTwister(606))
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
+    alpha_true = 0.5
 
     println("\n=== BDMLVIModel Subsampling Interface ===")
 
@@ -89,12 +95,13 @@ end
 @testset "Small Dataset with Basic Model - Force Subsampling" begin
     Random.seed!(608)
     n, p = 100, 5
-    Y, D, X, alpha_true, _ = generate_dgp_table1(n, p, 2.0; alpha_true = 0.5, rng = MersenneTwister(608))
+    df = make_plr_DTL2025(n, p, 2.0; alpha = 0.5, rng = MersenneTwister(608))
+    alpha_true = 0.5
 
     println("\n=== Small Dataset with Basic Model: Force Subsampling ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = UnifiedVI(;
         subsample = true,
         batch_size = 32

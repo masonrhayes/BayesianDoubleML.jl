@@ -71,11 +71,12 @@ alpha_true = 2.0
 
 rng = StableRNG(42)
 
-# Generate data
-Y, D, X = generate_dgp_table1(n, p, 2.0; alpha_true = alpha_true, rng = rng)
+# Generate data as DataFrame
+df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 
-# Create model and fit
-model = BDMLModel(Y, D, X; model_type=:hier)
+# Create model and fit using DataFrame interface
+# All columns except :y and :d are automatically used as covariates
+model = BDMLModel(df, :y, :d; model_type=:hier)
 fit!(model, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
 
 # View results

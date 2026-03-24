@@ -16,12 +16,13 @@ include("utils.jl")
 
 @testset "UnifiedVI Basic Model" begin
     Random.seed!(300)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(300))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(300))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI: Basic Model ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = UnifiedVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -51,12 +52,13 @@ end
 
 @testset "UnifiedVI Hierarchical Model" begin
     Random.seed!(301)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(301))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.8, rng = MersenneTwister(301))
+    alpha_true = 0.8
 
     println("\n=== UnifiedVI: Hierarchical Model ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -84,7 +86,11 @@ end
 
 @testset "UnifiedVI with BDMLData" begin
     Random.seed!(302)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(302))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(302))
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI with BDMLData ===")
 
@@ -106,11 +112,12 @@ end
 
 @testset "UnifiedVI AD Backend - AutoReverseDiff" begin
     Random.seed!(303)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(303))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(303))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI: AutoReverseDiff ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoReverseDiff)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 400, n_draws = 400)
@@ -126,11 +133,12 @@ end
 
 @testset "UnifiedVI AD Backend - AutoForwardDiff" begin
     Random.seed!(304)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(304))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(304))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI: AutoForwardDiff ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoForwardDiff)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -148,11 +156,12 @@ end
     import Zygote
 
     Random.seed!(306)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(306))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(306))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI: AutoZygote ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; ad_backend = AutoZygote)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -168,11 +177,12 @@ end
 
 @testset "UnifiedVI with Subsampling Enabled" begin
     Random.seed!(307)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(307))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(307))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI with Subsampling ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI(; subsample = true, batch_size = 64)
 
     fit!(model, method; n_iterations = 400, n_draws = 400)
@@ -188,11 +198,12 @@ end
 
 @testset "UnifiedVI Monte Carlo Samples Variation" begin
     Random.seed!(308)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(308))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(308))
+    alpha_true = 0.5
 
     println("\n=== UnifiedVI: n_montecarlo Variation ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     for n_mc in [5, 10, 20]
         method = UnifiedVI(; n_montecarlo = n_mc)
@@ -228,9 +239,10 @@ end
 
 @testset "UnifiedVI Result Display and Credible Interval" begin
     Random.seed!(310)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(310))
+    df = make_plr_DTL2025(50, 5, 2.0; alpha = 0.5, rng = MersenneTwister(310))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
 
     fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -254,9 +266,10 @@ end
 
 @testset "UnifiedVI Convergence Detection" begin
     Random.seed!(311)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(311))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(311))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = UnifiedVI()
 
     fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -276,12 +289,13 @@ end
 
 @testset "SimpleVI Basic Model" begin
     Random.seed!(400)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(400))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(400))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: Basic Model ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :basic)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
     method = SimpleVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -308,12 +322,13 @@ end
 
 @testset "SimpleVI Hierarchical Model" begin
     Random.seed!(401)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.8, rng = MersenneTwister(401))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.8, rng = MersenneTwister(401))
+    alpha_true = 0.8
 
     println("\n=== SimpleVI: Hierarchical Model ===")
     println("True α: $alpha_true")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 500, n_draws = 500)
@@ -337,7 +352,11 @@ end
 
 @testset "SimpleVI with BDMLData" begin
     Random.seed!(402)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(402))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(402))
+    Y = df.y
+    D = df.d
+    X = Matrix(df[:, r"^X"])
+    alpha_true = 0.5
 
     println("\n=== SimpleVI with BDMLData ===")
 
@@ -359,11 +378,12 @@ end
 
 @testset "SimpleVI AD Backend - AutoMooncake" begin
     Random.seed!(403)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(403))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(403))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: AutoMooncake Backend ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoMooncake)
 
     # Warmup
@@ -383,11 +403,12 @@ end
 
 @testset "SimpleVI AD Backend - AutoReverseDiff" begin
     Random.seed!(404)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(404))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(404))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: AutoReverseDiff Backend ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoReverseDiff)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 400, n_draws = 400)
@@ -405,11 +426,12 @@ end
     using Zygote
 
     Random.seed!(410)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(100, 10, 2.0; alpha_true = 0.5, rng = MersenneTwister(410))
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(410))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: AutoZygote Backend ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI(; ad_backend = AutoZygote)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -446,11 +468,12 @@ end
 
 @testset "SimpleVI Small Dataset" begin
     Random.seed!(406)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(406))
+    df = make_plr_DTL2025(50, 5, 2.0; alpha = 0.5, rng = MersenneTwister(406))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: Small Dataset (n=50, p=5) ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI()
 
     fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -465,9 +488,10 @@ end
 
 @testset "SimpleVI Result Display" begin
     Random.seed!(407)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(50, 5, 2.0; alpha_true = 0.5, rng = MersenneTwister(407))
+    df = make_plr_DTL2025(50, 5, 2.0; alpha = 0.5, rng = MersenneTwister(407))
+    alpha_true = 0.5
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
     method = SimpleVI()
 
     fit!(model, method; n_iterations = 300, n_draws = 300)
@@ -489,11 +513,12 @@ end
 
 @testset "SimpleVI Different Iterations" begin
     Random.seed!(409)
-    Y, D, X, alpha_true, _ = generate_dgp_table1(80, 8, 2.0; alpha_true = 0.5, rng = MersenneTwister(409))
+    df = make_plr_DTL2025(80, 8, 2.0; alpha = 0.5, rng = MersenneTwister(409))
+    alpha_true = 0.5
 
     println("\n=== SimpleVI: Different Iteration Counts ===")
 
-    model = BDMLModel(Y, D, X; model_type = :hier)
+    model = BDMLModel(df, :y, :d; model_type = :hier)
 
     for n_iter in [200, 400]
         method = SimpleVI()
