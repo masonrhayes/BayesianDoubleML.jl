@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "95f631d9a8f8f5dac736ba646093672a01ee8f75c402f61e9df89585031d34aa"
+    input_sha = "1b683034e6d9746bf5dba18a4780c75b67c6b4a0995ab539f6fdf9ff2dbe3729"
     julia_version = "1.12.5"
 -->
 
@@ -44,7 +44,7 @@ end</code></pre>
 <div class="markdown"><h3 id="Data-generation">Data generation</h3></div>
 
 
-<div class="markdown"><p>Let's generate data as per Section 6 of the paper </p></div>
+<div class="markdown"><p>Let's generate data as per Section 6 <a href="http://arxiv.org/abs/2508.12688">DiTraglia and Liu (2025)</a>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
     # Define parameters
@@ -63,7 +63,7 @@ end;</code></pre>
 <div class="markdown"><h3 id="Model-setup">Model setup</h3></div>
 
 
-<div class="markdown"><p>We then define the <code>BDMLModel</code>, using the BDML-Hier model. </p><p>As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for <span class="tex">\(\delta\)</span> and <span class="tex">\(\gamma\)</span> ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on <span class="tex">\(\sigma^2_\delta\)</span> and <span class="tex">\(\sigma^2_\gamma\)</span>."</p></div>
+<div class="markdown"><p>We then define the <code>BDMLModel</code>, using the hierarchical model (BDML-Hier) from the paper: </p><p>As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for <span class="tex">\(\delta\)</span> and <span class="tex">\(\gamma\)</span> ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on <span class="tex">\(\sigma^2_\delta\)</span> and <span class="tex">\(\sigma^2_\gamma\)</span>."</p></div>
 
 <pre class='language-julia'><code class='language-julia'>model = BDMLModel(df, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model">BDMLHierarchicalModel (not fitted)
@@ -102,13 +102,13 @@ Number of posterior samples: 3200
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9170       0.1967       0.0015       0.0000
+  α               1.9246       0.1958       0.0015       0.0000
 
 HPD Credible Intervals:
-  α: [1.5347, 2.2952]
+  α: [1.5353, 2.2985]
 
 Diagnostics:
-  Effective Sample Size (ESS): 1747.9
+  Effective Sample Size (ESS): 1875.7
 </pre>
 
 <!-- PlutoStaticHTML.End -->

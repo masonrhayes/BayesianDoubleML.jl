@@ -94,13 +94,10 @@ end
 """
     compute_log_likelihood!(model::BDMLVIModel, δ, γ, σ_U, σ_V, ρ)
 
-Compute log-likelihood using pre-allocated temporaries.
-
-Uses the model's pre-allocated μ_Y_cache and μ_D_cache to avoid allocations
-during AD, which significantly improves performance with all backends.
+Compute log-likelihood for the bivariate reduced form model.
 
 # Arguments
-- `model::BDMLVIModel`: Model with pre-allocated temporaries
+- `model::BDMLVIModel`: Model with data
 - `δ::Vector{Float64}`: Reduced form coefficients for Y on X ``(Eq. 12)``
 - `γ::Vector{Float64}`: Reduced form coefficients for D on X ``(Eq. 5)``
 - `σ_U::Float64`: Outcome standard deviation
@@ -111,8 +108,6 @@ during AD, which significantly improves performance with all backends.
 Scalar log-likelihood value
 
 # Implementation Notes
-- Uses mul!() for in-place matrix multiplication
-- Pre-allocated temporaries avoid allocations during gradient computation
 - Simple loops (no broadcasting) for better AD compatibility
 - Type-stable throughout
 
@@ -129,7 +124,6 @@ function compute_log_likelihood!(model::BDMLVIModel, δ, γ, σ_U, σ_V, ρ)
     n = length(model.Y)
 
     # Reduced form means (Eq. 12, 5)
-    # Note: Pre-allocated caches are Float64, but AD needs TrackedReal storage
     μ_Y = model.X * δ
     μ_D = model.X * γ
 

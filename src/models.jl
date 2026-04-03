@@ -38,8 +38,6 @@ DiTraglia & Liu (2025), Algorithm 1.
 - `stats::StandardizationStats`: Statistics for transforming back to original scale
 - `n::Int`: Number of observations
 - `p::Int`: Number of control variables
-- `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
-- `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
 - `result::Union{Nothing, AbstractBDMLResult}`: Stores fitting results after `fit!()`
 - `is_fitted::Bool`: Whether the model has been fitted
 - `last_method::Union{Nothing, AbstractInferenceMethod}`: Method used in last fit
@@ -77,9 +75,6 @@ mutable struct BDMLBasicModel <: AbstractBDMLModel
     stats::StandardizationStats
     n::Int
     p::Int
-    # Pre-allocated temporaries for performance
-    μ_Y_cache::Vector{Float64}
-    μ_D_cache::Vector{Float64}
     # Result storage
     result::Union{Nothing, AbstractBDMLResult}
     is_fitted::Bool
@@ -99,8 +94,6 @@ DiTraglia & Liu (2025), Algorithm 1.
 - `stats::StandardizationStats`: Standardization statistics
 - `n::Int`: Number of observations
 - `p::Int`: Number of control variables
-- `μ_Y_cache::Vector{Float64}`: Pre-allocated temporary for outcome mean (X'δ)
-- `μ_D_cache::Vector{Float64}`: Pre-allocated temporary for treatment mean (X'γ)
 - `result::Union{Nothing, AbstractBDMLResult}`: Stores fitting results after `fit!()`
 - `is_fitted::Bool`: Whether the model has been fitted
 - `last_method::Union{Nothing, AbstractInferenceMethod}`: Method used in last fit
@@ -146,9 +139,6 @@ mutable struct BDMLHierarchicalModel <: AbstractBDMLModel
     stats::StandardizationStats
     n::Int
     p::Int
-    # Pre-allocated temporaries for performance
-    μ_Y_cache::Vector{Float64}
-    μ_D_cache::Vector{Float64}
     # Result storage
     result::Union{Nothing, AbstractBDMLResult}
     is_fitted::Bool
@@ -161,7 +151,7 @@ end
 Factory function to create appropriate BDML model type for Algorithm 1
 from DiTraglia & Liu (2025).
 
-Standardizes data once during creation and pre-allocates temporaries.
+Standardizes data once during model creation.
 This ensures data is only standardized once, even if fitted multiple times.
 
 # Arguments
@@ -207,7 +197,6 @@ fit!(model_hier, UnifiedVIMethod())
 
 # Performance Notes
 Standardization is performed once during model creation.
-Pre-allocated temporaries are sized to the data dimensions.
 Results are stored in the model after calling `fit!()`.
 
 # References
@@ -226,10 +215,6 @@ function BDMLModel(Y, D, X; model_type::Symbol = :basic)
     Y_s, D_s, X_s, stats = standardize_data(Y, D, X)
     p = size(X_s, 2)
 
-    # Pre-allocate temporaries
-    μ_Y_cache = Vector{Float64}(undef, n)
-    μ_D_cache = Vector{Float64}(undef, n)
-
     # Initialize result storage
     result = nothing
     is_fitted = false
@@ -237,12 +222,12 @@ function BDMLModel(Y, D, X; model_type::Symbol = :basic)
 
     if model_type == :basic
         return BDMLBasicModel(
-            Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache,
+            Y_s, D_s, X_s, stats, n, p,
             result, is_fitted, last_method
         )
     elseif model_type == :hier
         return BDMLHierarchicalModel(
-            Y_s, D_s, X_s, stats, n, p, μ_Y_cache, μ_D_cache,
+            Y_s, D_s, X_s, stats, n, p,
             result, is_fitted, last_method
         )
     else

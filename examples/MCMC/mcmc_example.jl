@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.24
+# v0.20.23
 
 using Markdown
 using InteractiveUtils
@@ -31,7 +31,7 @@ md"""
 
 # ╔═╡ 6fa27fdd-413f-4841-b49d-a7fd3d513d8f
 md"""
-Let's generate data as per Section 6 of the paper 
+Let's generate data as per Section 6 [DiTraglia and Liu (2025)](http://arxiv.org/abs/2508.12688).
 """
 
 # ╔═╡ 7a7bfba3-6907-4573-99d6-adf7fc9c8799
@@ -54,7 +54,7 @@ md"""
 
 # ╔═╡ 1c8a43d6-6328-42d0-874a-b61b2d8fd1ec
 md"""
-We then define the `BDMLModel`, using the BDML-Hier model. 
+We then define the `BDMLModel`, using the hierarchical model (BDML-Hier) from the paper: 
 
 As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for $\delta$ and $\gamma$ ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on $\sigma^2_\delta$ and $\sigma^2_\gamma$."
 """

@@ -5,7 +5,7 @@
 using Turing.Variational
 using ADTypes
 
-export fit_bdml_vi_simple_legacy, extract_alpha_vi_simple, check_convergence, credible_interval
+export fit_bdml_vi_simple_legacy, extract_alpha_vi_simple, credible_interval
 
 """
     fit_bdml_vi(Y, D, X; kwargs...)
@@ -275,35 +275,6 @@ function extract_alpha_vi_simple(vi_samples, p::Int, model_type::Symbol)
     end
 
     return α_samples
-end
-
-"""
-    check_convergence(elbo_history, threshold, window_size)
-
-Check if VI has converged based on ELBO stability.
-
-Returns (converged::Bool, final_elbo::Float64)
-"""
-function check_convergence(
-        elbo_history::Vector{Float64},
-        threshold::Float64,
-        window_size::Int
-    )
-
-    if length(elbo_history) < window_size
-        return false, elbo_history[end]
-    end
-
-    # Check stability of recent ELBO values
-    recent_window = elbo_history[max(1, end - window_size + 1):end]
-    elbo_std = std(recent_window)
-    elbo_mean = mean(recent_window)
-
-    # Relative standard deviation as convergence criterion
-    rel_std = elbo_std / abs(elbo_mean)
-    converged = rel_std < threshold
-
-    return converged, elbo_history[end]
 end
 
 """

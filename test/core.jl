@@ -110,24 +110,48 @@ end
 
 @testset "Convergence Checking" begin
     # Converging sequence (monotonic increasing with decreasing increments)
-    elbo_conv = Float64[100, 110, 115, 118, 119.5, 119.8, 119.9, 119.95, 119.98, 119.99]
-    conv, final = BayesianDoubleML.check_convergence(elbo_conv, 1.0e-3, 5)
+    # Use larger sequence to ensure window >= 10 iterations (function uses max(10, ...))
+    elbo_conv = Float64[100, 110, 115, 118, 119.5, 119.8, 119.9, 119.95, 119.98, 119.99, 119.995, 119.998, 119.999, 119.9995, 119.9998]
+    conv, msg = BayesianDoubleML.check_elbo_convergence(
+        elbo_conv;
+        min_pct = 0.3,
+        rel_tol = 0.01,  # 1% relative tolerance
+        check_trend = true,
+        min_iterations = 10
+    )
     @test conv == true
-    @test final ≈ 119.99
 
     # Too short (less than min_iterations)
     elbo_short = Float64[100, 105]
-    conv_short, _ = BayesianDoubleML.check_convergence(elbo_short, 1.0e-3, 5)
+    conv_short, _ = BayesianDoubleML.check_elbo_convergence(
+        elbo_short;
+        min_pct = 0.5,
+        rel_tol = 1.0e-3,
+        check_trend = false,
+        min_iterations = 5
+    )
     @test conv_short == false
 
     # Oscillating sequence (not converged)
-    elbo_osc = Float64[100, 110, 105, 115, 110, 120, 115]
-    conv_osc, _ = BayesianDoubleML.check_convergence(elbo_osc, 1.0e-3, 3)
+    elbo_osc = Float64[100, 110, 105, 115, 110, 120, 115, 108, 118, 112, 122, 116]
+    conv_osc, _ = BayesianDoubleML.check_elbo_convergence(
+        elbo_osc;
+        min_pct = 0.3,
+        rel_tol = 0.001,
+        check_trend = true,
+        min_iterations = 10
+    )
     @test conv_osc == false
 
-    # Plateau (converged)
-    elbo_plateau = Float64[100, 100.1, 100.2, 100.15, 100.18, 100.17]
-    conv_plateau, _ = BayesianDoubleML.check_convergence(elbo_plateau, 0.1, 3)
+    # Plateau (converged) - use larger sequence for window calculation
+    elbo_plateau = Float64[100, 100.01, 100.02, 100.015, 100.018, 100.017, 100.019, 100.018, 100.02, 100.019, 100.021, 100.02]
+    conv_plateau, _ = BayesianDoubleML.check_elbo_convergence(
+        elbo_plateau;
+        min_pct = 0.3,
+        rel_tol = 0.001,
+        check_trend = true,
+        min_iterations = 10
+    )
     @test conv_plateau == true
 end
 
