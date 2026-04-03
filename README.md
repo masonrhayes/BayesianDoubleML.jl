@@ -50,7 +50,7 @@ model = BDMLModel(df, :y, :d; model_type = :hier)
 # Basic (fixed variance priors)
 model = BDMLModel(df, :y, :d; model_type = :basic)
 
-# Or use the original Y, D, X interface
+# Or use the Y, D, X interface
 model = BDMLModel(Y, D, X; model_type = :hier)
 ```
 
@@ -83,39 +83,27 @@ fit!(model, LowRankVI(10))
 # Summary statistics
 summary(model)
 coeftable(model)
-
-# Extract causal effect samples
-alpha_samples = extract_alpha(model)
-
-# MCMC diagnostics
-ess(model)   # Effective sample size
-rhat(model)  # Convergence (should be ≈ 1.0)
-
-# VI diagnostics
-model.result.elbo_history
-model.result.converged
 ```
 
 ## API Reference
 
 ### Core Functions
 
-| Function                 | Description                        |
-| ------------------------ | ---------------------------------- |
-| `fit!(model, method)`  | Fit model (mutating)               |
-| `coeftable(model)`     | Coefficient table with diagnostics |
-| `summary(model)`       | Full summary                       |
-| `extract_alpha(model)` | Causal effect samples              |
+| Function                | Description                        |
+| ----------------------- | ---------------------------------- |
+| `fit!(model, method)` | Fit model (mutating)               |
+| `coeftable(model)`    | Coefficient table with diagnostics |
+| `summary(model)`      | Full summary                       |
 
 ### Inference Methods
 
-| Method              | Description               |
-| ------------------- | ------------------------- |
-| `MCMCNUTS()`      | NUTS sampler              |
-| `UnifiedVI()`     | AdvancedVI with bijectors |
-| `SimpleVI()`      | Turing's native VI        |
-| `MeanFieldVI()`   | Mean-field VI             |
-| `LowRankVI(rank)` | Low-rank VI               |
+| Method              | Description                |
+| ------------------- | -------------------------- |
+| `MCMCNUTS()`      | NUTS sampler               |
+| `UnifiedVI()`     | AdvancedVI with bijectors  |
+| `SimpleVI()`      | Turing's native VI         |
+| `MeanFieldVI()`   | Mean-field VI (AdvancedVI) |
+| `LowRankVI(rank)` | Low-rank VI (AdvancedVi)   |
 
 ### StatsAPI Functions
 
