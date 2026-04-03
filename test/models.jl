@@ -122,23 +122,6 @@ end
     @test_throws AssertionError BDMLModel(Y, D[1:50], X)
 end
 
-@testset "Pre-allocated Temporaries" begin
-    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(204))
-    Y = df.y
-    D = df.d
-    X = Matrix(df[:, r"^X"])
-
-    # Basic model
-    model_basic = BDMLModel(Y, D, X; model_type = :basic)
-    @test length(model_basic.μ_Y_cache) == 100
-    @test length(model_basic.μ_D_cache) == 100
-
-    # Hierarchical model
-    model_hier = BDMLModel(Y, D, X; model_type = :hier)
-    @test length(model_hier.μ_Y_cache) == 100
-    @test length(model_hier.μ_D_cache) == 100
-end
-
 @testset "Model Data Handling" begin
     df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(205))
     Y = df.y

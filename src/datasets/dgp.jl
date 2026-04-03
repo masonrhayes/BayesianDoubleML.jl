@@ -61,9 +61,6 @@ where:
 Extract the components for use with `BDMLModel`:
 ```julia
 df = make_plr_DTL2025(n, p, sigma_epsilon; alpha=2.0, rng)
-Y = df.y
-D = df.d
-X = Matrix(df[:, r"^X"])
 ```
 
 # Paper Reference
@@ -87,41 +84,10 @@ All settings use n=200, p=100, and ``\\alpha=2``.
 ## Basic usage
 ```julia
 # Replicate one row of Table 1 (n=200, p=100, σ_ε=2)
-using Random
-df = make_plr_DTL2025(200, 100, 2.0; rng=MersenneTwister(42))
-Y = df.y
-D = df.d
-X = Matrix(df[:, r"^X"])
-
-# Verify dimensions
-@assert length(Y) == 200
-@assert length(D) == 200
-@assert size(X) == (200, 100)
-```
-
-## Generate all three σ_ε settings
-```julia
-using Random
-for σ in [1.0, 2.0, 4.0]
-    df = make_plr_DTL2025(200, 100, σ; rng=MersenneTwister(123))
-    println("σ_ε = " * string(σ) * ": generated " * string(nrow(df)) * " observations")
-end
-```
-
-## Use with BDML
-```julia
-using Random
 using BayesianDoubleML
+using Random
 
-# Generate data
 df = make_plr_DTL2025(200, 100, 2.0; rng=MersenneTwister(42))
-Y = df.y
-D = df.d
-X = Matrix(df[:, r"^X"])
-
-# Create problem and fit
-problem = BDMLProblem(Y, D, X; model_type=:hier)
-result = fit(problem, MCMCNUTS(); n_samples=1000, n_chains=1)
 
 ```
 

@@ -15,7 +15,6 @@ Unified model struct for all VI implementations.
 
 Designed for efficiency and AD compatibility:
 - Simple struct with concrete types (no abstract fields)
-- Pre-allocated temporaries to avoid allocations during gradient computation
 - Type-stable operations throughout
 - No closures or dynamic dispatch
 
@@ -41,8 +40,6 @@ where the causal effect ``\\alpha`` is recovered via:
 - `n_data::Int`: Total number of observations (for likelihood scaling with subsampling)
 - `model_type::Symbol`: :hier (hierarchical) or :basic
 - `T::Type{T}`: Element type (Float64)
-- `μ_Y_cache::Vector{T}`: Pre-allocated temporary for outcome mean ``(X'\\delta)``
-- `μ_D_cache::Vector{T}`: Pre-allocated temporary for treatment mean ``(X'\\gamma)``
 
 # Example
 ```julia
@@ -65,18 +62,12 @@ struct BDMLVIModel{YType, DType, XType, T}
     n_data::Int
     model_type::Symbol
     T::Type{T}
-    # Pre-allocated temporaries for gradient computation (AD-safe)
-    μ_Y_cache::Vector{T}
-    μ_D_cache::Vector{T}
 end
 
 """
     BDMLVIModel(Y, D, X; model_type=:hier, T=Float64)
 
 Create a unified BDML model for variational inference.
-
-Pre-allocates temporaries to avoid allocations during AD, improving performance
-with all backends (ReverseDiff, Mooncake, Zygote, ForwardDiff).
 
 # Arguments
 - `Y::Vector{Float64}`: Outcome variable
@@ -98,10 +89,6 @@ model = BDMLVIModel(Y, D, X; model_type=:basic)
 # Hierarchical model (default)
 model = BDMLVIModel(Y, D, X; model_type=:hier)
 ```
-
-# Notes
-The model automatically pre-allocates computation buffers sized to the data.
-For subsampling, new temporaries are allocated sized to the batch.
 """
 function BDMLVIModel(Y, D, X; model_type::Symbol = :hier, T::Type = Float64)
     @assert model_type in [:basic, :hier] "model_type must be :basic or :hier"
@@ -110,12 +97,7 @@ function BDMLVIModel(Y, D, X; model_type::Symbol = :hier, T::Type = Float64)
     @assert n_data == length(D) "Y and D must have same length, got n_Y=$(length(Y)), n_D=$(length(D))"
     @assert n_data == size(X, 1) "X must have n_data rows, got $(size(X, 1)) rows but n_data=$n_data"
 
-    # Pre-allocate temporaries for gradient computation
-    # This avoids allocations during AD which improves performance
-    μ_Y_cache = Vector{T}(undef, n_data)
-    μ_D_cache = Vector{T}(undef, n_data)
-
-    return BDMLVIModel(Y, D, X, n_data, model_type, T, μ_Y_cache, μ_D_cache)
+    return BDMLVIModel(Y, D, X, n_data, model_type, T)
 end
 
 """
@@ -247,16 +229,11 @@ batch_model = AdvancedVI.subsample(model, batch_idx)
 ```
 
 # Notes
-New temporaries are allocated sized to the batch (length(idx)).
 The reduced form means X'δ and X'γ are computed on the subsample.
 """
 function AdvancedVI.subsample(model::BDMLVIModel, idx)
     n = length(idx)
     T = model.T
-
-    # Create new pre-allocated temporaries for subsampled size
-    μ_Y_cache = Vector{T}(undef, n)
-    μ_D_cache = Vector{T}(undef, n)
 
     return BDMLVIModel(
         model.Y[idx],
@@ -264,8 +241,6 @@ function AdvancedVI.subsample(model::BDMLVIModel, idx)
         model.X[idx, :],
         model.n_data,  # Keep original for likelihood scaling
         model.model_type,
-        T,
-        μ_Y_cache,
-        μ_D_cache
+        T
     )
 end

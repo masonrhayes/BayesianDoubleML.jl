@@ -23,7 +23,7 @@ export fit!, BDMLModel,
     # Summary
     summary,
     # Utilities
-    credible_interval, check_convergence,
+    credible_interval,
     # AD backends for VI configuration
     AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoMooncake,
     # DGP
