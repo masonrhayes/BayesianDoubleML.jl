@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.24
+# v0.20.23
 
 using Markdown
 using InteractiveUtils
@@ -44,7 +44,7 @@ md"""
 
 # ╔═╡ b26f4d74-e791-4435-860c-c0ebfb9b6dbc
 md"""
-Let's generate data as per Section 6 of the paper:
+Let's generate data as per Section 6 [DiTraglia and Liu (2025)](http://arxiv.org/abs/2508.12688).
 """
 
 # ╔═╡ b600a47b-d9d5-4552-b673-6eda27f04871
@@ -58,7 +58,7 @@ begin
 
     # Generate data as DataFrame
     df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
-end
+end;
 
 # ╔═╡ eacec63a-2d16-4f52-ac22-c8ba2add8a03
 md"""
@@ -67,7 +67,7 @@ md"""
 
 # ╔═╡ ebf5e3c0-3e95-45d1-a734-7177f14a0182
 md"""
-We then define the BDML model, using the BDML-Hier model. 
+We then define the BDMLModel, using the hierarchical model (BDML-Hier) from the paper:
 
 As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for $\delta$ and $\gamma$ ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on $\sigma^2_\delta$ and $\sigma^2_\gamma$."
 """
@@ -82,9 +82,9 @@ md"""
 
 # ╔═╡ cad72553-b33b-445d-85f2-28bec0d2a20b
 md"""
-And we then solve the problem using Automatic Differentiation Variational Inference (ADVI). 
+And we then fit the model using Automatic Differentiation Variational Inference (ADVI). 
 
-In this example, we first try using the SimpleVIMethod with the AutoMooncake AD backend. (Note: AutoMooncake from [Mooncake.jl](https://chalk-lab.github.io/Mooncake.jl/stable/) provides extremely fast automatic differentiation, at the cost of a bit longer compile time.)
+In this example, we first try using the SimpleVIMethod with the AutoMooncake AD backend. (Note: AutoMooncake from [Mooncake.jl](https://chalk-lab.github.io/Mooncake.jl/stable/) provides extremely fast automatic differentiation, at the cost of a longer compile time.)
 """
 
 # ╔═╡ 751ef964-a74b-4a41-a9b9-799241bebda0
@@ -126,7 +126,7 @@ As a general rule of thumb: in anecdotal testing, ADVI methods are generally rel
 begin
     # Generate data as DataFrame
     df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng)
-end
+end;
 
 # ╔═╡ f3c45acf-78a2-44d0-87fc-6eb472ae7d77
 model2 = BDMLModel(df2, :y, :d; model_type = :hier)
