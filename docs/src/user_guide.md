@@ -2,17 +2,6 @@
 
 This guide demonstrates how to use BayesianDoubleML.jl for causal inference with different inference methods.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Basic Usage](#basic-usage)
-- [Inference Methods](#inference-methods)
-  - [MCMC (NUTS)](#mcmc-nuts)
-  - [Simple VI with Mooncake](#simple-vi-with-mooncake)
-  - [Unified VI with AutoReverseDiff](#unified-vi-with-autoreversediff)
-- [Understanding Results](#understanding-results)
-- [Performance Tips](#performance-tips)
-
 ## Installation
 
 ```julia
@@ -34,6 +23,7 @@ using StableRNGs
 n = 200
 p = 100
 alpha_true = 2.0 # true causal effect
+rng = StableRNG(42) # for reproducibility
 
 # Generate data as DataFrame
 df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
@@ -249,12 +239,12 @@ result.final_elbo
 
 ### AD Backend Selection
 
-| Backend         | Speed                                         | Stability | Best For        |
-| --------------- | --------------------------------------------- | --------- | --------------- |
-| AutoReverseDiff | Baseline                                      | Excellent | Default choice  |
-| AutoMooncake    | 5-10x faster                                  | Good      | Speed           |
-| AutoZygote      | Typically slower than ReverseDiff or Mooncake | Good      | Not recommended |
-| AutoForwardDiff | Typically very slow                           | Excellent | Not recommended |
+| Backend         | Speed                                         |  Best For        |
+| --------------- | --------------------------------------------- |  --------------- |
+| AutoReverseDiff | Baseline                                      |  Default choice  |
+| AutoMooncake    | 5-10x faster                                  |  Speed           |
+| AutoZygote      | Typically slower than ReverseDiff or Mooncake |  Not recommended |
+| AutoForwardDiff | Typically very slow                           |  Not recommended |
 
 ## Mathematical Background
 

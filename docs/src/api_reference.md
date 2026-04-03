@@ -1,17 +1,5 @@
 # API Reference
 
-Complete API documentation for BayesianDoubleML.jl.
-
-## Contents
-
-- [Model Types](#model-types)
-- [Inference Methods](#inference-methods)
-- [Fitting Functions](#fitting-functions)
-- [Result Types](#result-types)
-- [Extraction Functions](#extraction-functions)
-- [Statistical Functions](#statistical-functions)
-- [Coefficient Table](#coefficient-table)
-- [Utility Functions](#utility-functions)
 
 ## Model Types
 
@@ -134,7 +122,6 @@ BayesianDoubleML.vcov
 
 ```@docs
 BayesianDoubleML.credible_interval
-BayesianDoubleML.check_convergence
 ```
 
 ## Internal Functions
@@ -157,4 +144,5 @@ BayesianDoubleML.make_plr_DTL2025
 ## Index
 
 ```@index
+
 ```
