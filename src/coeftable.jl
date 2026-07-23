@@ -409,8 +409,7 @@ end
 Get chain summary information: (n_chains, n_samples_per_chain, total_samples)
 """
 function chain_info(result::BDMLMCMCResult)
-    chain = result.chain
-    n_samples_per_chain, n_chains = size(chain[:σ_U])
+    n_samples_per_chain, n_chains = size(result.chain)
     total_samples = n_chains * n_samples_per_chain
     return (n_chains = n_chains, n_samples_per_chain = n_samples_per_chain, total_samples = total_samples)
 end

@@ -81,3 +81,19 @@ function extract_alpha(vi_samples::Matrix{Float64}, p::Int, model_type::Symbol)
 
     return α_samples
 end
+
+"""
+    extract_alpha(vnt_samples::AbstractVector{<:VarNamedTuple})
+
+Extract α samples from constrained `VarNamedTuple` posterior draws, as returned by
+`rand(::Turing.Variational.VIResult, n)` (Turing 0.46+ Simple VI path).
+
+The VI models parameterize the correlation as ρ_raw ~ Beta(2, 2) on [0, 1], so
+α = (2*ρ_raw - 1) * σ_U / σ_V (Equation 15).
+"""
+function extract_alpha(vnt_samples::AbstractVector{<:VarNamedTuple})
+    return Float64[
+        (2 * vnt[@varname(ρ_raw)] - 1) * vnt[@varname(σ_U)] / vnt[@varname(σ_V)] for
+        vnt in vnt_samples
+    ]
+end

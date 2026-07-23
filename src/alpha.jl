@@ -1,7 +1,7 @@
-raw"""
+"""
     extract_alpha(chain::FlexiChains.VNChain)
 
-Extract ``\alpha`` samples from MCMC chain using the paper's transformation ``(Eq. 15)``.
+Extract ``\\alpha`` samples from MCMC chain using the paper's transformation ``(Eq. 15)``.
 
 # Mathematical Derivation (DiTraglia & Liu 2025)
 
@@ -53,7 +53,7 @@ function extract_alpha(chain::FlexiChains.VNChain)
     ρ_samples = map(c -> c.L[2, 1] / c.L[1, 1], R_chol_samples)
 
     # Compute alpha using Equation 15: α = ρ * σ_U / σ_V
-    α_samples = ρ_samples .* σ_U_samples ./ σ_V_samples
+    α_samples = @. ρ_samples * σ_U_samples / σ_V_samples
 
     return α_samples
 end

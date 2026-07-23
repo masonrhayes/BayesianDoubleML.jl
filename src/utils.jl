@@ -43,9 +43,31 @@ function credible_interval(samples; level = 0.95)
 end
 
 """
+    ad_backend_kwargs(ad_type, ad_kwargs::NamedTuple = (;))
+
+Return AD backend constructor kwargs with backend-specific defaults merged in.
+Explicitly provided `ad_kwargs` always take precedence over the defaults.
+
+# Backend-specific defaults
+- `AutoReverseDiff`: `compile=false` (required by AdvancedVI >= 0.7, which rejects
+  compiled tapes because they freeze captured values at preparation time)
+- `AutoForwardDiff`: no kwargs needed; `chunksize=nothing` (the default) already
+  means automatic chunk size selection. Do not pass `chunksize=0` — it is invalid.
+"""
+function ad_backend_kwargs(ad_type, ad_kwargs::NamedTuple = (;))
+    if ad_type == AutoReverseDiff && !haskey(ad_kwargs, :compile)
+        # AdvancedVI >= 0.7 rejects compiled ReverseDiff tapes (stale gradients)
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
+    end
+
+    return ad_kwargs
+end
+
+"""
     configure_ad_backend(ad_type, ad_kwargs, use_subsample)
 
-Configure AD backend-specific settings.
+Configure AD backend-specific settings (see [`ad_backend_kwargs`](@ref)) and emit
+backend-specific usage notices.
 
 # Primary Backends
 - AutoReverseDiff: Set compile=false by default (required by AdvancedVI >= 0.7)
@@ -53,23 +75,15 @@ Configure AD backend-specific settings.
 
 # Secondary Backends
 - AutoZygote: Standard configuration
-- AutoForwardDiff: Use chunk size 0 (auto) by default
+- AutoForwardDiff: Standard configuration (automatic chunk size by default)
 """
 function configure_ad_backend(ad_type, ad_kwargs, use_subsample)
-    if ad_type == AutoReverseDiff
-        # AdvancedVI >= 0.7 rejects compiled ReverseDiff tapes (stale gradients)
-        if !haskey(ad_kwargs, :compile)
-            ad_kwargs = merge(ad_kwargs, (compile = false,))
-        end
-    elseif ad_type == AutoMooncake
+    ad_kwargs = ad_backend_kwargs(ad_type, ad_kwargs)
+
+    if ad_type == AutoMooncake
         # Mooncake is fast after warmup, warn about first run
         @info "Using AutoMooncake. First run(s) compile differentiation rules."
         @info "For optimal performance, run warmup iterations or use in batch processing."
-    elseif ad_type == AutoForwardDiff
-        # Auto chunk size for forward mode
-        if !haskey(ad_kwargs, :chunksize)
-            ad_kwargs = merge(ad_kwargs, (chunksize = 0,))
-        end
     end
 
     return ad_kwargs

@@ -325,6 +325,7 @@ SimpleVI(; kwargs...)  # Convenience alias
 # Examples
 ```julia
 # Default - Mooncake (recommended for this implementation)
+using Mooncake                    # Must be loaded before using AutoMooncake
 method = SimpleVIMethod()
 
 # With ReverseDiff
@@ -333,6 +334,13 @@ method = SimpleVIMethod(; ad_backend=AutoReverseDiff)
 # Convenience alias
 method = SimpleVI()
 ```
+
+# Mooncake Usage
+The default `AutoMooncake` backend requires `Mooncake` to be loaded in the
+session (`using Mooncake`). If Mooncake is not loaded, `AutoMooncake` will
+raise a `MethodError` from `DifferentiationInterface`. Use
+`SimpleVIMethod(; ad_backend=AutoReverseDiff)` if you prefer a backend that
+does not require an extra import.
 
 # Comparison with UnifiedVIMethod
 | Feature | UnifiedVIMethod | SimpleVIMethod |

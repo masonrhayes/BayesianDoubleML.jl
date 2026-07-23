@@ -33,11 +33,11 @@ For large datasets (n > 10,000), consider using `fit_bdml_vi_subsampled()` inste
   - **⚠️ Requires warmup**: First few runs compile differentiation rules.
   - After warmup, typically 5-10x faster than ReverseDiff
   - No additional kwargs needed
-- `AutoReverseDiff`: Reverse-mode AD with tape compilation
+- `AutoReverseDiff`: Reverse-mode AD
   - `ad_kwargs=(compile=false,)`: Required by AdvancedVI >= 0.7
   - Good if you need consistent performance without warmup
 - `AutoForwardDiff`: Forward-mode AD, good for small models
-  - `ad_kwargs=(chunksize=0,)`: Chunk size for forward mode (0=automatic)
+  - No kwargs needed: chunk size is chosen automatically (`chunksize=nothing`)
 - `AutoZygote`: Alternative reverse-mode AD using Zygote
 - `AutoEnzyme`: LLVM-based AD (currently unavailable on Julia 1.12+ due to compatibility issues)
 
@@ -101,10 +101,8 @@ function fit_bdml_vi_simple_legacy(
     end
 
     # Construct AD backend with user-provided kwargs
-    # AdvancedVI >= 0.7 requires compile=false for ReverseDiff
-    if ad_type == AutoReverseDiff && !haskey(ad_kwargs, :compile)
-        ad_kwargs = merge(ad_kwargs, (compile = false,))
-    end
+    # (adds compile=false for ReverseDiff, required by AdvancedVI >= 0.7)
+    ad_kwargs = ad_backend_kwargs(ad_type, ad_kwargs)
 
     # Warning for Mooncake about warmup requirements
     if ad_type == AutoMooncake
