@@ -48,7 +48,7 @@ end
 Configure AD backend-specific settings.
 
 # Primary Backends
-- AutoReverseDiff: Set compile=true by default
+- AutoReverseDiff: Set compile=false by default (required by AdvancedVI >= 0.7)
 - AutoMooncake: No special configuration needed (warn about warmup)
 
 # Secondary Backends
@@ -57,9 +57,9 @@ Configure AD backend-specific settings.
 """
 function configure_ad_backend(ad_type, ad_kwargs, use_subsample)
     if ad_type == AutoReverseDiff
-        # Enable tape compilation for better performance
+        # AdvancedVI >= 0.7 rejects compiled ReverseDiff tapes (stale gradients)
         if !haskey(ad_kwargs, :compile)
-            ad_kwargs = merge(ad_kwargs, (compile = true,))
+            ad_kwargs = merge(ad_kwargs, (compile = false,))
         end
     elseif ad_type == AutoMooncake
         # Mooncake is fast after warmup, warn about first run

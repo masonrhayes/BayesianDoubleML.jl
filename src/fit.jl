@@ -181,7 +181,7 @@ Configure KLMinRepGradProxDescent for MeanField families.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{MeanField}, use_subsample::Bool, batch_size::Int, n::Int)
     ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
+        (; compile = false)
     else
         (;)
     end
@@ -211,7 +211,7 @@ Uses Adam optimizer which can work better with low-rank structure than DoWG.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{LowRank}, use_subsample::Bool, batch_size::Int, n::Int)
     ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
+        (; compile = false)
     else
         (;)
     end
@@ -246,7 +246,7 @@ This can be more stable than reparameterization gradient for some problems.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{LowRankScore}, use_subsample::Bool, batch_size::Int, n::Int)
     ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
+        (; compile = false)
     else
         (;)
     end
@@ -397,7 +397,7 @@ function _fit_impl(
     # Configure AD backend
     ad_kwargs = (;)
     if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
     elseif method.ad_backend == AutoMooncake
         @info "Using AutoMooncake. First run(s) compile differentiation rules."
     end
@@ -502,7 +502,7 @@ function _fit_impl(
     # Configure AD
     ad_kwargs = (;)
     if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
     end
 
     prob_ad = LogDensityProblemsAD.ADgradient(method.ad_backend(; ad_kwargs...), vi_model)
@@ -592,25 +592,22 @@ function _fit_impl(
     # Configure AD
     ad_kwargs = (;)
     if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
     elseif method.ad_backend == AutoMooncake
         @info "Using AutoMooncake AD backend. Note: May require more compliation time, at the benefit of much faster fitting."
     end
 
     ad_backend = method.ad_backend(; ad_kwargs...)
 
-    # Initialize variational distribution
-    q_init = Variational.q_meanfield_gaussian(turing_model)
-
-    # Run VI
+    # Run VI using Turing 0.46+ API: pass q_meanfield_gaussian as a function
     q_result = vi(
-        turing_model, q_init, n_iterations;
+        turing_model, Variational.q_meanfield_gaussian, n_iterations;
         show_progress = show_progress,
         adtype = ad_backend
     )
 
-    q = q_result[1]
-    stats_vi = q_result[2]
+    q = q_result.q
+    stats_vi = q_result.info
 
     # Extract ELBO history
     elbo_history = Float64[-1.0]
@@ -620,12 +617,13 @@ function _fit_impl(
     final_elbo = length(elbo_history) > 0 ? elbo_history[end] : -1.0
     converged = true
 
-    # Draw samples
-    vi_samples = rand(q, n_draws)
+    # Draw constrained samples as VarNamedTuples (Turing 0.46+)
+    vnt_samples = rand(q_result, n_draws)
 
-    # Extract alpha
-    p = ncovariates(model)
-    α_s_samples = extract_alpha(vi_samples, p, :basic)
+    # Extract alpha from constrained VNT samples: α = (2ρ_raw - 1) * σ_U / σ_V
+    α_s_samples = Float64[
+        (2 * vnt.data.ρ_raw - 1) * vnt.data.σ_U / vnt.data.σ_V for vnt in vnt_samples
+    ]
 
     # Transform back
     scaling_factor = model.stats.Y_sd / model.stats.D_sd
@@ -653,21 +651,20 @@ function _fit_impl(
     # Configure AD
     ad_kwargs = (;)
     if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
     end
 
     ad_backend = method.ad_backend(; ad_kwargs...)
 
-    q_init = Variational.q_meanfield_gaussian(turing_model)
-
+    # Run VI using Turing 0.46+ API: pass q_meanfield_gaussian as a function
     q_result = vi(
-        turing_model, q_init, n_iterations;
+        turing_model, Variational.q_meanfield_gaussian, n_iterations;
         show_progress = show_progress,
         adtype = ad_backend
     )
 
-    q = q_result[1]
-    stats_vi = q_result[2]
+    q = q_result.q
+    stats_vi = q_result.info
 
     elbo_history = Float64[-1.0]
     if !isempty(stats_vi) && hasproperty(stats_vi[1], :elbo)
@@ -686,11 +683,13 @@ function _fit_impl(
 
     @info "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
 
-    vi_samples = rand(q, n_draws)
+    # Draw constrained samples as VarNamedTuples (Turing 0.46+)
+    vnt_samples = rand(q_result, n_draws)
 
-    # Extract alpha for hierarchical
-    p = ncovariates(model)
-    α_s_samples = extract_alpha(vi_samples, p, :hier)
+    # Extract alpha from constrained VNT samples: α = (2ρ_raw - 1) * σ_U / σ_V
+    α_s_samples = Float64[
+        (2 * vnt.data.ρ_raw - 1) * vnt.data.σ_U / vnt.data.σ_V for vnt in vnt_samples
+    ]
 
     scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor

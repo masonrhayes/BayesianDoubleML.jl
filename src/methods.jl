@@ -237,7 +237,7 @@ UnifiedVI()        # Backwards-compatible alias (defaults to MeanField)
 ```
 
 # AD Backend Options
-- `AutoReverseDiff` (default): Most stable, tape compilation, no warmup needed
+- `AutoReverseDiff` (default): Most stable, no warmup needed (compile=false required by AdvancedVI >= 0.7)
 - `AutoMooncake`: 5-10x faster after warmup, requires compilation
 - `AutoZygote`: Source-to-source, higher memory usage
 - `AutoForwardDiff`: Forward-mode, good for small p

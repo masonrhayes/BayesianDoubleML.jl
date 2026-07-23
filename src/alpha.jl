@@ -1,7 +1,7 @@
-"""
-    extract_alpha(chain::MCMCChains.Chains)
+raw"""
+    extract_alpha(chain::FlexiChains.VNChain)
 
-Extract ``\\alpha`` samples from MCMC chain using the paper's transformation ``(Eq. 15)``.
+Extract ``\alpha`` samples from MCMC chain using the paper's transformation ``(Eq. 15)``.
 
 # Mathematical Derivation (DiTraglia & Liu 2025)
 
@@ -35,37 +35,25 @@ This function extracts ``\\sigma_U``, ``\\sigma_V``, and ``\\rho`` from the MCMC
     ``\\alpha = \\rho \\cdot \\sigma_U / \\sigma_V``
 
 # Arguments
-- `chain::MCMCChains.Chains`: MCMC chain containing posterior samples
+- `chain::FlexiChains.VNChain`: MCMC chain containing posterior samples
 
 # Returns
 - `Vector{Float64}`: Posterior samples of ``\\alpha``
 
 # References
-- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
+- DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for
   Causal Inference", arXiv:2508.12688v1, Section 4, Equation 15.
 """
-function extract_alpha(chain::MCMCChains.Chains)
+function extract_alpha(chain::FlexiChains.VNChain)
     σ_U_samples = vec(Array(chain[:σ_U]))
     σ_V_samples = vec(Array(chain[:σ_V]))
 
-    # Extract correlation from LKJCholesky factor
-    # The chain stores R_chol.L components as R_chol.L[1, 1], R_chol.L[2, 1], etc.
-    # Note: The variable names have spaces in them!
-
-    n_samples = length(σ_U_samples)
-
-    # Get L[1,1] and L[2,1] - note the spaces in the variable names!
-    L_11 = vec(Array(chain[Symbol("R_chol.L[1, 1]")]))
-    L_21 = vec(Array(chain[Symbol("R_chol.L[2, 1]")]))
-
-    # ρ = L[2,1] / L[1,1] (for correlation matrices, L[1,1] = 1)
-    ρ_samples = L_21 ./ L_11
+    # Extract correlation from LKJCholesky factor via structure-preserving indexing
+    R_chol_samples = vec(Array(chain[:R_chol]))
+    ρ_samples = map(c -> c.L[2, 1] / c.L[1, 1], R_chol_samples)
 
     # Compute alpha using Equation 15: α = ρ * σ_U / σ_V
-    α_samples = Vector{Float64}(undef, n_samples)
-    for i in 1:n_samples
-        α_samples[i] = ρ_samples[i] * σ_U_samples[i] / σ_V_samples[i]
-    end
+    α_samples = ρ_samples .* σ_U_samples ./ σ_V_samples
 
     return α_samples
 end

@@ -50,7 +50,7 @@ This is the unified VI implementation that:
 
 **AutoReverseDiff** (Default)
 - Most stable across all use cases
-- Tape compilation with `compile=true` (automatically set)
+- Uses `compile=false` (required by AdvancedVI >= 0.7)
 - No warmup required
 - Good performance for all model sizes
 

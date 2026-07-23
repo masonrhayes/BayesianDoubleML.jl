@@ -8,6 +8,7 @@ using Random
 using Statistics
 using CSV
 using DataFrames
+using Mooncake
 
 # ============================================================================
 # Shared Data Loading Utility

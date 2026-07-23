@@ -30,11 +30,11 @@ For large datasets (n > 10,000), consider using `fit_bdml_vi_subsampled()` inste
 
 # AD Backend Options
 - `AutoMooncake`: **Default and recommended**. Reverse-mode AD with rule compilation.
-  - **⚠️ Requires warmup**: First few runs compile differntiation rules.
+  - **⚠️ Requires warmup**: First few runs compile differentiation rules.
   - After warmup, typically 5-10x faster than ReverseDiff
   - No additional kwargs needed
 - `AutoReverseDiff`: Reverse-mode AD with tape compilation
-  - `ad_kwargs=(compile=true,)`: Compile tape for faster repeated evaluations
+  - `ad_kwargs=(compile=false,)`: Required by AdvancedVI >= 0.7
   - Good if you need consistent performance without warmup
 - `AutoForwardDiff`: Forward-mode AD, good for small models
   - `ad_kwargs=(chunksize=0,)`: Chunk size for forward mode (0=automatic)
@@ -54,7 +54,7 @@ result_warmup = fit_bdml_vi(Y, D, X; n_vi_iterations=50)  # Compile rules
 result = fit_bdml_vi(Y, D, X; n_vi_iterations=1000)       # Fast execution
 
 # AutoReverseDiff without warmup needed
-result = fit_bdml_vi(Y, D, X; ad_type=AutoReverseDiff, ad_kwargs=(compile=true,))
+result = fit_bdml_vi(Y, D, X; ad_type=AutoReverseDiff, ad_kwargs=(compile=false,))
 
 # AutoForwardDiff for small models
 result = fit_bdml_vi(Y, D, X; ad_type=AutoForwardDiff)
@@ -101,9 +101,9 @@ function fit_bdml_vi_simple_legacy(
     end
 
     # Construct AD backend with user-provided kwargs
-    # Handle default compile=true for AutoReverseDiff
+    # AdvancedVI >= 0.7 requires compile=false for ReverseDiff
     if ad_type == AutoReverseDiff && !haskey(ad_kwargs, :compile)
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
+        ad_kwargs = merge(ad_kwargs, (compile = false,))
     end
 
     # Warning for Mooncake about warmup requirements

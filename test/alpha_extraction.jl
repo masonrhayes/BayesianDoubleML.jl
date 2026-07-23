@@ -6,6 +6,7 @@ using BayesianDoubleML
 using Test
 using Random
 using Statistics
+using Mooncake
 
 # Load test utilities
 include("utils.jl")
