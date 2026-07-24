@@ -6,7 +6,7 @@
 #
 # The actual implementation dispatches on both:
 # 1. Model type (BDMLBasicModel vs BDMLHierarchicalModel)
-# 2. Inference method (MCMCMethod vs UnifiedVIMethod vs SimpleVIMethod)
+# 2. Inference method (MCMCMethod, UnifiedVIMethod, SimpleVIMethod, or VMPMethod)
 
 export fit!
 
@@ -66,6 +66,8 @@ The actual implementation dispatches on both model and method:
 - `_fit_impl(::BDMLHierarchicalModel, ::UnifiedVIMethod)` - Hierarchical VI (Unified)
 - `_fit_impl(::BDMLBasicModel, ::SimpleVIMethod)` - Basic model VI (Simple)
 - `_fit_impl(::BDMLHierarchicalModel, ::SimpleVIMethod)` - Hierarchical VI (Simple)
+- `_fit_impl(::BDMLBasicModel, ::VMPMethod)` - Basic conjugate VMP (RxInfer extension)
+- `_fit_impl(::BDMLHierarchicalModel, ::VMPMethod)` - Hierarchical conjugate VMP (RxInfer extension)
 
 See also: [`BDMLModel`](@ref), [`MCMCMethod`](@ref), [`UnifiedVIMethod`](@ref), [`isfitted`](@ref)
 """
@@ -104,6 +106,14 @@ end
 # Error fallback for unimplemented combinations
 function _fit_impl(model::AbstractBDMLModel, method::AbstractInferenceMethod; kwargs...)
     error("No fit implementation defined for model type $(typeof(model)) with method $(typeof(method))")
+end
+
+# VMP requires the RxInfer extension (loaded via `using RxInfer`)
+function _fit_impl(model::AbstractBDMLModel, method::VMPMethod; kwargs...)
+    return error(
+        "VMPMethod requires RxInfer.jl. Load it with `using RxInfer` to activate " *
+            "the BayesianDoubleMLRxInferExt extension, then call fit! again."
+    )
 end
 
 # Variational family initialization

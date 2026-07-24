@@ -110,6 +110,8 @@ function print_method_info(io::IO, result::BDMLVIResult)
     if result.vi_method == :simple
         # Simple VI only supports Mean-Field Gaussian
         @printf io "  Method:           Simple VI (Mean-Field Gaussian)\n"
+    elseif result.vi_method == :vmp
+        @printf io "  Method:           VMP (Conjugate Inverse-Wishart)\n"
     else
         # Unified VI supports multiple families
         vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :

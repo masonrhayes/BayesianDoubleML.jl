@@ -4,7 +4,8 @@
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://masonrhayes.github.io/BayesianDoubleML.jl/dev/)
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
 
-Bayesian inference for Double Machine Learning with MCMC and Variational Inference.
+Bayesian inference for Double Machine Learning with MCMC, gradient-based VI,
+and conjugate Variational Message Passing.
 
 Implements [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
 
@@ -13,6 +14,7 @@ Implements [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorit
 - **MCMC**: NUTS sampler for inference using MCMC
 - **VI**: Fast approximate inference with multiple AD backends
   - **Automatic subsampling with VI**: For large datasets (n > 10,000)
+- **VMP**: Tuning-free conjugate inference with RxInfer.jl (optional extension)
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
 
 ## Installation
@@ -77,6 +79,22 @@ fit!(model, SimpleVI(; ad_backend = AutoMooncake))
 fit!(model, LowRankVI(10))
 ```
 
+**VMP (optional RxInfer extension):**
+
+```julia
+using Pkg
+Pkg.add("RxInfer")
+
+using RxInfer  # activates BayesianDoubleMLRxInferExt
+fit!(model, VMP(); n_iterations = 50)
+```
+
+VMP replaces the LKJ + Half-Cauchy covariance prior with the conjugate
+`InverseWishart(ν₀, S₀)` prior used in the paper's theoretical specification
+(Equation 19). The fixed and hierarchical coefficient priors retain their
+existing interpretations. Configure the covariance prior with `ν0` and `S0`
+keywords to `fit!`.
+
 ### Results
 
 ```julia
@@ -104,6 +122,7 @@ coeftable(model)
 | `SimpleVI()`      | Turing's native VI         |
 | `MeanFieldVI()`   | Mean-field VI (AdvancedVI) |
 | `LowRankVI(rank)` | Low-rank VI (AdvancedVi)   |
+| `VMP()`           | Conjugate VMP (RxInfer)     |
 
 ### StatsAPI Functions
 
@@ -127,6 +146,13 @@ coeftable(model)
 
 - Fixed variance priors
 - Coverage: ~91-93%
+
+**Conjugate VMP** (`VMP()` with either model type):
+
+- Full-rank multivariate-normal marginals for reduced-form coefficients
+- Full Inverse-Wishart marginal for the bivariate error covariance
+- Causal-effect draws use `α = Σ₁₂ / Σ₂₂`
+- Requires loading the optional `RxInfer.jl` dependency
 
 ## References
 

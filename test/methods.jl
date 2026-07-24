@@ -1,5 +1,5 @@
 # Inference Methods Tests
-# Tests for MCMCMethod, UnifiedVIMethod, SimpleVIMethod constructors and traits
+# Tests for MCMCMethod, UnifiedVIMethod, SimpleVIMethod, and VMPMethod
 
 using BayesianDoubleML
 using Test
@@ -89,12 +89,19 @@ end
     @test simple.ad_backend == AutoMooncake
 end
 
+@testset "VMPMethod Constructor" begin
+    method = VMPMethod()
+    @test method isa VMPMethod
+    @test VMP() isa VMPMethod
+end
+
 @testset "Method Traits - uses_sampling" begin
     # All methods use sampling
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
     @test BayesianDoubleML.uses_sampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.uses_sampling(SimpleVIMethod()) == true
+    @test BayesianDoubleML.uses_sampling(VMPMethod()) == true
 end
 
 @testset "Method Traits - supports_subsampling" begin
@@ -102,6 +109,7 @@ end
     @test BayesianDoubleML.supports_subsampling(MCMCMethod(:nuts)) == false
     @test BayesianDoubleML.supports_subsampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.supports_subsampling(SimpleVIMethod()) == false
+    @test BayesianDoubleML.supports_subsampling(VMPMethod()) == false
 end
 
 @testset "Method Traits - is_deterministic" begin
@@ -109,6 +117,7 @@ end
     @test BayesianDoubleML.is_deterministic(MCMCMethod(:nuts)) == false
     @test BayesianDoubleML.is_deterministic(UnifiedVIMethod()) == false
     @test BayesianDoubleML.is_deterministic(SimpleVIMethod()) == false
+    @test BayesianDoubleML.is_deterministic(VMPMethod()) == false
 end
 
 @testset "Method Traits - default_n_samples" begin
@@ -116,6 +125,7 @@ end
     @test BayesianDoubleML.default_n_samples(MCMCMethod(:nuts)) == 2000
     @test BayesianDoubleML.default_n_samples(UnifiedVIMethod()) == 2000
     @test BayesianDoubleML.default_n_samples(SimpleVIMethod()) == 2000
+    @test BayesianDoubleML.default_n_samples(VMPMethod()) == 2000
 end
 
 @testset "Method Traits - default_n_iterations" begin
@@ -123,6 +133,7 @@ end
     @test BayesianDoubleML.default_n_iterations(MCMCMethod(:nuts)) == 1000
     @test BayesianDoubleML.default_n_iterations(UnifiedVIMethod()) == 1000
     @test BayesianDoubleML.default_n_iterations(SimpleVIMethod()) == 1000
+    @test BayesianDoubleML.default_n_iterations(VMPMethod()) == 50
 end
 
 @testset "Method Type Stability" begin
@@ -136,4 +147,6 @@ end
 
     method_simple = SimpleVI()
     @test typeof(method_simple) == SimpleVIMethod
+
+    @test typeof(VMP()) == VMPMethod
 end

@@ -290,7 +290,8 @@ end
 # Pretty printing for BDMLVIResult using coeftable
 function Base.show(io::IO, r::BDMLVIResult)
     # First show the basic info with method type
-    method_name = r.vi_method == :simple ? "SimpleVI" : "UnifiedVI"
+    method_name = r.vi_method == :simple ? "SimpleVI" :
+        r.vi_method == :vmp ? "VMP" : "UnifiedVI"
     println(io, "BDMLVIResult ($(r.model_type), $(method_name), $(r.variational_family))")
 
     # Then show the coeftable

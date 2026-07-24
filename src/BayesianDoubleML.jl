@@ -5,8 +5,8 @@ using StatsAPI
 # Core exports - dispatch-based API with mutating fit!
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
-    AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod,
-    MCMCNUTS, UnifiedVI, SimpleVI,
+    AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod, VMPMethod,
+    MCMCNUTS, UnifiedVI, SimpleVI, VMP,
     # Variational families
     AbstractVariationalFamily, MeanField, LowRank, LowRankScore,
     MeanFieldVI, LowRankVI, LowRankScoreVI,

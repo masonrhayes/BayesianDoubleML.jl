@@ -33,6 +33,9 @@ end
 @safetestset "VI (Unified and Simple)" begin
     include("vi.jl")
 end
+@safetestset "VMP (RxInfer)" begin
+    include("vmp.jl")
+end
 
 # Phase 3: Feature tests (smoke tests only for CI)
 # Extended tests available in test/extended/
