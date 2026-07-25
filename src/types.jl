@@ -157,9 +157,9 @@ end
 
 Results from Variational Message Passing (VMP) inference.
 
-Stores a conjugate posterior with backend-neutral accessors and honest
-diagnostic metadata.  The `diagnostic_history` field meaning depends on the
-backend (actual ELBO for RxInfer, parameter-change trace for manual).
+Stores a conjugate posterior with backend-neutral accessors and diagnostic
+metadata.  The `diagnostic_history` field contains the ELBO trace for both
+supported VMP backends.
 
 # Fields
 - `posterior::P`: Posterior distribution container (NamedTuple of Distributions)
@@ -170,10 +170,10 @@ backend (actual ELBO for RxInfer, parameter-change trace for manual).
 - `backend::Symbol`: :rxinfer or :manual_coordinate_ascent
 - `n_iterations::Int`: Number of optimization iterations requested
 - `actual_iterations::Int`: Number of iterations actually performed
-- `diagnostic_history::Vector{Float64}`: Backend-specific diagnostic trace
+- `diagnostic_history::Vector{Float64}`: ELBO diagnostic trace
 - `converged::Bool`: Whether convergence criteria were met
 - `final_diagnostic::Float64`: Final diagnostic value
-- `diagnostic_kind::Symbol`: :elbo or :parameter_change
+- `diagnostic_kind::Symbol`: :elbo, :negative_bethe_free_energy, or :parameter_change
 
 # Usage
 ```julia

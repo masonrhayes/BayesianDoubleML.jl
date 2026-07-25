@@ -93,7 +93,7 @@ end
     method = VMPMethod()
     @test method isa VMPMethod
     @test VMP() isa VMPMethod
-    @test method.backend isa RxInferVMP
+    @test method.backend isa ManualCoordinateAscentVMP
 
     method_manual = VMPMethod(; backend = ManualCoordinateAscentVMP())
     @test method_manual isa VMPMethod

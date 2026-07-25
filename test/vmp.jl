@@ -21,7 +21,7 @@ end
         @test isfitted(model)
         @test model.result isa BDMLVMPResult
         @test model.result.backend == :rxinfer
-        @test model.result.diagnostic_kind == :elbo
+        @test model.result.diagnostic_kind == :negative_bethe_free_energy
         @test model.result.n_iterations == 50
         @test length(model.result.alpha_samples) == 300
         @test all(isfinite, model.result.alpha_samples)
@@ -69,11 +69,12 @@ end
         @test isfitted(model)
         @test model.result isa BDMLVMPResult
         @test model.result.backend == :manual_coordinate_ascent
-        @test model.result.diagnostic_kind == :parameter_change
+        @test model.result.diagnostic_kind == :elbo
         @test all(isfinite, model.result.alpha_samples)
         @test abs(mean(model.result.alpha_samples) - 2.0) < 0.5
         @test length(model.result.diagnostic_history) == 50
         @test all(isfinite, model.result.diagnostic_history)
+        @test model.result.diagnostic_history[end] > model.result.diagnostic_history[1]
         @test all(k -> haskey(model.result.posterior, k), (:δ, :γ, :Σ))
     end
 end
@@ -161,6 +162,7 @@ end
     model_rx = BDMLModel(df, :y, :d; model_type = :basic)
     fit!(model_rx, VMP(; backend = RxInferVMP()); n_iterations = 10, n_draws = 50, rng = Xoshiro(1))
     @test occursin("VMP", sprint(summary, model_rx.result))
+    @test occursin("Negative Bethe Free Energy", sprint(summary, model_rx.result))
 
     model_man = BDMLModel(df, :y, :d; model_type = :basic)
     fit!(model_man, VMP(; backend = ManualCoordinateAscentVMP()); n_iterations = 10, n_draws = 50, rng = Xoshiro(1))

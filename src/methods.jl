@@ -514,7 +514,7 @@ variational message updates are available in closed form:
 # Constructor
 ```julia
 VMPMethod(;
-    backend = RxInferVMP(),
+    backend = ManualCoordinateAscentVMP(),
     ν0 = 4.0,
     S0 = nothing,
     aτ = 2.0,
@@ -523,7 +523,7 @@ VMPMethod(;
 ```
 
 # Arguments
-- `backend::AbstractVMPBackend`: VMP backend. Defaults to `RxInferVMP()`.
+- `backend::AbstractVMPBackend`: VMP backend. Defaults to `ManualCoordinateAscentVMP()`.
 - `ν0::Real=4.0`: Inverse-Wishart prior degrees of freedom (must exceed 3).
 - `S0::Union{Nothing,AbstractMatrix}=nothing`: Inverse-Wishart scale matrix (2×2).
 - `aτ::Real=2.0`, `bτ::Real=0.5`: Gamma hyperprior shape/scale on coefficient
@@ -531,9 +531,14 @@ VMPMethod(;
 
 # Examples
 ```julia
-using RxInfer  # activates the extension
 model = BDMLModel(df, :y, :d; model_type = :hier)
 fit!(model, VMP(); n_iterations = 50)
+```
+
+To use the RxInfer backend instead, load the extension first:
+```julia
+using RxInfer
+fit!(model, VMP(; backend = RxInferVMP()); n_iterations = 50)
 ```
 
 See also: [`VMP`](@ref), [`RxInferVMP`](@ref), [`ManualCoordinateAscentVMP`](@ref)
@@ -547,7 +552,7 @@ struct VMPMethod{B <: AbstractVMPBackend} <: AbstractInferenceMethod
 end
 
 function VMPMethod(;
-        backend::AbstractVMPBackend = RxInferVMP(),
+        backend::AbstractVMPBackend = ManualCoordinateAscentVMP(),
         ν0::Real = 4.0,
         S0::Union{Nothing, AbstractMatrix} = nothing,
         aτ::Real = 2.0,
@@ -576,9 +581,9 @@ end
 
 Convenience constructor for `VMPMethod(; kwargs...)`.
 
-Defaults to the `RxInferVMP()` backend. When RxInfer.jl is not loaded,
-`fit!` with the default backend raises an informative error; the manual
-backend works without any optional dependency.
+Defaults to the `ManualCoordinateAscentVMP()` backend, which works without
+any optional dependency. To use the `RxInferVMP()` backend instead, load
+`RxInfer.jl` and pass `backend = RxInferVMP()`.
 
 See [`VMPMethod`](@ref) for full documentation.
 """

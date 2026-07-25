@@ -34,9 +34,7 @@ println(output)
 
 See also: [`coeftable`](@ref) for tabular coefficient output
 """
-function Base.summary(result::AbstractBDMLResult)
-    io = IOBuffer()
-
+function Base.summary(io::IO, result::AbstractBDMLResult)
     # Title
     print_title_box(io)
 
@@ -76,9 +74,11 @@ function Base.summary(result::AbstractBDMLResult)
     # Convergence summary
     print_convergence_summary(io, result)
 
-    output = String(take!(io))
-    print(output)
     return nothing
+end
+
+function Base.summary(result::AbstractBDMLResult)
+    return Base.summary(stdout, result)
 end
 
 function print_title_box(io::IO)
@@ -205,16 +205,22 @@ function print_mcmc_diagnostics(io::IO, result::BDMLMCMCResult)
     end
 end
 
+function vmp_diagnostic_label(kind::Symbol)
+    kind === :elbo && return "ELBO"
+    kind === :negative_bethe_free_energy && return "Negative Bethe Free Energy"
+    return "Parameter Change"
+end
+
 function print_vmp_diagnostics(io::IO, result::BDMLVMPResult)
-    kind_str = result.diagnostic_kind == :elbo ? "ELBO" : "Parameter Change"
-    @printf io "  Final Diagnostic: %.2f (%s)\n" result.final_diagnostic kind_str
+    kind_str = vmp_diagnostic_label(result.diagnostic_kind)
+    @printf io "  %-21s %.2f\n" "Final $(kind_str):" result.final_diagnostic
     @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
     return if !isempty(result.diagnostic_history)
         n_iters = length(result.diagnostic_history)
         diag_start = result.diagnostic_history[1]
         diag_end = result.diagnostic_history[end]
         improvement = diag_end - diag_start
-        @printf io "  Diagnostic Improvement: %.2f (%.1f%%)\n" improvement (100 * improvement / abs(diag_start))
+        @printf io "  %-21s %.2f (%.1f%%)\n" "$(kind_str) Improvement:" improvement (100 * improvement / abs(diag_start))
     end
 end
 
@@ -328,7 +334,12 @@ fit!(model)
 summary(model)
 ```
 """
+function Base.summary(io::IO, model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    return Base.summary(io, model.result)
+end
+
 function Base.summary(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
-    return Base.summary(model.result)
+    return Base.summary(stdout, model)
 end

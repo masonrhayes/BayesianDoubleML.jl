@@ -110,13 +110,13 @@ end
 
 # VMP routing via backend dispatch
 function _fit_impl(model::AbstractBDMLModel, method::VMPMethod; kwargs...)
-    return _fit_vmp(method.backend, model, method; kwargs...)
+    return _fit_vmp(model, method; kwargs...)
 end
 
 # Fallback when a backend extension is not loaded
-function _fit_vmp(backend::AbstractVMPBackend, model::AbstractBDMLModel, method::VMPMethod; kwargs...)
+function _fit_vmp(model::AbstractBDMLModel, method::VMPMethod; kwargs...)
     return error(
-        "VMP backend $(typeof(backend)) is not available. " *
+        "VMP backend $(typeof(method.backend)) is not available. " *
         "Load the required extension (e.g., `using RxInfer`) and try again."
     )
 end

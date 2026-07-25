@@ -110,10 +110,9 @@ end
 # Fitting
 # ---------------------------------------------------------------------------
 
-function BayesianDoubleML._fit_vmp(
-        ::BayesianDoubleML.RxInferVMP,
+function _fit_vmp_rxinfer(
         model::BayesianDoubleML.AbstractBDMLModel,
-        method::BayesianDoubleML.VMPMethod;
+        method::BayesianDoubleML.VMPMethod{BayesianDoubleML.RxInferVMP};
         n_iterations::Int = 50,
         n_draws::Int = 2000,
         rng::AbstractRNG = Random.default_rng(),
@@ -175,20 +174,21 @@ function BayesianDoubleML._fit_vmp(
         )
     end
 
-    # Bethe Free Energy decreases to a minimum; ELBO = -BFE
+    # Bethe Free Energy decreases to a minimum. Store its negation only as a
+    # higher-is-better convergence trace; it is not the global mean-field ELBO.
     bfe_history = Float64.(collect(result.free_energy))
-    elbo_history = -bfe_history
-    final_elbo = isempty(elbo_history) ? -Inf : elbo_history[end]
+    negative_bfe_history = -bfe_history
+    final_negative_bfe = isempty(negative_bfe_history) ? -Inf : negative_bfe_history[end]
 
     converged, conv_msg = BayesianDoubleML.check_elbo_convergence(
-        elbo_history;
+        negative_bfe_history;
         min_pct = 0.3,
         rel_tol = 0.05,
         check_trend = true,
         min_iterations = min(50, max(10, n_iterations ÷ 2)),
         verbose = false,
     )
-    @info "VMP convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
+    @info "VMP convergence" converged = converged message = conv_msg n_iterations = length(negative_bfe_history)
 
     # Causal effect posterior (Algorithm 1, Eq. 15): α⁽ˢ⁾ = Σ₁₂⁽ˢ⁾/Σ₂₂⁽ˢ⁾
     qΣ = result.posteriors[:Σ]
@@ -224,12 +224,28 @@ function BayesianDoubleML._fit_vmp(
         hierarchical ? :hier : :basic,
         :rxinfer,
         n_iterations,
-        length(elbo_history),
-        elbo_history,
+        length(negative_bfe_history),
+        negative_bfe_history,
         converged,
-        final_elbo,
-        :elbo,
+        final_negative_bfe,
+        :negative_bethe_free_energy,
     )
+end
+
+function BayesianDoubleML._fit_vmp(
+        model::BayesianDoubleML.BDMLBasicModel,
+        method::BayesianDoubleML.VMPMethod{BayesianDoubleML.RxInferVMP};
+        kwargs...
+    )
+    return _fit_vmp_rxinfer(model, method; kwargs...)
+end
+
+function BayesianDoubleML._fit_vmp(
+        model::BayesianDoubleML.BDMLHierarchicalModel,
+        method::BayesianDoubleML.VMPMethod{BayesianDoubleML.RxInferVMP};
+        kwargs...
+    )
+    return _fit_vmp_rxinfer(model, method; kwargs...)
 end
 
 end # module
