@@ -33,14 +33,9 @@ using LinearAlgebra
 using Statistics
 using Random
 
+
 # ---------------------------------------------------------------------------
 # Model specification
-#
-# The bivariate mean of W_i is assembled without stacking random scalars by
-# using constant 2×p design matrices:
-#   Cδ[i] = [x_i'; 0'],  Cγ[i] = [0'; x_i']  =>  Cδ[i]·δ + Cγ[i]·γ = [x_i'δ; x_i'γ]
-# This uses only verified rules: matrix(PointMass) × vector(MvNormal) products
-# and multivariate normal addition.
 # ---------------------------------------------------------------------------
 
 @model function bdml_vmp(W, Cδ, Cγ, p, hierarchical, ν0, S0, aτ, bτ)
@@ -62,8 +57,6 @@ using Random
     end
 end
 
-# Mean-field constraints across blocks (within-block structure preserved:
-# q(δ), q(γ) full-rank MvNormal, q(Σ) full Inverse-Wishart)
 const vmp_constraints_hier = @constraints begin
     q(μ, Σ) = q(μ)q(Σ)
     q(ηδ, ηγ) = q(ηδ)q(ηγ)
@@ -76,8 +69,7 @@ const vmp_constraints_basic = @constraints begin
     q(ηδ, ηγ) = q(ηδ)q(ηγ)
 end
 
-# Initialization (breaks VMP dependency loops; follows RxInfer's iid-covariance idiom)
-@initialization function bdml_vmp_init_hier(p)
+@initialization function bdml_vmp_init_hier(p, aτ, bτ)
     q(δ) = vague(MvNormalMeanCovariance, p)
     q(γ) = vague(MvNormalMeanCovariance, p)
     μ(δ) = vague(MvNormalMeanCovariance, p)
@@ -86,8 +78,8 @@ end
     q(ηδ) = vague(MvNormalMeanCovariance, 2)
     q(ηγ) = vague(MvNormalMeanCovariance, 2)
     q(μ) = vague(MvNormalMeanCovariance, 2)
-    q(τ_δ) = GammaShapeRate(2.0, 2.0)
-    q(τ_γ) = GammaShapeRate(2.0, 2.0)
+    q(τ_δ) = GammaShapeRate(aτ, 1.0 / bτ)
+    q(τ_γ) = GammaShapeRate(aτ, 1.0 / bτ)
 end
 
 @initialization function bdml_vmp_init_basic(p)
@@ -105,13 +97,7 @@ end
 # Data preparation
 # ---------------------------------------------------------------------------
 
-"""
-    _vmp_design_mats(x::AbstractVector)
-
-Build the constant 2×p design matrices for one observation such that
-Cδ·δ + Cγ·γ = [x'δ; x'γ].
-"""
-function _vmp_design_mats(x::AbstractVector{Float64})
+function _vmp_design_mats(x::AbstractVector{<:Real})
     p = length(x)
     Cδ = zeros(2, p)
     Cδ[1, :] .= x
@@ -124,30 +110,29 @@ end
 # Fitting
 # ---------------------------------------------------------------------------
 
-function _fit_vmp(
-        model::BayesianDoubleML.AbstractBDMLModel, model_type::Symbol;
+function BayesianDoubleML._fit_vmp(
+        ::BayesianDoubleML.RxInferVMP,
+        model::BayesianDoubleML.AbstractBDMLModel,
+        method::BayesianDoubleML.VMPMethod;
         n_iterations::Int = 50,
         n_draws::Int = 2000,
-        ν0::Float64 = 4.0,
-        S0::Union{Nothing, AbstractMatrix} = nothing,
-        aτ::Float64 = 2.0,
-        bτ::Float64 = 0.5,
-        showprogress::Bool = false,
-        seed::Union{Nothing, Integer} = nothing,
-        limit_stack_depth::Union{Nothing, Int} = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        show_progress::Bool = false,
     )
+    hierarchical = model isa BayesianDoubleML.BDMLHierarchicalModel
     n = BayesianDoubleML.nobs(model)
     p = BayesianDoubleML.ncovariates(model)
-    hierarchical = model_type === :hier
 
     n_iterations > 0 || throw(ArgumentError("n_iterations must be positive"))
     n_draws > 0 || throw(ArgumentError("n_draws must be positive"))
-    ν0 > 3 || throw(ArgumentError("ν0 must exceed 3 so the 2×2 Inverse-Wishart prior has a finite mean"))
-    aτ > 0 || throw(ArgumentError("aτ must be positive"))
-    bτ > 0 || throw(ArgumentError("bτ must be positive"))
-    limit_stack_depth === nothing || limit_stack_depth > 0 || throw(ArgumentError("limit_stack_depth must be positive"))
 
-    # Auto-enable stack depth limiting for very large models to prevent StackOverflowError
+    ν0 = method.ν0
+    S0_mat = method.S0 === nothing ? Matrix{Float64}(I, 2, 2) : method.S0
+    aτ = method.aτ
+    bτ = method.bτ
+    limit_stack_depth = method.backend.limit_stack_depth
+
+    # Auto-enable stack depth limiting for very large models
     if limit_stack_depth === nothing && n > 2000
         limit_stack_depth = 200
     end
@@ -160,26 +145,20 @@ function _fit_vmp(
         Cδ[i], Cγ[i] = _vmp_design_mats(vec(model.X[i, :]))
     end
 
-    S0_mat = S0 === nothing ? Matrix{Float64}(I, 2, 2) : Matrix{Float64}(S0)
-    size(S0_mat) == (2, 2) || throw(ArgumentError("S0 must be a 2×2 matrix"))
-    issymmetric(S0_mat) || throw(ArgumentError("S0 must be symmetric"))
-    isposdef(Symmetric(S0_mat)) || throw(ArgumentError("S0 must be positive definite"))
-
     constraints = hierarchical ? vmp_constraints_hier : vmp_constraints_basic
-    init = hierarchical ? bdml_vmp_init_hier(p) : bdml_vmp_init_basic(p)
+    init = hierarchical ? bdml_vmp_init_hier(p, aτ, bτ) : bdml_vmp_init_basic(p)
     returnvars = if hierarchical
         (δ = KeepLast(), γ = KeepLast(), Σ = KeepLast(), τ_δ = KeepLast(), τ_γ = KeepLast())
     else
         (δ = KeepLast(), γ = KeepLast(), Σ = KeepLast())
     end
 
-    @info "BDML VMP (RxInfer): n=$n, p=$p, model_type=$model_type, iterations=$n_iterations"
+    @info "BDML VMP (RxInfer): n=$n, p=$p, model_type=$(hierarchical ? :hier : :basic), iterations=$n_iterations"
 
     options = limit_stack_depth === nothing ? nothing : (limit_stack_depth = limit_stack_depth,)
 
-    # ReactiveMP's Gaussian product messages can be microscopically
-    # non-symmetric before FastCholesky symmetrizes them internally. Suppress
-    # only that documented numerical warning; all RxInfer warnings remain.
+    # TODO: withenv modifies process-wide ENV and is not thread-safe.
+    # Replace with a task-local or library-level toggle when available.
     result = withenv("JULIA_FASTCHOLESKY_NO_WARN_NON_SYMMETRIC" => "1") do
         infer(
             model = bdml_vmp(
@@ -191,7 +170,7 @@ function _fit_vmp(
             iterations = n_iterations,
             returnvars = returnvars,
             free_energy = Float64,
-            showprogress = showprogress,
+            showprogress = show_progress,
             options = options,
         )
     end
@@ -213,7 +192,6 @@ function _fit_vmp(
 
     # Causal effect posterior (Algorithm 1, Eq. 15): α⁽ˢ⁾ = Σ₁₂⁽ˢ⁾/Σ₂₂⁽ˢ⁾
     qΣ = result.posteriors[:Σ]
-    rng = seed === nothing ? Random.default_rng() : Random.Xoshiro(seed)
     α_s_samples = Vector{Float64}(undef, n_draws)
     for s in 1:n_draws
         Σ_s = rand(rng, qΣ)
@@ -224,19 +202,34 @@ function _fit_vmp(
     scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
-    return BayesianDoubleML.BDMLVIResult(
-        result.posteriors, α_samples, α_s_samples, model.stats,
-        model_type, :structured, :vmp, n_iterations, elbo_history, converged, final_elbo
+    posterior = hierarchical ?
+        (
+            δ = result.posteriors[:δ],
+            γ = result.posteriors[:γ],
+            Σ = result.posteriors[:Σ],
+            τ_δ = result.posteriors[:τ_δ],
+            τ_γ = result.posteriors[:τ_γ],
+        ) :
+        (
+            δ = result.posteriors[:δ],
+            γ = result.posteriors[:γ],
+            Σ = result.posteriors[:Σ],
+        )
+
+    return BayesianDoubleML.BDMLVMPResult(
+        posterior,
+        α_samples,
+        α_s_samples,
+        model.stats,
+        hierarchical ? :hier : :basic,
+        :rxinfer,
+        n_iterations,
+        length(elbo_history),
+        elbo_history,
+        converged,
+        final_elbo,
+        :elbo,
     )
-end
-
-# Dispatch implementations (more specific than the informative-error fallback in fit.jl)
-function BayesianDoubleML._fit_impl(model::BayesianDoubleML.BDMLBasicModel, method::BayesianDoubleML.VMPMethod; kwargs...)
-    return _fit_vmp(model, :basic; kwargs...)
-end
-
-function BayesianDoubleML._fit_impl(model::BayesianDoubleML.BDMLHierarchicalModel, method::BayesianDoubleML.VMPMethod; kwargs...)
-    return _fit_vmp(model, :hier; kwargs...)
 end
 
 end # module

@@ -33,7 +33,10 @@ end
 @safetestset "VI (Unified and Simple)" begin
     include("vi.jl")
 end
-@safetestset "VMP (RxInfer)" begin
+@safetestset "VMP Manual without Extension" begin
+    include("vmp_manual_no_ext.jl")
+end
+@safetestset "VMP" begin
     include("vmp.jl")
 end
 

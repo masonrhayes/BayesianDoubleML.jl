@@ -108,11 +108,16 @@ function _fit_impl(model::AbstractBDMLModel, method::AbstractInferenceMethod; kw
     error("No fit implementation defined for model type $(typeof(model)) with method $(typeof(method))")
 end
 
-# VMP requires the RxInfer extension (loaded via `using RxInfer`)
+# VMP routing via backend dispatch
 function _fit_impl(model::AbstractBDMLModel, method::VMPMethod; kwargs...)
+    return _fit_vmp(method.backend, model, method; kwargs...)
+end
+
+# Fallback when a backend extension is not loaded
+function _fit_vmp(backend::AbstractVMPBackend, model::AbstractBDMLModel, method::VMPMethod; kwargs...)
     return error(
-        "VMPMethod requires RxInfer.jl. Load it with `using RxInfer` to activate " *
-            "the BayesianDoubleMLRxInferExt extension, then call fit! again."
+        "VMP backend $(typeof(backend)) is not available. " *
+        "Load the required extension (e.g., `using RxInfer`) and try again."
     )
 end
 

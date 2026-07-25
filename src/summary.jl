@@ -48,10 +48,17 @@ function Base.summary(result::AbstractBDMLResult)
     print_section_header(io, COLOR_GREEN, "Inference Method")
     print_method_info(io, result)
 
-    # Diagnostics (MCMC vs VI specific)
+    # Diagnostics (MCMC vs VI vs VMP specific)
     if result isa BDMLMCMCResult
         print_section_header(io, COLOR_MAGENTA, "MCMC Diagnostics")
         print_mcmc_diagnostics(io, result)
+    elseif result isa BDMLVMPResult
+        print_section_header(io, COLOR_MAGENTA, "VMP Diagnostics")
+        print_vmp_diagnostics(io, result)
+
+        if !isempty(result.diagnostic_history)
+            print_elbo_plot(io, result.diagnostic_history)
+        end
     elseif result isa BDMLVIResult
         print_section_header(io, COLOR_MAGENTA, "VI Diagnostics")
         print_vi_diagnostics(io, result)
@@ -103,6 +110,16 @@ end
 function print_method_info(io::IO, result::BDMLMCMCResult)
     @printf io "  Method:           %s\n" "NUTS (No-U-Turn Sampler)"
     return @printf io "  Samples:          %d\n" length(result.alpha_samples)
+end
+
+function print_method_info(io::IO, result::BDMLVMPResult)
+    if result.backend == :rxinfer
+        @printf io "  Method:           VMP (Conjugate Inverse-Wishart, RxInfer)\n"
+    else
+        @printf io "  Method:           VMP (Manual Coordinate Ascent)\n"
+    end
+    @printf io "  Iterations:       %d (requested %d)\n" result.actual_iterations result.n_iterations
+    return @printf io "  Samples Drawn:    %d\n" length(result.alpha_samples)
 end
 
 function print_method_info(io::IO, result::BDMLVIResult)
@@ -188,6 +205,19 @@ function print_mcmc_diagnostics(io::IO, result::BDMLMCMCResult)
     end
 end
 
+function print_vmp_diagnostics(io::IO, result::BDMLVMPResult)
+    kind_str = result.diagnostic_kind == :elbo ? "ELBO" : "Parameter Change"
+    @printf io "  Final Diagnostic: %.2f (%s)\n" result.final_diagnostic kind_str
+    @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
+    return if !isempty(result.diagnostic_history)
+        n_iters = length(result.diagnostic_history)
+        diag_start = result.diagnostic_history[1]
+        diag_end = result.diagnostic_history[end]
+        improvement = diag_end - diag_start
+        @printf io "  Diagnostic Improvement: %.2f (%.1f%%)\n" improvement (100 * improvement / abs(diag_start))
+    end
+end
+
 function print_vi_diagnostics(io::IO, result::BDMLVIResult)
     @printf io "  Final ELBO:       %.2f\n" result.final_elbo
     @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
@@ -263,13 +293,20 @@ end
 
 function print_convergence_summary(io::IO, result::AbstractBDMLResult)
     println(io, COLOR_BOLD, "─"^62, COLOR_RESET)
-    return if result isa BDMLVIResult
+    if result isa BDMLVMPResult
+        if result.converged
+            println(io, COLOR_GREEN, "✓ Diagnostics: VMP converged.", COLOR_RESET)
+        else
+            println(io, COLOR_YELLOW, "⚠ Diagnostics: VMP may not have converged.", COLOR_RESET)
+        end
+    elseif result isa BDMLVIResult
         if result.converged
             println(io, COLOR_GREEN, "✓ Diagnostics: ELBO converged.", COLOR_RESET)
         else
             println(io, COLOR_YELLOW, "⚠ Diagnostics: ELBO may not have converged.", COLOR_RESET)
         end
     end
+    return nothing
 end
 
 # Export summary function

@@ -440,75 +440,149 @@ See [`SimpleVIMethod`](@ref) for full documentation.
 """
 SimpleVI(; kwargs...) = SimpleVIMethod(; kwargs...)
 
-# VMP methods
+# VMP backend types
 
 """
-    VMPMethod <: AbstractInferenceMethod
+    AbstractVMPBackend
 
-Variational Message Passing (VMP) inference via RxInfer.jl (package extension).
+Abstract type for Variational Message Passing backends.
 
-This method uses a **conjugate reparameterization** of the BDML model so that
-all variational message updates are available in closed form:
+Subtypes define the engine used for closed-form VMP updates:
+- `RxInferVMP`: Uses the RxInfer.jl graph-based message passing (requires extension).
+- `ManualCoordinateAscentVMP`: Direct vectorized conjugate updates without graph construction.
+"""
+abstract type AbstractVMPBackend end
+
+"""
+    RxInferVMP <: AbstractVMPBackend
+
+VMP backend using RxInfer.jl (loaded via package extension).
+
+# Constructor
+```julia
+RxInferVMP(; limit_stack_depth = nothing)
+```
+
+# Arguments
+- `limit_stack_depth::Union{Nothing,Int}=nothing`: Recursion limit for large
+  models. Auto-defaults to `200` when `n > 2000` during `fit!`.
+"""
+struct RxInferVMP <: AbstractVMPBackend
+    limit_stack_depth::Union{Nothing, Int}
+end
+function RxInferVMP(; limit_stack_depth::Union{Nothing, Int} = nothing)
+    limit_stack_depth === nothing || limit_stack_depth > 0 || throw(ArgumentError("limit_stack_depth must be positive"))
+    return RxInferVMP(limit_stack_depth)
+end
+
+"""
+    ManualCoordinateAscentVMP <: AbstractVMPBackend
+
+VMP backend using closed-form manual coordinate ascent (sufficient-statistics form).
+
+No AD, no graph construction, and memory use is O(p²) after preprocessing.
+
+# Constructor
+```julia
+ManualCoordinateAscentVMP(; tolerance = 1.0e-8)
+```
+
+# Arguments
+- `tolerance::Real=1.0e-8`: Relative parameter-change threshold for early stopping.
+"""
+struct ManualCoordinateAscentVMP <: AbstractVMPBackend
+    tolerance::Float64
+end
+ManualCoordinateAscentVMP(; tolerance::Real = 1.0e-8) = ManualCoordinateAscentVMP(Float64(tolerance))
+
+# VMP method
+
+"""
+    VMPMethod{B<:AbstractVMPBackend} <: AbstractInferenceMethod
+
+Variational Message Passing (VMP) inference.
+
+Uses a **conjugate reparameterization** of the BDML model so that all
+variational message updates are available in closed form:
 
 - ``\\Sigma \\sim \\text{InverseWishart}(\\nu_0, S_0)`` replaces the LKJ(4) +
-  Half-Cauchy prior on the error covariance (this is exactly the prior the
-  paper uses for its asymptotic theory; DiTraglia & Liu 2025, Eq. 19).
+  Half-Cauchy prior on the error covariance (DiTraglia & Liu 2025, Eq. 19).
 - ``\\tau_\\delta, \\tau_\\gamma \\sim \\text{Gamma}(2, 1/2)`` on coefficient
   precisions (hierarchical variant; equivalent to ``\\text{InvGamma}(2,2)`` on
   the variances, preserving the paper's Student-``t(4)`` interpretation).
 
-Coefficient posteriors remain full-rank multivariate normals and the posterior
-for ``\\Sigma`` a full Inverse-Wishart; only cross-block independence is assumed.
-The causal effect is recovered exactly as in Algorithm 1: posterior draws
-``\\Sigma^{(s)} \\sim q^*(\\Sigma)`` give ``\\alpha^{(s)} = \\Sigma_{12}^{(s)}/\\Sigma_{22}^{(s)}``.
-
-# Availability
-Requires `RxInfer.jl` to be loaded by the user (weak dependency). Without it,
-`VMPMethod` can be constructed but `fit!` raises an informative error.
-
 # Constructor
 ```julia
-VMPMethod()   # or the convenience alias VMP()
+VMPMethod(;
+    backend = RxInferVMP(),
+    ν0 = 4.0,
+    S0 = nothing,
+    aτ = 2.0,
+    bτ = 0.5,
+)
 ```
+
+# Arguments
+- `backend::AbstractVMPBackend`: VMP backend. Defaults to `RxInferVMP()`.
+- `ν0::Real=4.0`: Inverse-Wishart prior degrees of freedom (must exceed 3).
+- `S0::Union{Nothing,AbstractMatrix}=nothing`: Inverse-Wishart scale matrix (2×2).
+- `aτ::Real=2.0`, `bτ::Real=0.5`: Gamma hyperprior shape/scale on coefficient
+  precisions (hierarchical model only).
 
 # Examples
 ```julia
 using RxInfer  # activates the extension
 model = BDMLModel(df, :y, :d; model_type = :hier)
 fit!(model, VMP(); n_iterations = 50)
-coeftable(model)
 ```
 
-# Keyword Arguments for `fit!`
-- `n_iterations::Int=50`: Number of VMP iterations.
-- `n_draws::Int=2000`: Posterior samples drawn after convergence.
-- `ν0::Float64=4.0`: Inverse-Wishart prior degrees of freedom (must exceed 3).
-- `S0::Union{Nothing,AbstractMatrix}=nothing`: Inverse-Wishart scale matrix (2×2).
-- `aτ::Float64=2.0`, `bτ::Float64=0.5`: Gamma hyperprior shape/scale on coefficient
-  precisions (hierarchical model only).
-- `seed::Union{Nothing,Integer}=nothing`: Random seed for posterior sampling.
-- `limit_stack_depth::Union{Nothing,Int}=nothing`: RxInfer recursion limit. Large
-  models (`n > 2000`) auto-default to `200` to avoid `StackOverflowError`. Set
-  explicitly if you need a different threshold.
-
-# Notes
-VMP optimization is deterministic (no AD, no step-size tuning) and typically
-converges in 20-50 iterations. Posterior draws can be reproduced with the
-`seed` keyword. Convergence is assessed from the Bethe Free Energy history
-(the negative ELBO). Hyperparameters ``\nu_0, S_0`` can be set via `fit!` kwargs.
-
-See also: [`MCMCNUTS`](@ref), [`UnifiedVI`](@ref)
+See also: [`VMP`](@ref), [`RxInferVMP`](@ref), [`ManualCoordinateAscentVMP`](@ref)
 """
-struct VMPMethod <: AbstractInferenceMethod end
+struct VMPMethod{B <: AbstractVMPBackend} <: AbstractInferenceMethod
+    backend::B
+    ν0::Float64
+    S0::Union{Nothing, Matrix{Float64}}
+    aτ::Float64
+    bτ::Float64
+end
+
+function VMPMethod(;
+        backend::AbstractVMPBackend = RxInferVMP(),
+        ν0::Real = 4.0,
+        S0::Union{Nothing, AbstractMatrix} = nothing,
+        aτ::Real = 2.0,
+        bτ::Real = 0.5,
+    )
+    ν0 = Float64(ν0)
+    aτ = Float64(aτ)
+    bτ = Float64(bτ)
+    ν0 > 3 || throw(ArgumentError("ν0 must exceed 3 so the 2×2 Inverse-Wishart prior has a finite mean"))
+    aτ > 0 || throw(ArgumentError("aτ must be positive"))
+    bτ > 0 || throw(ArgumentError("bτ must be positive"))
+    if S0 !== nothing
+        size(S0) == (2, 2) || throw(ArgumentError("S0 must be a 2×2 matrix"))
+        issymmetric(S0) || throw(ArgumentError("S0 must be symmetric"))
+        isposdef(Symmetric(S0)) || throw(ArgumentError("S0 must be positive definite"))
+    end
+    return VMPMethod(
+        backend, ν0,
+        S0 === nothing ? nothing : Matrix{Float64}(S0),
+        aτ, bτ,
+    )
+end
 
 """
-    VMP()
+    VMP(; kwargs...)
 
-Convenience alias for `VMPMethod()`.
+Convenience constructor for `VMPMethod(; kwargs...)`.
+
+Defaults to the `RxInferVMP()` backend. When RxInfer.jl is not loaded,
+`fit!` with the default backend raises an informative error; the manual
+backend works without any optional dependency.
 
 See [`VMPMethod`](@ref) for full documentation.
 """
-VMP() = VMPMethod()
+VMP(; kwargs...) = VMPMethod(; kwargs...)
 
 # Trait functions
 
@@ -522,7 +596,7 @@ All current methods return true, but this enables future deterministic methods.
 uses_sampling(::MCMCMethod) = true
 uses_sampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
 uses_sampling(::SimpleVIMethod) = true
-uses_sampling(::VMPMethod) = true
+uses_sampling(::VMPMethod{<:AbstractVMPBackend}) = true
 
 """
     supports_subsampling(method::AbstractInferenceMethod)
@@ -534,7 +608,7 @@ Only `UnifiedVIMethod` supports subsampling. MCMC and SimpleVI do not.
 supports_subsampling(::MCMCMethod) = false
 supports_subsampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
 supports_subsampling(::SimpleVIMethod) = false
-supports_subsampling(::VMPMethod) = false
+supports_subsampling(::VMPMethod{<:AbstractVMPBackend}) = false
 
 """
     is_deterministic(method::AbstractInferenceMethod)
@@ -556,7 +630,7 @@ Returns 2000 for MCMC, 2000 for VI draw phase.
 default_n_samples(::MCMCMethod) = 2000
 default_n_samples(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 2000
 default_n_samples(::SimpleVIMethod) = 2000
-default_n_samples(::VMPMethod) = 2000
+default_n_samples(::VMPMethod{<:AbstractVMPBackend}) = 2000
 
 """
     default_n_iterations(method::AbstractInferenceMethod)
@@ -568,4 +642,4 @@ MCMC uses iterations as warm-up/tuning. VI uses iterations for optimization.
 default_n_iterations(::MCMCMethod) = 1000  # Warm-up iterations
 default_n_iterations(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 1000
 default_n_iterations(::SimpleVIMethod) = 1000
-default_n_iterations(::VMPMethod) = 50  # VMP converges in ~20-50 iterations
+default_n_iterations(::VMPMethod{<:AbstractVMPBackend}) = 50  # VMP converges in ~20-50 iterations

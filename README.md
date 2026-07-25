@@ -92,8 +92,24 @@ fit!(model, VMP(); n_iterations = 50)
 VMP replaces the LKJ + Half-Cauchy covariance prior with the conjugate
 `InverseWishart(ν₀, S₀)` prior used in the paper's theoretical specification
 (Equation 19). The fixed and hierarchical coefficient priors retain their
-existing interpretations. Configure the covariance prior with `ν0` and `S0`
-keywords to `fit!`.
+existing interpretations. Configure the covariance prior in the `VMP()`
+constructor:
+
+```julia
+method = VMP(;
+    backend = RxInferVMP(),
+    ν0 = 4.0,
+    S0 = nothing,
+)
+fit!(model, method; n_iterations = 50)
+```
+
+You can also run the manual coordinate-ascent backend without RxInfer:
+
+```julia
+method = VMP(; backend = ManualCoordinateAscentVMP())
+fit!(model, method; n_iterations = 50)
+```
 
 ### Results
 
@@ -115,14 +131,16 @@ coeftable(model)
 
 ### Inference Methods
 
-| Method              | Description                |
-| ------------------- | -------------------------- |
-| `MCMCNUTS()`      | NUTS sampler               |
-| `UnifiedVI()`     | AdvancedVI with bijectors  |
-| `SimpleVI()`      | Turing's native VI         |
-| `MeanFieldVI()`   | Mean-field VI (AdvancedVI) |
-| `LowRankVI(rank)` | Low-rank VI (AdvancedVi)   |
-| `VMP()`           | Conjugate VMP (RxInfer)     |
+| Method                          | Description                            |
+| ------------------------------- | -------------------------------------- |
+| `MCMCNUTS()`                  | NUTS sampler                           |
+| `UnifiedVI()`                 | AdvancedVI with bijectors              |
+| `SimpleVI()`                  | Turing's native VI                     |
+| `MeanFieldVI()`               | Mean-field VI (AdvancedVI)             |
+| `LowRankVI(rank)`             | Low-rank VI (AdvancedVI)               |
+| `VMP()`                       | Conjugate VMP (default: RxInfer)       |
+| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)      |
+| `RxInferVMP()`                | RxInfer VMP backend                    |
 
 ### StatsAPI Functions
 
@@ -152,7 +170,8 @@ coeftable(model)
 - Full-rank multivariate-normal marginals for reduced-form coefficients
 - Full Inverse-Wishart marginal for the bivariate error covariance
 - Causal-effect draws use `α = Σ₁₂ / Σ₂₂`
-- Requires loading the optional `RxInfer.jl` dependency
+- Default backend (`RxInferVMP`) requires loading the optional `RxInfer.jl` dependency
+- Manual backend (`ManualCoordinateAscentVMP`) works without optional dependencies
 
 ## References
 

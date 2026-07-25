@@ -207,12 +207,48 @@ function coeftable(result::BDMLVIResult; level = 0.95)
     )
 end
 
+"""
+    coeftable(result::BDMLVMPResult; level=0.95)
+
+Compute coefficient table for VMP results with HPD credible intervals.
+"""
+function coeftable(result::BDMLVMPResult; level = 0.95)
+    samples = result.alpha_samples
+
+    coef_est = mean(samples)
+    std_error = std(samples)
+    hpd = hpd_interval(samples; level = level)
+    pval = compute_pvalue(samples)
+
+    ess_val = 0.0
+    mcse_val = 0.0
+    diag_val = result.final_diagnostic
+
+    return BDMLCoeftable(
+        ["α"],
+        [coef_est],
+        [std_error],
+        [mcse_val],
+        [hpd.lower],
+        [hpd.upper],
+        [pval],
+        [ess_val],
+        diag_val,
+        level,
+        length(samples),
+        result.model_type,
+        :VMP
+    )
+end
+
 # Allow generic AbstractBDMLResult dispatch
 function coeftable(result::AbstractBDMLResult; level = 0.95)
     if result isa BDMLMCMCResult
         return coeftable(result::BDMLMCMCResult; level = level)
     elseif result isa BDMLVIResult
         return coeftable(result::BDMLVIResult; level = level)
+    elseif result isa BDMLVMPResult
+        return coeftable(result::BDMLVMPResult; level = level)
     else
         error("Unknown result type: $(typeof(result))")
     end
@@ -264,6 +300,8 @@ function Base.show(io::IO, ct::BDMLCoeftable)
     println(io, "Diagnostics:")
     return if ct.method_type == :MCMC
         println(io, "  Effective Sample Size (ESS): $(round(ct.ess[1], digits = 1))")
+    elseif ct.method_type == :VMP && ct.elbo !== nothing
+        println(io, "  Final Diagnostic: $(round(ct.elbo, digits = 2))")
     elseif ct.method_type == :VI && ct.elbo !== nothing
         println(io, "  Final ELBO: $(round(ct.elbo, digits = 2))")
     end
@@ -300,6 +338,18 @@ function Base.show(io::IO, r::BDMLVIResult)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::BDMLVIResult)
+    return show(io, r)
+end
+
+# Pretty printing for BDMLVMPResult using coeftable
+function Base.show(io::IO, r::BDMLVMPResult)
+    method_name = r.backend == :rxinfer ? "VMP (RxInfer)" : "VMP (Manual)"
+    println(io, "BDMLVMPResult ($(r.model_type), $(method_name))")
+    ct = coeftable(r)
+    return show(io, ct)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", r::BDMLVMPResult)
     return show(io, r)
 end
 

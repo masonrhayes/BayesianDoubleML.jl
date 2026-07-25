@@ -29,6 +29,10 @@ BayesianDoubleML.AbstractInferenceMethod
 BayesianDoubleML.MCMCMethod
 BayesianDoubleML.UnifiedVIMethod
 BayesianDoubleML.SimpleVIMethod
+BayesianDoubleML.VMPMethod
+BayesianDoubleML.AbstractVMPBackend
+BayesianDoubleML.RxInferVMP
+BayesianDoubleML.ManualCoordinateAscentVMP
 ```
 
 ### MCMC Method Constructors
@@ -45,6 +49,7 @@ BayesianDoubleML.SimpleVI
 BayesianDoubleML.MeanFieldVI
 BayesianDoubleML.LowRankVI
 BayesianDoubleML.LowRankScoreVI
+BayesianDoubleML.VMP
 ```
 
 ### Variational Families
@@ -78,6 +83,7 @@ BayesianDoubleML.fit!
 BayesianDoubleML.AbstractBDMLResult
 BayesianDoubleML.BDMLMCMCResult
 BayesianDoubleML.BDMLVIResult
+BayesianDoubleML.BDMLVMPResult
 BayesianDoubleML.BDMLData
 BayesianDoubleML.StandardizationStats
 ```

@@ -169,6 +169,29 @@ fit!(
 )
 ```
 
+### Variational Message Passing (VMP)
+
+VMP uses a conjugate reparameterization of the BDML reduced form so that all
+message updates are closed-form. The default backend requires `RxInfer.jl`;
+a manual coordinate-ascent backend is also available and works without any
+optional dependency.
+
+```julia
+# Default RxInfer backend (requires `using RxInfer`)
+fit!(model, VMP(); n_iterations = 50)
+
+# Manual backend (no optional dependencies)
+fit!(model, VMP(; backend = ManualCoordinateAscentVMP()); n_iterations = 50)
+
+# Custom prior hyperparameters
+method = VMP(;
+    backend = RxInferVMP(),
+    ν0 = 4.0,
+    S0 = [1.0 0.0; 0.0 1.0],
+)
+fit!(model, method; n_iterations = 50)
+```
+
 ## Understanding Results
 
 All inference methods store results in the model object. Access them using common accessor functions:

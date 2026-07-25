@@ -65,8 +65,17 @@ end
 """
     extract_alpha(result::BDMLVIResult)
 
-Extract ``\\alpha`` samples from a BDMLVIResult.
+Extract ``\alpha`` samples from a BDMLVIResult.
 """
 function extract_alpha(result::BDMLVIResult)
+    return result.alpha_samples
+end
+
+"""
+    extract_alpha(result::BDMLVMPResult)
+
+Extract ``\alpha`` samples from a BDMLVMPResult.
+"""
+function extract_alpha(result::BDMLVMPResult)
     return result.alpha_samples
 end
