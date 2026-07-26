@@ -1,29 +1,51 @@
-function standardize_data(Y, D, X)
-    # Compute statistics
-    Y_mean, Y_sd = mean(Y), std(Y)
-    D_mean, D_sd = mean(D), std(D)
+function _standardize_vector(x)
+    μ = mean(x)
+    σ = stdm(x, μ)
+    output = Vector{Float64}(undef, length(x))
+    scale = 1.0 / Float64(σ)
 
-    # For X, compute column-wise statistics (dims=1)
-    X_mean = vec(mean(X, dims = 1))
-    X_sd = vec(std(X, dims = 1))
-
-    # Standardize using broadcasting with dot fusion
-    # This creates new arrays (necessary for storage), but is efficient
-    Y_s = @. (Y - Y_mean) / Y_sd
-    D_s = @. (D - D_mean) / D_sd
-
-    # For X, we need to broadcast across columns
-    # X is n×p, X_mean and X_sd are length p vectors
-    X_s = similar(X)
-    @inbounds for j in axes(X, 2)
-        @simd for i in axes(X, 1)
-            X_s[i, j] = (X[i, j] - X_mean[j]) / X_sd[j]
-        end
+    @inbounds @simd for i in eachindex(x)
+        output[i] = (Float64(x[i]) - Float64(μ)) * scale
     end
 
-    stats = StandardizationStats(Y_mean, Y_sd, D_mean, D_sd, X_mean, X_sd)
+    return output, Float64(μ), Float64(σ)
+end
 
+function _standardize_column!(output, means, sds, j, column)
+    μ = mean(column)
+    σ = stdm(column, μ)
+    means[j] = Float64(μ)
+    sds[j] = Float64(σ)
+    scale = 1.0 / sds[j]
+
+    return @inbounds @simd for i in axes(output, 1)
+        output[i, j] = (Float64(column[i]) - means[j]) * scale
+    end
+end
+
+function _standardize_columns!(output, means, sds, columns)
+    for (j, column) in enumerate(columns)
+        _standardize_column!(output, means, sds, j, column)
+    end
+
+    return output
+end
+
+function _standardize_data(Y, D, columns, n::Int, p::Int)
+    Y_s, Y_mean, Y_sd = _standardize_vector(Y)
+    D_s, D_mean, D_sd = _standardize_vector(D)
+    X_s = Matrix{Float64}(undef, n, p)
+    X_mean = Vector{Float64}(undef, p)
+    X_sd = Vector{Float64}(undef, p)
+    _standardize_columns!(X_s, X_mean, X_sd, columns)
+
+    stats = StandardizationStats(Y_mean, Y_sd, D_mean, D_sd, X_mean, X_sd)
     return Y_s, D_s, X_s, stats
+end
+
+function standardize_data(Y, D, X)
+    n = length(Y)
+    return _standardize_data(Y, D, eachcol(X), n, size(X, 2))
 end
 
 function posterior_summary(samples; probs = [0.025, 0.25, 0.5, 0.75, 0.975])

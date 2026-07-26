@@ -94,6 +94,25 @@ end
     @test ncovariates(model2) == 2
 end
 
+@testset "BDMLModel DataFrame Constructor - Column handling" begin
+    df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(214))
+    y_original = copy(df.y)
+    d_original = copy(df.d)
+    x2_original = copy(df.X2)
+
+    model = BDMLModel(df, :y, :d; model_type = :basic, x_cols = [:X2, :X1])
+    stats = BayesianDoubleML.standardization_stats(model)
+
+    @test size(model.X) == (100, 2)
+    @test stats.X_mean ≈ [mean(df.X2), mean(df.X1)]
+    @test stats.X_sd ≈ [std(df.X2), std(df.X1)]
+    @test model.X[:, 1] ≈ (df.X2 .- mean(df.X2)) ./ std(df.X2)
+    @test model.X[:, 2] ≈ (df.X1 .- mean(df.X1)) ./ std(df.X1)
+    @test df.y == y_original
+    @test df.d == d_original
+    @test df.X2 == x2_original
+end
+
 @testset "BDMLModel DataFrame Constructor - Error handling" begin
     df = make_plr_DTL2025(50, 5, 2.0; alpha = 0.5, rng = MersenneTwister(213))
 
