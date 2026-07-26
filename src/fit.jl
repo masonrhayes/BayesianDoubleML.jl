@@ -117,7 +117,7 @@ end
 function _fit_vmp(model::AbstractBDMLModel, method::VMPMethod; kwargs...)
     return error(
         "VMP backend $(typeof(method.backend)) is not available. " *
-        "Load the required extension (e.g., `using RxInfer`) and try again."
+            "Load the required extension (e.g., `using RxInfer`) and try again."
     )
 end
 

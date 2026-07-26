@@ -25,7 +25,7 @@ Parametric state struct for the conjugate VMP coordinate-ascent algorithm.
 # Notes
 For a `BDMLBasicModel` `Qτ = Nothing`; for a `BDMLHierarchicalModel` `Qτ = Gamma{Float64}`.
 """
-struct VMPManualState{T,V<:AbstractVector{T},M<:AbstractMatrix{T},QΣ,Qτ}
+struct VMPManualState{T, V <: AbstractVector{T}, M <: AbstractMatrix{T}, QΣ, Qτ}
     mδ::V
     mγ::V
     Vδ::M
@@ -405,15 +405,15 @@ Convergence is declared when `rel_change <= tolerance` and `iteration > 1`.
 `(state, converged, actual_iterations, diagnostic_history)`
 """
 function _fit_vmp_loop(
-    model::M,
-    method::VMPMethod{ManualCoordinateAscentVMP},
-    state::VMPManualState,
-    Sxx, xsy, xsd, Sww, n::Int, ν::Float64, S0_mat::Matrix{Float64};
-    n_iterations::Int = 50,
-    n_draws::Int = 2000,
-    rng::AbstractRNG = Random.default_rng(),
-    show_progress::Bool = false,
-) where {M <: AbstractBDMLModel}
+        model::M,
+        method::VMPMethod{ManualCoordinateAscentVMP},
+        state::VMPManualState,
+        Sxx, xsy, xsd, Sww, n::Int, ν::Float64, S0_mat::Matrix{Float64};
+        n_iterations::Int = 50,
+        n_draws::Int = 2000,
+        rng::AbstractRNG = Random.default_rng(),
+        show_progress::Bool = false,
+    ) where {M <: AbstractBDMLModel}
     tolerance = method.backend.tolerance
     n_iterations > 0 || throw(ArgumentError("n_iterations must be positive"))
     n_draws > 0 || throw(ArgumentError("n_draws must be positive"))
@@ -474,13 +474,13 @@ A [`BDMLVMPResult`](@ref) with posterior fields ``(\\delta, \\gamma, \\Sigma)``.
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 """
 function _fit_vmp(
-    model::BDMLBasicModel,
-    method::VMPMethod{ManualCoordinateAscentVMP};
-    n_iterations::Int = 50,
-    n_draws::Int = 2000,
-    rng::AbstractRNG = Random.default_rng(),
-    show_progress::Bool = false,
-)
+        model::BDMLBasicModel,
+        method::VMPMethod{ManualCoordinateAscentVMP};
+        n_iterations::Int = 50,
+        n_draws::Int = 2000,
+        rng::AbstractRNG = Random.default_rng(),
+        show_progress::Bool = false,
+    )
     n = nobs(model)
     p = ncovariates(model)
     S0_mat = method.S0 === nothing ? Matrix{Float64}(I, 2, 2) : method.S0
@@ -554,13 +554,13 @@ A [`BDMLVMPResult`](@ref) with posterior fields ``(\\delta, \\gamma, \\Sigma, \t
 See also: [`_fit_vmp(::BDMLBasicModel, ...)`](@ref)
 """
 function _fit_vmp(
-    model::BDMLHierarchicalModel,
-    method::VMPMethod{ManualCoordinateAscentVMP};
-    n_iterations::Int = 50,
-    n_draws::Int = 2000,
-    rng::AbstractRNG = Random.default_rng(),
-    show_progress::Bool = false,
-)
+        model::BDMLHierarchicalModel,
+        method::VMPMethod{ManualCoordinateAscentVMP};
+        n_iterations::Int = 50,
+        n_draws::Int = 2000,
+        rng::AbstractRNG = Random.default_rng(),
+        show_progress::Bool = false,
+    )
     n = nobs(model)
     p = ncovariates(model)
     S0_mat = method.S0 === nothing ? Matrix{Float64}(I, 2, 2) : method.S0

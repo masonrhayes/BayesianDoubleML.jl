@@ -55,7 +55,8 @@ function Base.summary(io::IO, result::AbstractBDMLResult)
         print_vmp_diagnostics(io, result)
 
         if !isempty(result.diagnostic_history)
-            print_elbo_plot(io, result.diagnostic_history)
+            plot_label = result.diagnostic_kind === :negative_bethe_free_energy ? "BFE" : "ELBO"
+            print_elbo_plot(io, result.diagnostic_history; label = plot_label)
         end
     elseif result isa BDMLVIResult
         print_section_header(io, COLOR_MAGENTA, "VI Diagnostics")
@@ -237,9 +238,9 @@ function print_vi_diagnostics(io::IO, result::BDMLVIResult)
 end
 
 """
-    print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points=100)
+    print_elbo_plot(io::IO, elbo_history::Vector{Float64}; label="ELBO", max_points=100)
 
-Print an ASCII line plot of ELBO convergence history.
+Print an ASCII line plot of a variational diagnostic convergence history.
 
 For long histories (>100 points), intelligently samples to show key features:
 - Always shows first point
@@ -249,9 +250,15 @@ For long histories (>100 points), intelligently samples to show key features:
 # Arguments
 - `io::IO`: Output stream
 - `elbo_history::Vector{Float64}`: Vector of ELBO values
+- `label::AbstractString="ELBO"`: Diagnostic label used in the plot
 - `max_points::Int=100`: Maximum points to display (default: 100)
 """
-function print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points::Int = 100)
+function print_elbo_plot(
+        io::IO,
+        elbo_history::Vector{Float64};
+        label::AbstractString = "ELBO",
+        max_points::Int = 100,
+    )
     n = length(elbo_history)
 
     if n == 0
@@ -281,9 +288,9 @@ function print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points::Int 
     plot = lineplot(
         x_vals,
         elbo_plot,
-        title = "ELBO Convergence",
+        title = "$(label) Convergence",
         xlabel = "Iteration",
-        ylabel = "ELBO",
+        ylabel = label,
         width = 50,
         height = 8,
         border = :ascii

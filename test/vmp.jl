@@ -9,6 +9,26 @@ using Test
     @test Base.get_extension(BayesianDoubleML, :BayesianDoubleMLRxInferExt) !== nothing
 end
 
+@testset "RxInfer sufficient statistics" begin
+    df = make_plr_DTL2025(32, 4, 1.0; alpha = 1.0)
+    model = BDMLModel(df, :y, :d; model_type = :basic)
+    extension = Base.get_extension(BayesianDoubleML, :BayesianDoubleMLRxInferExt)
+    stats = extension.BDMLSufficientStatistics(model)
+
+    @test stats.n == 32
+    @test size(stats.sxx) == (4, 4)
+    @test size(stats.xsy) == (4,)
+    @test size(stats.xsd) == (4,)
+    @test size(stats.sww) == (2, 2)
+    @test stats.sxx ≈ model.X' * model.X
+    @test stats.xsy ≈ model.X' * model.Y
+    @test stats.xsd ≈ model.X' * model.D
+    @test stats.sww ≈ [
+        dot(model.Y, model.Y) dot(model.Y, model.D)
+        dot(model.Y, model.D) dot(model.D, model.D)
+    ]
+end
+
 @testset "VMP basic and hierarchical (RxInfer)" begin
     Random.seed!(8128)
     df = make_plr_DTL2025(100, 10, 1.0; alpha = 2.0)
@@ -161,8 +181,10 @@ end
 
     model_rx = BDMLModel(df, :y, :d; model_type = :basic)
     fit!(model_rx, VMP(; backend = RxInferVMP()); n_iterations = 10, n_draws = 50, rng = Xoshiro(1))
-    @test occursin("VMP", sprint(summary, model_rx.result))
-    @test occursin("Negative Bethe Free Energy", sprint(summary, model_rx.result))
+    rx_summary = sprint(summary, model_rx.result)
+    @test occursin("VMP", rx_summary)
+    @test occursin("Negative Bethe Free Energy", rx_summary)
+    @test occursin("BFE Convergence", rx_summary)
 
     model_man = BDMLModel(df, :y, :d; model_type = :basic)
     fit!(model_man, VMP(; backend = ManualCoordinateAscentVMP()); n_iterations = 10, n_draws = 50, rng = Xoshiro(1))
