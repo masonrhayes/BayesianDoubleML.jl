@@ -162,7 +162,7 @@ end
     Random.seed!(1234)
     df = make_plr_DTL2025(3000, 25, 1.0; alpha = 2.0)
 
-    # Auto-default (n > 2000) should prevent overflow
+    # The default RxInfer configuration should handle this large model.
     model_hier = BDMLModel(df, :y, :d; model_type = :hier)
     fit!(model_hier, VMP(; backend = RxInferVMP()); n_iterations = 20, n_draws = 100, rng = Xoshiro(42))
     @test isfitted(model_hier)

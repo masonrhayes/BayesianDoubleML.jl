@@ -2,19 +2,22 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://masonrhayes.github.io/BayesianDoubleML.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://masonrhayes.github.io/BayesianDoubleML.jl/dev/)
-[![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
+[![SciML Code Style](<https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826>)](https://github.com/SciML/SciMLStyle)
 
-Bayesian inference for Double Machine Learning with MCMC, gradient-based VI,
-and conjugate Variational Message Passing.
+Bayesian Double Machine Learning with various inference methods:
 
-Implements [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
+- Markov chain Monte Carlo (MCMC),
+- Automatic Differentiation Variational Inference (ADVI), and
+- Variational Message Passing (VMP)
+
+This package implements BDML as in  [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
 
 ## Features
 
 - **MCMC**: NUTS sampler for inference using MCMC
 - **VI**: Fast approximate inference with multiple AD backends
   - **Automatic subsampling with VI**: For large datasets (n > 10,000)
-- **VMP**: Tuning-free conjugate inference with RxInfer.jl (optional extension)
+- **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
 
 ## Installation
@@ -79,14 +82,14 @@ fit!(model, SimpleVI(; ad_backend = AutoMooncake))
 fit!(model, LowRankVI(10))
 ```
 
-**VMP (optional RxInfer extension):**
+**VMP with the optional RxInfer extension:**
 
 ```julia
 using Pkg
 Pkg.add("RxInfer")
 
 using RxInfer  # activates BayesianDoubleMLRxInferExt
-fit!(model, VMP(); n_iterations = 50)
+fit!(model, VMP(; backend = RxInferVMP()); n_iterations = 50)
 ```
 
 VMP replaces the LKJ + Half-Cauchy covariance prior with the conjugate
@@ -131,16 +134,16 @@ coeftable(model)
 
 ### Inference Methods
 
-| Method                          | Description                            |
-| ------------------------------- | -------------------------------------- |
-| `MCMCNUTS()`                  | NUTS sampler                           |
-| `UnifiedVI()`                 | AdvancedVI with bijectors              |
-| `SimpleVI()`                  | Turing's native VI                     |
-| `MeanFieldVI()`               | Mean-field VI (AdvancedVI)             |
-| `LowRankVI(rank)`             | Low-rank VI (AdvancedVI)               |
-| `VMP()`                       | Conjugate VMP (default: RxInfer)       |
-| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)      |
-| `RxInferVMP()`                | RxInfer VMP backend                    |
+| Method                          | Description                             |
+| ------------------------------- | --------------------------------------- |
+| `MCMCNUTS()`                  | NUTS sampler                            |
+| `UnifiedVI()`                 | AdvancedVI with bijectors               |
+| `SimpleVI()`                  | Turing's native VI                      |
+| `MeanFieldVI()`               | Mean-field VI (AdvancedVI)              |
+| `LowRankVI(rank)`             | Low-rank VI (AdvancedVI)                |
+| `VMP()`                       | Conjugate VMP (default: manual backend) |
+| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)       |
+| `RxInferVMP()`                | RxInfer VMP backend                     |
 
 ### StatsAPI Functions
 
@@ -148,30 +151,24 @@ coeftable(model)
 
 ## Performance
 
-| AD Backend      | Speed        | Best For                         |
-| --------------- | ------------ | -------------------------------- |
-| AutoReverseDiff | Baseline     | Default, most stable             |
-| AutoMooncake    | 5-10x faster | Fast inference (requires warmup) |
+| Inference Method             | Best For                                                 |
+| ---------------------------- | -------------------------------------------------------- |
+| VMP (ManualCoordinateAscent) | Fastest (<seconds), with good appoximation of posterior |
+| ADVI (AutoReverseDiff)       | Quite fast, good appoximation of posterior               |
+| ADVI (AutoMooncake)          | Fast, ~5-10x faster than ADVI with AutoReverseDiff      |
+| MCMC                         | Most accurate inference                                  |
 
 ## Model Variations
 
 **Hierarchical** (`:hier`, recommended):
 
 - Hierarchical priors with adaptive shrinkage
-- Coverage: ~94%
+- Coverage: ~94% (from paper)
 
 **Basic** (`:basic`):
 
 - Fixed variance priors
-- Coverage: ~91-93%
-
-**Conjugate VMP** (`VMP()` with either model type):
-
-- Full-rank multivariate-normal marginals for reduced-form coefficients
-- Full Inverse-Wishart marginal for the bivariate error covariance
-- Causal-effect draws use `α = Σ₁₂ / Σ₂₂`
-- Default backend (`RxInferVMP`) requires loading the optional `RxInfer.jl` dependency
-- Manual backend (`ManualCoordinateAscentVMP`) works without optional dependencies
+- Coverage: ~91-93% (from paper)
 
 ## References
 

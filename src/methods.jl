@@ -464,8 +464,8 @@ RxInferVMP(; limit_stack_depth = nothing)
 ```
 
 # Arguments
-- `limit_stack_depth::Union{Nothing,Int}=nothing`: Recursion limit for large
-  models. Auto-defaults to `200` when `n > 2000` during `fit!`.
+- `limit_stack_depth::Union{Nothing,Int}=nothing`: Optional recursion limit for
+  large models. When `nothing`, RxInfer uses its default configuration.
 """
 struct RxInferVMP <: AbstractVMPBackend
     limit_stack_depth::Union{Nothing, Int}
