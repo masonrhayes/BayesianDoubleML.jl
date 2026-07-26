@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.23
+# v1.0.3
 
 using Markdown
 using InteractiveUtils
@@ -76,7 +76,7 @@ We then solve the inference problem via MCMC, using the No-U-Turn Sampler (NUTS)
 fit!(
     model,
     MCMCMethod(:nuts),
-    n_chains = 8,
+    n_chains = 4,
     n_samples = 400
 )
 

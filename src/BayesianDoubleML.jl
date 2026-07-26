@@ -37,7 +37,8 @@ using ADTypes
 using DataFrames
 using Distributions
 using LinearAlgebra
-using MCMCChains
+using FlexiChains
+using DifferentiationInterface
 using Random
 using ReverseDiff
 using Statistics

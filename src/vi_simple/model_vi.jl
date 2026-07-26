@@ -185,7 +185,6 @@ end
 ReverseDiff-optimized version of bdml_basic_vi for large p.
 
 Uses tight @inbounds loops for compact ReverseDiff tape.
-Best for: p > 50 with AutoReverseDiff(; compile=true)
 
 Implements BDML-Basic variation of Algorithm 1 with paper notation.
 
@@ -244,10 +243,6 @@ end
     bdml_hier_vi_rd(Y, D, X)
 
 ReverseDiff-optimized version of bdml_hier_vi for large p.
-
-Uses tight @inbounds loops for compact ReverseDiff tape.
-Best for: p > 50 with AutoReverseDiff(; compile=true)
-
 Implements BDML-Hier variation of Algorithm 1 with paper notation.
 
 See: `bdml_hier_vi`, `bdml_hier`

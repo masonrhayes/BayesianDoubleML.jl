@@ -3,6 +3,7 @@
 # Basic and hierarchical models with various configurations
 
 using BayesianDoubleML
+using Mooncake
 using Test
 using Random
 using Statistics

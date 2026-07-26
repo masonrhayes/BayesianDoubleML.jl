@@ -180,11 +180,7 @@ function configure_vi_algorithm end
 Configure KLMinRepGradProxDescent for MeanField families.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{MeanField}, use_subsample::Bool, batch_size::Int, n::Int)
-    ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
-    else
-        (;)
-    end
+    ad_kwargs = ad_backend_kwargs(method.ad_backend)
 
     if use_subsample
         dataset = 1:n
@@ -210,11 +206,7 @@ Configure KLMinRepGradDescent with Adam optimizer for LowRank families.
 Uses Adam optimizer which can work better with low-rank structure than DoWG.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{LowRank}, use_subsample::Bool, batch_size::Int, n::Int)
-    ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
-    else
-        (;)
-    end
+    ad_kwargs = ad_backend_kwargs(method.ad_backend)
 
     if use_subsample
         dataset = 1:n
@@ -245,11 +237,7 @@ Uses score gradient (REINFORCE) estimator with VarGrad control variate.
 This can be more stable than reparameterization gradient for some problems.
 """
 function configure_vi_algorithm(method::UnifiedVIMethod{LowRankScore}, use_subsample::Bool, batch_size::Int, n::Int)
-    ad_kwargs = if method.ad_backend == AutoReverseDiff
-        (; compile = true)
-    else
-        (;)
-    end
+    ad_kwargs = ad_backend_kwargs(method.ad_backend)
 
     if use_subsample
         dataset = 1:n
@@ -394,13 +382,8 @@ function _fit_impl(
     d = LogDensityProblems.dimension(vi_model)
     p = ncovariates(model)
 
-    # Configure AD backend
-    ad_kwargs = (;)
-    if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
-    elseif method.ad_backend == AutoMooncake
-        @info "Using AutoMooncake. First run(s) compile differentiation rules."
-    end
+    # Configure AD backend (compile=false for ReverseDiff, warmup notice for Mooncake)
+    ad_kwargs = configure_ad_backend(method.ad_backend, (;), use_subsample)
 
     # Create AD wrapper
     prob_ad = LogDensityProblemsAD.ADgradient(method.ad_backend(; ad_kwargs...), vi_model)
@@ -499,11 +482,8 @@ function _fit_impl(
     d = LogDensityProblems.dimension(vi_model)
     p = ncovariates(model)
 
-    # Configure AD
-    ad_kwargs = (;)
-    if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
-    end
+    # Configure AD backend (compile=false for ReverseDiff, warmup notice for Mooncake)
+    ad_kwargs = configure_ad_backend(method.ad_backend, (;), use_subsample)
 
     prob_ad = LogDensityProblemsAD.ADgradient(method.ad_backend(; ad_kwargs...), vi_model)
 
@@ -581,60 +561,8 @@ Fit basic BDML model using Simple VI (Turing's native vi() function).
 
 This works well with AutoMooncake. No subsampling support.
 """
-function _fit_impl(
-        model::BDMLBasicModel, method::SimpleVIMethod;
-        n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
-    )
-
-    # Create Turing model (uses Beta correlation for VI compatibility)
-    turing_model = bdml_basic_vi(model.Y, model.D, model.X)
-
-    # Configure AD
-    ad_kwargs = (;)
-    if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
-    elseif method.ad_backend == AutoMooncake
-        @info "Using AutoMooncake AD backend. Note: May require more compliation time, at the benefit of much faster fitting."
-    end
-
-    ad_backend = method.ad_backend(; ad_kwargs...)
-
-    # Initialize variational distribution
-    q_init = Variational.q_meanfield_gaussian(turing_model)
-
-    # Run VI
-    q_result = vi(
-        turing_model, q_init, n_iterations;
-        show_progress = show_progress,
-        adtype = ad_backend
-    )
-
-    q = q_result[1]
-    stats_vi = q_result[2]
-
-    # Extract ELBO history
-    elbo_history = Float64[-1.0]
-    if !isempty(stats_vi) && hasproperty(stats_vi[1], :elbo)
-        elbo_history = [s.elbo for s in stats_vi]
-    end
-    final_elbo = length(elbo_history) > 0 ? elbo_history[end] : -1.0
-    converged = true
-
-    # Draw samples
-    vi_samples = rand(q, n_draws)
-
-    # Extract alpha
-    p = ncovariates(model)
-    α_s_samples = extract_alpha(vi_samples, p, :basic)
-
-    # Transform back
-    scaling_factor = model.stats.Y_sd / model.stats.D_sd
-    α_samples = α_s_samples .* scaling_factor
-
-    return BDMLVIResult(
-        q, α_samples, α_s_samples, model.stats,
-        :basic, :meanfield, :simple, n_iterations, elbo_history, converged, final_elbo
-    )
+function _fit_impl(model::BDMLBasicModel, method::SimpleVIMethod; kwargs...)
+    return _fit_simple_vi(bdml_basic_vi, model, method, :basic; kwargs...)
 end
 
 """
@@ -642,33 +570,38 @@ end
 
 Fit hierarchical BDML model using Simple VI.
 """
-function _fit_impl(
-        model::BDMLHierarchicalModel, method::SimpleVIMethod;
+function _fit_impl(model::BDMLHierarchicalModel, method::SimpleVIMethod; kwargs...)
+    return _fit_simple_vi(bdml_hier_vi, model, method, :hier; kwargs...)
+end
+
+"""
+    _fit_simple_vi(model_constructor, model, method, model_type; n_iterations=1000, n_draws=2000)
+
+Shared implementation for Simple VI fits via Turing's native `vi()` with a
+mean-field Gaussian variational family.
+"""
+function _fit_simple_vi(
+        model_constructor, model::AbstractBDMLModel, method::SimpleVIMethod, model_type::Symbol;
         n_iterations::Int = 1000, n_draws::Int = 2000, show_progress::Bool = true
     )
 
-    # Create Turing model
-    turing_model = bdml_hier_vi(model.Y, model.D, model.X)
+    # Create Turing model (uses Beta correlation for VI compatibility)
+    turing_model = model_constructor(model.Y, model.D, model.X)
 
-    # Configure AD
-    ad_kwargs = (;)
-    if method.ad_backend == AutoReverseDiff
-        ad_kwargs = merge(ad_kwargs, (compile = true,))
-    end
+    # Configure AD backend (compile=false for ReverseDiff, warmup notice for Mooncake)
+    ad_kwargs = configure_ad_backend(method.ad_backend, (;), false)
 
-    ad_backend = method.ad_backend(; ad_kwargs...)
-
-    q_init = Variational.q_meanfield_gaussian(turing_model)
-
+    # Run VI using Turing 0.46+ API: pass q_meanfield_gaussian as a function
     q_result = vi(
-        turing_model, q_init, n_iterations;
+        turing_model, Variational.q_meanfield_gaussian, n_iterations;
         show_progress = show_progress,
-        adtype = ad_backend
+        adtype = method.ad_backend(; ad_kwargs...)
     )
 
-    q = q_result[1]
-    stats_vi = q_result[2]
+    q = q_result.q
+    stats_vi = q_result.info
 
+    # Extract ELBO history
     elbo_history = Float64[-1.0]
     if !isempty(stats_vi) && hasproperty(stats_vi[1], :elbo)
         elbo_history = [s.elbo for s in stats_vi]
@@ -686,17 +619,18 @@ function _fit_impl(
 
     @info "VI convergence" converged = converged message = conv_msg n_iterations = length(elbo_history)
 
-    vi_samples = rand(q, n_draws)
+    # Draw constrained samples as VarNamedTuples (Turing 0.46+)
+    vnt_samples = rand(q_result, n_draws)
 
-    # Extract alpha for hierarchical
-    p = ncovariates(model)
-    α_s_samples = extract_alpha(vi_samples, p, :hier)
+    # Extract alpha from constrained VNT samples: α = (2ρ_raw - 1) * σ_U / σ_V
+    α_s_samples = extract_alpha(vnt_samples)
 
+    # Transform back
     scaling_factor = model.stats.Y_sd / model.stats.D_sd
     α_samples = α_s_samples .* scaling_factor
 
     return BDMLVIResult(
         q, α_samples, α_s_samples, model.stats,
-        :hier, :meanfield, :simple, n_iterations, elbo_history, converged, final_elbo
+        model_type, :meanfield, :simple, n_iterations, elbo_history, converged, final_elbo
     )
 end

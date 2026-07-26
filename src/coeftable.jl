@@ -117,7 +117,7 @@ end
     coeftable(result::BDMLMCMCResult; level=0.95)
 
 Compute coefficient table for MCMC results with HPD credible intervals.
-Uses MCMCChains for ESS and MCSE calculations.
+Uses FlexiChains for ESS and MCSE calculations.
 """
 function coeftable(result::BDMLMCMCResult; level = 0.95)
     samples = result.alpha_samples
@@ -132,15 +132,15 @@ function coeftable(result::BDMLMCMCResult; level = 0.95)
     # P-value
     pval = compute_pvalue(samples)
 
-    # ESS from MCMCChains (get minimum across all parameters as conservative estimate)
-    ess_df = MCMCChains.ess(result.chain)
-    ess_values = ess_df.nt.ess
+    # ESS from chain (get minimum across all parameters as conservative estimate)
+    ess_summary = FlexiChains.ess(result.chain)
+    ess_values = Array(ess_summary)
     finite_ess = filter(isfinite_and_positive, ess_values)
     ess_val = length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
 
-    # MCSE from MCMCChains (get maximum across all parameters as conservative estimate)
-    mcse_df = MCMCChains.mcse(result.chain)
-    mcse_values = mcse_df.nt.mcse
+    # MCSE from chain (get maximum across all parameters as conservative estimate)
+    mcse_summary = FlexiChains.mcse(result.chain)
+    mcse_values = Array(mcse_summary)
     finite_mcse = filter(isfinite_and_positive, mcse_values)
     mcse_val = length(finite_mcse) > 0 ? maximum(finite_mcse) : std(samples) / sqrt(length(samples))
 
@@ -330,14 +330,14 @@ pvalues(ct::BDMLCoeftable) = ct.pvalue
     ess(result::BDMLMCMCResult)
 
 Compute effective sample size from MCMC chain.
-Uses MCMCChains.ess for proper multi-chain ESS calculation.
+Uses FlexiChains for proper multi-chain ESS calculation.
 Returns the minimum ESS across all parameters as conservative estimate.
 """
 function ess(result::BDMLMCMCResult)
-    # Extract ESS from chain using MCMCChains
-    ess_df = MCMCChains.ess(result.chain)
+    # Extract ESS from chain using FlexiChains
+    ess_summary = FlexiChains.ess(result.chain)
     # Get minimum ESS across all parameters (conservative estimate)
-    ess_values = ess_df.nt.ess
+    ess_values = Array(ess_summary)
     finite_ess = filter(isfinite_and_positive, ess_values)
     return length(finite_ess) > 0 ? minimum(finite_ess) : 0.0
 end
@@ -350,10 +350,10 @@ R-hat ≈ 1.0 indicates good convergence. Values > 1.05 suggest non-convergence.
 Returns the maximum R-hat across all parameters as conservative estimate.
 """
 function rhat(result::BDMLMCMCResult)
-    # Get Gelman diagnostic (R-hat) from MCMCChains
-    gd = gelmandiag(result.chain)
-    # Get maximum PSRF (R-hat) across all parameters (conservative estimate)
-    rhat_values = gd.nt.psrf
+    # Get R-hat diagnostic from FlexiChains
+    rhat_summary = FlexiChains.rhat(result.chain)
+    # Get maximum R-hat across all parameters (conservative estimate)
+    rhat_values = Array(rhat_summary)
     finite_rhat = filter(isfinite_and_positive, rhat_values)
     return length(finite_rhat) > 0 ? maximum(finite_rhat) : missing
 end
@@ -362,12 +362,12 @@ end
     mcse(result::BDMLMCMCResult)
 
 Compute Monte Carlo Standard Error from MCMC chain.
-Uses MCMCChains.mcse for proper multi-chain MCSE calculation.
+Uses FlexiChains for proper multi-chain MCSE calculation.
 Returns the maximum MCSE across all parameters as conservative estimate.
 """
 function mcse(result::BDMLMCMCResult)
-    mcse_df = MCMCChains.mcse(result.chain)
-    mcse_values = mcse_df.nt.mcse
+    mcse_summary = FlexiChains.mcse(result.chain)
+    mcse_values = Array(mcse_summary)
     finite_mcse = filter(isfinite_and_positive, mcse_values)
     return length(finite_mcse) > 0 ? maximum(finite_mcse) : std(result.alpha_samples) / sqrt(length(result.alpha_samples))
 end
@@ -409,9 +409,7 @@ end
 Get chain summary information: (n_chains, n_samples_per_chain, total_samples)
 """
 function chain_info(result::BDMLMCMCResult)
-    chain = result.chain
-    n_chains = size(chain, 3)  # chains are in 3rd dimension
-    n_samples_per_chain = size(chain, 1)
+    n_samples_per_chain, n_chains = size(result.chain)
     total_samples = n_chains * n_samples_per_chain
     return (n_chains = n_chains, n_samples_per_chain = n_samples_per_chain, total_samples = total_samples)
 end

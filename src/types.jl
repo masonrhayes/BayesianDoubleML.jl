@@ -80,7 +80,7 @@ end
 Results from MCMC inference using NUTS or HMC sampling.
 
 # Fields
-- `chain::MCMCChains.Chains`: Full MCMC chain from Turing
+- `chain::FlexiChains.VNChain`: Full MCMC chain from Turing
 - `alpha_samples::Vector{Float64}`: Causal effect samples (original scale)
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation
@@ -96,7 +96,7 @@ ci = credible_interval(result)
 See also: [`BDMLVIResult`](@ref), [`AbstractBDMLResult`](@ref)
 """
 struct BDMLMCMCResult <: AbstractBDMLResult
-    chain::MCMCChains.Chains
+    chain::FlexiChains.VNChain
     alpha_samples::Vector{Float64}
     alpha_samples_standardized::Vector{Float64}
     std_stats::StandardizationStats
