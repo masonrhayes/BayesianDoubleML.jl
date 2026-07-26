@@ -10,7 +10,8 @@ println("Building Pluto notebooks...")
 # Define notebook paths and their destination names
 notebooks = [
     ("MCMC Example", joinpath(@__DIR__, "..", "examples", "MCMC", "mcmc_example.jl")),
-    ("VI Example", joinpath(@__DIR__, "..", "examples", "VI", "vi_example.jl")),
+    ("ADVI Example", joinpath(@__DIR__, "..", "examples", "ADVI", "advi_example.jl")),
+    ("VMP Example", joinpath(@__DIR__, "..", "examples", "VMP", "vmp_example.jl")),
 ]
 
 # Output directory for notebooks in documentation
@@ -86,7 +87,8 @@ makedocs(
         "User Guide" => "user_guide.md",
         "Examples" => [
             "MCMC Example" => "examples/mcmc_example.md",
-            "VI Example" => "examples/vi_example.md",
+            "ADVI Example" => "examples/advi_example.md",
+            "VMP Example" => "examples/vmp_example.md",
         ],
         "API Reference" => "api_reference.md",
     ],

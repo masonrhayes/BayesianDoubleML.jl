@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.27
+# v1.0.3
 
 using Markdown
 using InteractiveUtils
@@ -31,6 +31,11 @@ begin
     using RxInfer
     using PlutoUI
 end
+
+# ╔═╡ 581724d8-f18f-43a0-a393-36bbc39fcd4b
+md"""
+# BayesianDoubleML VMP example
+"""
 
 # ╔═╡ 8b469c4c-8e45-40ce-9089-215b72882e3a
 md"""
@@ -185,6 +190,7 @@ end
 
 # ╔═╡ Cell order:
 # ╟─01b90848-8919-11f1-86a3-cf59c8e771e0
+# ╟─581724d8-f18f-43a0-a393-36bbc39fcd4b
 # ╠═82f79d60-4861-43ba-a9c7-d43f434b0afd
 # ╟─8b469c4c-8e45-40ce-9089-215b72882e3a
 # ╟─4340088b-9438-49fc-a690-0f07f0e62530
