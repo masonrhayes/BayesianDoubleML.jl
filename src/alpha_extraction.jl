@@ -94,6 +94,6 @@ The VI models parameterize the correlation as ρ_raw ~ Beta(2, 2) on [0, 1], so
 function extract_alpha(vnt_samples::AbstractVector{<:VarNamedTuple})
     return Float64[
         (2 * vnt[@varname(ρ_raw)] - 1) * vnt[@varname(σ_U)] / vnt[@varname(σ_V)] for
-        vnt in vnt_samples
+            vnt in vnt_samples
     ]
 end

@@ -34,9 +34,7 @@ println(output)
 
 See also: [`coeftable`](@ref) for tabular coefficient output
 """
-function Base.summary(result::AbstractBDMLResult)
-    io = IOBuffer()
-
+function Base.summary(io::IO, result::AbstractBDMLResult)
     # Title
     print_title_box(io)
 
@@ -48,10 +46,18 @@ function Base.summary(result::AbstractBDMLResult)
     print_section_header(io, COLOR_GREEN, "Inference Method")
     print_method_info(io, result)
 
-    # Diagnostics (MCMC vs VI specific)
+    # Diagnostics (MCMC vs VI vs VMP specific)
     if result isa BDMLMCMCResult
         print_section_header(io, COLOR_MAGENTA, "MCMC Diagnostics")
         print_mcmc_diagnostics(io, result)
+    elseif result isa BDMLVMPResult
+        print_section_header(io, COLOR_MAGENTA, "VMP Diagnostics")
+        print_vmp_diagnostics(io, result)
+
+        if !isempty(result.diagnostic_history)
+            plot_label = result.diagnostic_kind === :negative_bethe_free_energy ? "BFE" : "ELBO"
+            print_elbo_plot(io, result.diagnostic_history; label = plot_label)
+        end
     elseif result isa BDMLVIResult
         print_section_header(io, COLOR_MAGENTA, "VI Diagnostics")
         print_vi_diagnostics(io, result)
@@ -69,9 +75,11 @@ function Base.summary(result::AbstractBDMLResult)
     # Convergence summary
     print_convergence_summary(io, result)
 
-    output = String(take!(io))
-    print(output)
     return nothing
+end
+
+function Base.summary(result::AbstractBDMLResult)
+    return Base.summary(stdout, result)
 end
 
 function print_title_box(io::IO)
@@ -105,11 +113,23 @@ function print_method_info(io::IO, result::BDMLMCMCResult)
     return @printf io "  Samples:          %d\n" length(result.alpha_samples)
 end
 
+function print_method_info(io::IO, result::BDMLVMPResult)
+    if result.backend == :rxinfer
+        @printf io "  Method:           VMP (Conjugate Inverse-Wishart, RxInfer)\n"
+    else
+        @printf io "  Method:           VMP (Manual Coordinate Ascent)\n"
+    end
+    @printf io "  Iterations:       %d (requested %d)\n" result.actual_iterations result.n_iterations
+    return @printf io "  Samples Drawn:    %d\n" length(result.alpha_samples)
+end
+
 function print_method_info(io::IO, result::BDMLVIResult)
     # Determine VI method and family
     if result.vi_method == :simple
         # Simple VI only supports Mean-Field Gaussian
         @printf io "  Method:           Simple VI (Mean-Field Gaussian)\n"
+    elseif result.vi_method == :vmp
+        @printf io "  Method:           VMP (Conjugate Inverse-Wishart)\n"
     else
         # Unified VI supports multiple families
         vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :
@@ -186,6 +206,25 @@ function print_mcmc_diagnostics(io::IO, result::BDMLMCMCResult)
     end
 end
 
+function vmp_diagnostic_label(kind::Symbol)
+    kind === :elbo && return "ELBO"
+    kind === :negative_bethe_free_energy && return "Negative Bethe Free Energy"
+    return "Parameter Change"
+end
+
+function print_vmp_diagnostics(io::IO, result::BDMLVMPResult)
+    kind_str = vmp_diagnostic_label(result.diagnostic_kind)
+    @printf io "  %-21s %.2f\n" "Final $(kind_str):" result.final_diagnostic
+    @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
+    return if !isempty(result.diagnostic_history)
+        n_iters = length(result.diagnostic_history)
+        diag_start = result.diagnostic_history[1]
+        diag_end = result.diagnostic_history[end]
+        improvement = diag_end - diag_start
+        @printf io "  %-21s %.2f (%.1f%%)\n" "$(kind_str) Improvement:" improvement (100 * improvement / abs(diag_start))
+    end
+end
+
 function print_vi_diagnostics(io::IO, result::BDMLVIResult)
     @printf io "  Final ELBO:       %.2f\n" result.final_elbo
     @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
@@ -199,9 +238,9 @@ function print_vi_diagnostics(io::IO, result::BDMLVIResult)
 end
 
 """
-    print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points=100)
+    print_elbo_plot(io::IO, elbo_history::Vector{Float64}; label="ELBO", max_points=100)
 
-Print an ASCII line plot of ELBO convergence history.
+Print an ASCII line plot of a variational diagnostic convergence history.
 
 For long histories (>100 points), intelligently samples to show key features:
 - Always shows first point
@@ -211,9 +250,15 @@ For long histories (>100 points), intelligently samples to show key features:
 # Arguments
 - `io::IO`: Output stream
 - `elbo_history::Vector{Float64}`: Vector of ELBO values
+- `label::AbstractString="ELBO"`: Diagnostic label used in the plot
 - `max_points::Int=100`: Maximum points to display (default: 100)
 """
-function print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points::Int = 100)
+function print_elbo_plot(
+        io::IO,
+        elbo_history::Vector{Float64};
+        label::AbstractString = "ELBO",
+        max_points::Int = 100,
+    )
     n = length(elbo_history)
 
     if n == 0
@@ -243,9 +288,9 @@ function print_elbo_plot(io::IO, elbo_history::Vector{Float64}; max_points::Int 
     plot = lineplot(
         x_vals,
         elbo_plot,
-        title = "ELBO Convergence",
+        title = "$(label) Convergence",
         xlabel = "Iteration",
-        ylabel = "ELBO",
+        ylabel = label,
         width = 50,
         height = 8,
         border = :ascii
@@ -261,13 +306,20 @@ end
 
 function print_convergence_summary(io::IO, result::AbstractBDMLResult)
     println(io, COLOR_BOLD, "─"^62, COLOR_RESET)
-    return if result isa BDMLVIResult
+    if result isa BDMLVMPResult
+        if result.converged
+            println(io, COLOR_GREEN, "✓ Diagnostics: VMP converged.", COLOR_RESET)
+        else
+            println(io, COLOR_YELLOW, "⚠ Diagnostics: VMP may not have converged.", COLOR_RESET)
+        end
+    elseif result isa BDMLVIResult
         if result.converged
             println(io, COLOR_GREEN, "✓ Diagnostics: ELBO converged.", COLOR_RESET)
         else
             println(io, COLOR_YELLOW, "⚠ Diagnostics: ELBO may not have converged.", COLOR_RESET)
         end
     end
+    return nothing
 end
 
 # Export summary function
@@ -289,7 +341,12 @@ fit!(model)
 summary(model)
 ```
 """
+function Base.summary(io::IO, model::AbstractBDMLModel)
+    model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    return Base.summary(io, model.result)
+end
+
 function Base.summary(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
-    return Base.summary(model.result)
+    return Base.summary(stdout, model)
 end

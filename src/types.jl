@@ -151,3 +151,52 @@ struct BDMLVIResult{P} <: AbstractBDMLResult
 end
 
 # Show methods are defined in coeftable.jl
+
+"""
+    BDMLVMPResult{P} <: AbstractBDMLResult
+
+Results from Variational Message Passing (VMP) inference.
+
+Stores a conjugate posterior with backend-neutral accessors and diagnostic
+metadata. The `diagnostic_history` field contains the ELBO trace for the manual
+backend or the negative Bethe free-energy trace for the RxInfer backend.
+
+# Fields
+- `posterior::P`: Posterior distribution container (NamedTuple of Distributions)
+- `alpha_samples::Vector{Float64}`: Causal effect samples (original scale)
+- `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
+- `std_stats::StandardizationStats`: Statistics for back-transformation
+- `model_type::Symbol`: :basic or :hier
+- `backend::Symbol`: :rxinfer or :manual_coordinate_ascent
+- `n_iterations::Int`: Number of optimization iterations requested
+- `actual_iterations::Int`: Number of iterations actually performed
+- `diagnostic_history::Vector{Float64}`: ELBO or negative Bethe free-energy diagnostic trace
+- `converged::Bool`: Whether convergence criteria were met
+- `final_diagnostic::Float64`: Final diagnostic value
+- `diagnostic_kind::Symbol`: :elbo, :negative_bethe_free_energy, or :parameter_change
+
+# Usage
+```julia
+fit!(model, VMP())
+result = model.result
+alpha_mean = mean(result.alpha_samples)
+println("Converged: ", result.converged)
+println("Backend: ", result.backend)
+```
+
+See also: [`BDMLVIResult`](@ref), [`BDMLMCMCResult`](@ref)
+"""
+struct BDMLVMPResult{P} <: AbstractBDMLResult
+    posterior::P
+    alpha_samples::Vector{Float64}
+    alpha_samples_standardized::Vector{Float64}
+    std_stats::StandardizationStats
+    model_type::Symbol
+    backend::Symbol
+    n_iterations::Int
+    actual_iterations::Int
+    diagnostic_history::Vector{Float64}
+    converged::Bool
+    final_diagnostic::Float64
+    diagnostic_kind::Symbol
+end

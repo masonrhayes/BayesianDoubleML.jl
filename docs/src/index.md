@@ -8,7 +8,11 @@ Welcome to the documentation for **BayesianDoubleML.jl**, a Julia package for Ba
 
 ## Overview
 
-BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688). It offers both MCMC (as in the paper) as well as Variational Inference (VI) methods with multiple automatic differentiation backends.
+BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688). It offers various inference methods:
+
+- MCMC (as in the paper), built on [Turing.jl](https://turinglang.org/)
+- Automatic Differentiation Variational Inference (ADVI) methods with multiple automatic differentiation backends, built on [Turing.jl](https://turinglang.org/) and [AdvancedVI.jl](https://turinglang.org/AdvancedVI.jl/stable/)
+- Variational Message Passing (VMP), both manually implemented and with an optional [RxInfer.jl](https://rxinfer.com) backend
 
 ## Key Features
 
@@ -81,7 +85,6 @@ fit!(model, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
 
 # View results
 summary(model)
-
 ```
 
 ```julia-repl
@@ -114,7 +117,6 @@ Causal Effect (α)
   95% CI:           [1.5402, 2.3027]
   95% HPD:          [1.5223, 2.2842]
 ──────────────────────────────────────────────────────────────
-
 ```
 
 ## Documentation Structure

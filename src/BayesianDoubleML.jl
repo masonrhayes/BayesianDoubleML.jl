@@ -5,8 +5,10 @@ using StatsAPI
 # Core exports - dispatch-based API with mutating fit!
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
-    AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod,
-    MCMCNUTS, UnifiedVI, SimpleVI,
+    AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod, VMPMethod,
+    MCMCNUTS, UnifiedVI, SimpleVI, VMP,
+    # VMP backends
+    AbstractVMPBackend, RxInferVMP, ManualCoordinateAscentVMP,
     # Variational families
     AbstractVariationalFamily, MeanField, LowRank, LowRankScore,
     MeanFieldVI, LowRankVI, LowRankScoreVI,
@@ -15,7 +17,7 @@ export fit!, BDMLModel,
     # Accessors
     nobs, ncovariates, model_type, standardization_stats, isfitted,
     # Results
-    extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult,
+    extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult, BDMLVMPResult,
     # Coeftable
     coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
     # StatsAPI functions
@@ -62,6 +64,7 @@ include("alpha_extraction.jl")       # Additional extract_alpha methods for VI
 include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod
 include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
 include("fit.jl")  # Dispatch-based fit!() functions
+include("vmp/vmp_manual_coordinate_ascent.jl")
 
 include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals
 

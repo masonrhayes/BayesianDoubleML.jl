@@ -213,6 +213,10 @@ function BDMLModel(Y, D, X; model_type::Symbol = :basic)
 
     # Standardize data once
     Y_s, D_s, X_s, stats = standardize_data(Y, D, X)
+    return _build_model(Y_s, D_s, X_s, stats, n, model_type)
+end
+
+function _build_model(Y_s, D_s, X_s, stats, n::Int, model_type::Symbol)
     p = size(X_s, 2)
 
     # Initialize result storage
@@ -385,8 +389,8 @@ See also: [`BDMLModel`](@ref), [`BDMLBasicModel`](@ref), [`BDMLHierarchicalModel
 """
 function BDMLModel(df::DataFrame, y::Symbol, d::Symbol; model_type::Symbol = :basic, x_cols = nothing)
     # Extract Y and D
-    Y = df[:, y]
-    D = df[:, d]
+    Y = df[!, y]
+    D = df[!, d]
 
     # Determine X columns
     if x_cols === nothing
@@ -397,9 +401,9 @@ function BDMLModel(df::DataFrame, y::Symbol, d::Symbol; model_type::Symbol = :ba
         x_cols_sym = Symbol.(x_cols)
     end
 
-    # Extract X as Matrix
-    X = Matrix(df[:, x_cols_sym])
-
-    # Create the model using the standard constructor
-    return BDMLModel(Y, D, X; model_type)
+    # Standardize directly from the source columns, avoiding an intermediate DataFrame and matrix.
+    n = nrow(df)
+    columns = (df[!, col] for col in x_cols_sym)
+    Y_s, D_s, X_s, stats = _standardize_data(Y, D, columns, n, length(x_cols_sym))
+    return _build_model(Y_s, D_s, X_s, stats, n, model_type)
 end

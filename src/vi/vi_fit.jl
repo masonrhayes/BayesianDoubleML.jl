@@ -403,3 +403,12 @@ Compute credible interval for α from BDMLVIResult.
 function credible_interval(result::BDMLVIResult; level::Float64 = 0.95)
     return credible_interval(result.alpha_samples; level = level)
 end
+
+"""
+    credible_interval(result::BDMLVMPResult; level=0.95)
+
+Compute credible interval for α from BDMLVMPResult.
+"""
+function credible_interval(result::BDMLVMPResult; level::Float64 = 0.95)
+    return credible_interval(result.alpha_samples; level = level)
+end

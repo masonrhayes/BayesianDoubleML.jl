@@ -1,5 +1,5 @@
 # Inference Methods Tests
-# Tests for MCMCMethod, UnifiedVIMethod, SimpleVIMethod constructors and traits
+# Tests for MCMCMethod, UnifiedVIMethod, SimpleVIMethod, and VMPMethod
 
 using BayesianDoubleML
 using Test
@@ -89,12 +89,36 @@ end
     @test simple.ad_backend == AutoMooncake
 end
 
+@testset "VMPMethod Constructor" begin
+    method = VMPMethod()
+    @test method isa VMPMethod
+    @test VMP() isa VMPMethod
+    @test method.backend isa ManualCoordinateAscentVMP
+
+    method_manual = VMPMethod(; backend = ManualCoordinateAscentVMP())
+    @test method_manual isa VMPMethod
+    @test method_manual.backend isa ManualCoordinateAscentVMP
+    @test method_manual.backend.tolerance == 1.0e-8
+
+    method_rx = VMPMethod(; backend = RxInferVMP(; limit_stack_depth = 100))
+    @test method_rx.backend.limit_stack_depth == 100
+
+    # Validation at construction time
+    @test_throws ArgumentError VMPMethod(; ν0 = 3.0)
+    @test_throws ArgumentError VMPMethod(; aτ = 0.0)
+    @test_throws ArgumentError VMPMethod(; bτ = -1.0)
+    @test_throws ArgumentError VMPMethod(; S0 = ones(3, 3))
+    @test_throws ArgumentError VMPMethod(; S0 = [1.0 2.0; 2.0 1.0])  # not posdef
+end
+
 @testset "Method Traits - uses_sampling" begin
     # All methods use sampling
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
     @test BayesianDoubleML.uses_sampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.uses_sampling(SimpleVIMethod()) == true
+    @test BayesianDoubleML.uses_sampling(VMPMethod()) == true
+    @test BayesianDoubleML.uses_sampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == true
 end
 
 @testset "Method Traits - supports_subsampling" begin
@@ -102,6 +126,8 @@ end
     @test BayesianDoubleML.supports_subsampling(MCMCMethod(:nuts)) == false
     @test BayesianDoubleML.supports_subsampling(UnifiedVIMethod()) == true
     @test BayesianDoubleML.supports_subsampling(SimpleVIMethod()) == false
+    @test BayesianDoubleML.supports_subsampling(VMPMethod()) == false
+    @test BayesianDoubleML.supports_subsampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
 end
 
 @testset "Method Traits - is_deterministic" begin
@@ -109,6 +135,8 @@ end
     @test BayesianDoubleML.is_deterministic(MCMCMethod(:nuts)) == false
     @test BayesianDoubleML.is_deterministic(UnifiedVIMethod()) == false
     @test BayesianDoubleML.is_deterministic(SimpleVIMethod()) == false
+    @test BayesianDoubleML.is_deterministic(VMPMethod()) == false
+    @test BayesianDoubleML.is_deterministic(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
 end
 
 @testset "Method Traits - default_n_samples" begin
@@ -116,6 +144,8 @@ end
     @test BayesianDoubleML.default_n_samples(MCMCMethod(:nuts)) == 2000
     @test BayesianDoubleML.default_n_samples(UnifiedVIMethod()) == 2000
     @test BayesianDoubleML.default_n_samples(SimpleVIMethod()) == 2000
+    @test BayesianDoubleML.default_n_samples(VMPMethod()) == 2000
+    @test BayesianDoubleML.default_n_samples(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 2000
 end
 
 @testset "Method Traits - default_n_iterations" begin
@@ -123,6 +153,8 @@ end
     @test BayesianDoubleML.default_n_iterations(MCMCMethod(:nuts)) == 1000
     @test BayesianDoubleML.default_n_iterations(UnifiedVIMethod()) == 1000
     @test BayesianDoubleML.default_n_iterations(SimpleVIMethod()) == 1000
+    @test BayesianDoubleML.default_n_iterations(VMPMethod()) == 50
+    @test BayesianDoubleML.default_n_iterations(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 50
 end
 
 @testset "Method Type Stability" begin
@@ -136,4 +168,7 @@ end
 
     method_simple = SimpleVI()
     @test typeof(method_simple) == SimpleVIMethod
+
+    @test typeof(VMP()) <: VMPMethod
+    @test typeof(VMP(; backend = ManualCoordinateAscentVMP())) <: VMPMethod
 end

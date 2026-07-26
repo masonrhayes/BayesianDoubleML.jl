@@ -86,6 +86,20 @@ end
     @test stats.X_sd ≈ vec(std(X, dims = 1))
 end
 
+@testset "Standardization converts numeric inputs to Float64" begin
+    Y = collect(1:10)
+    D = collect(11:20)
+    X = reshape(collect(1:30), 10, 3)
+
+    Y_s, D_s, X_s, stats = BayesianDoubleML.standardize_data(Y, D, X)
+
+    @test eltype(Y_s) == Float64
+    @test eltype(D_s) == Float64
+    @test eltype(X_s) == Float64
+    @test stats.Y_mean isa Float64
+    @test stats.X_mean isa Vector{Float64}
+end
+
 @testset "Credible Interval" begin
     # Test with normal samples
     Random.seed!(103)
