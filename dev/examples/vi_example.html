@@ -101,17 +101,17 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.0195       0.1743       0.0000       0.0000
+  α               1.0118       0.1689       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [0.6718, 1.341]
+  α: [0.7008, 1.3525]
 
 Diagnostics:
-  Final ELBO: -732.0
+  Final ELBO: -726.16
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.02.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.01.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
     n2 = 1_000
@@ -121,7 +121,7 @@ Diagnostics:
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="azkpdgqsohww"><input max="47" min="1" type="range" value="1"/><script>
+<bond def="p2" unique_id="zhgjswegxfuq"><input max="47" min="1" type="range" value="1"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["31", "41", "51", "61", "71", "81", "91", "101", "111", "121", "131", "141", "151", "161", "171", "181", "191", "201", "211", "221", "231", "241", "251", "261", "271", "281", "291", "301", "311", "321", "331", "341", "351", "361", "371", "381", "391", "401", "411", "421", "431", "441", "451", "461", "471", "481", "491"]
@@ -179,13 +179,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9579       0.0654       0.0000       0.0000
+  α               1.9568       0.0657       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.8357, 2.0867]
+  α: [1.8261, 2.0815]
 
 Diagnostics:
-  Final ELBO: -2159.12
+  Final ELBO: -2162.74
 </pre>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="../api_reference.html">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 22 July 2026 15:09">Wednesday 22 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="../api_reference.html">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 26 July 2026 17:55">Sunday 26 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
