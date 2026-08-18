@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "83d718e38baf7e162bcfb67483db679228b74f27"
+project_hash = "ce05e5333bd14a2adf2681487168a551ef50188c"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "ec6be48a85c93d995563b84bff8a86bc98df45ce"
@@ -49,7 +49,6 @@ deps = ["ADTypes", "AbstractMCMC", "Accessors", "BangBang", "DensityInterface", 
 git-tree-sha1 = "31fb177c9952267ac2dc54a44868cb768390e6ef"
 uuid = "7a57a42e-76ec-4ea3-a279-07e840d6d9cf"
 version = "0.15.5"
-weakdeps = ["DiffResults", "DifferentiationInterface", "Distributions", "ForwardDiff", "Mooncake", "Test"]
 
     [deps.AbstractPPL.extensions]
     AbstractPPLDifferentiationInterfaceExt = ["DifferentiationInterface"]
@@ -57,6 +56,14 @@ weakdeps = ["DiffResults", "DifferentiationInterface", "Distributions", "Forward
     AbstractPPLForwardDiffExt = ["ForwardDiff", "DiffResults"]
     AbstractPPLMooncakeExt = ["Mooncake"]
     AbstractPPLTestExt = ["Test"]
+
+    [deps.AbstractPPL.weakdeps]
+    DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
+    DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
+    Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
@@ -243,7 +250,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
 [[deps.BayesianDoubleML]]
-deps = ["ADTypes", "AdvancedVI", "Bijectors", "DataFrames", "DifferentiationInterface", "Distributions", "FlexiChains", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "Mooncake", "NaNMath", "Optim", "Optimisers", "Printf", "Random", "ReverseDiff", "Statistics", "StatsAPI", "Turing", "UnicodePlots", "Zygote"]
+deps = ["ADTypes", "AdvancedVI", "Bijectors", "DataFrames", "DifferentiationInterface", "Distributions", "FlexiChains", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "NaNMath", "Optim", "Optimisers", "Printf", "Random", "ReverseDiff", "Statistics", "StatsAPI", "Turing", "UnicodePlots"]
 path = "."
 uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 version = "0.2.0"
@@ -254,7 +261,9 @@ version = "0.2.0"
     BayesianDoubleMLZygoteExt = "Zygote"
 
     [deps.BayesianDoubleML.weakdeps]
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
     RxInfer = "86711068-29c9-4ff7-b620-ae75d7495b3d"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [[deps.Bijectors]]
 deps = ["ADTypes", "AbstractPPL", "ArgCheck", "ChangesOfVariables", "Distributions", "DocStringExtensions", "FillArrays", "Functors", "InverseFunctions", "IrrationalConstants", "LinearAlgebra", "LogExpFunctions", "MappedArrays", "Random", "Reexport", "Roots", "SparseArrays", "Statistics", "Test"]
@@ -279,12 +288,6 @@ version = "0.16.2"
     LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
     Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
     ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-
-[[deps.ChainRules]]
-deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "SparseInverseSubset", "Statistics", "StructArrays", "SuiteSparse"]
-git-tree-sha1 = "3c190c570fb3108c09f838607386d10c71701789"
-uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.73.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
@@ -551,20 +554,6 @@ version = "0.30.1"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
     StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
-[[deps.DispatchDoctor]]
-deps = ["MacroTools", "Preferences"]
-git-tree-sha1 = "42cd00edaac86f941815fe557c1d01e11913e07c"
-uuid = "8d63f2c5-f18a-4cf2-ba9d-b3f60fc568c8"
-version = "0.4.28"
-
-    [deps.DispatchDoctor.extensions]
-    DispatchDoctorChainRulesCoreExt = "ChainRulesCore"
-    DispatchDoctorEnzymeCoreExt = "EnzymeCore"
-
-    [deps.DispatchDoctor.weakdeps]
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
-
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
@@ -779,12 +768,6 @@ deps = ["Gamma", "LinearAlgebra"]
 git-tree-sha1 = "18d7deab5fb0440dc6a7b6993c5c27b25420de10"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
 version = "0.3.29"
-
-[[deps.IRTools]]
-deps = ["InteractiveUtils", "MacroTools"]
-git-tree-sha1 = "a094cae18d505758924ea42e977f6e08596d4749"
-uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
-version = "0.4.19"
 
 [[deps.InitialValues]]
 git-tree-sha1 = "4da0f88e9a39111c2fa3add390ab15f3a44f3ca3"
@@ -1014,51 +997,6 @@ version = "2.1.0"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
-
-[[deps.Mooncake]]
-deps = ["ADTypes", "ChainRulesCore", "DispatchDoctor", "ExprTools", "LinearAlgebra", "MistyClosures", "PrecompileTools", "Random", "Test"]
-git-tree-sha1 = "66ba95d925a75bb7c9aee66134df0a32a9f43fff"
-uuid = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
-version = "0.5.40"
-
-    [deps.Mooncake.extensions]
-    MooncakeAllocCheckExt = "AllocCheck"
-    MooncakeBFloat16sExt = "BFloat16s"
-    MooncakeCUDAExt = ["CUDA", "Statistics"]
-    MooncakeChainRulesExt = "ChainRules"
-    MooncakeDistributionsExt = "Distributions"
-    MooncakeDynamicExpressionsExt = "DynamicExpressions"
-    MooncakeFluxExt = "Flux"
-    MooncakeFunctionWrappersExt = "FunctionWrappers"
-    MooncakeJETExt = "JET"
-    MooncakeLogExpFunctionsExt = "LogExpFunctions"
-    MooncakeLuxLibExt = ["LuxLib", "MLDataDevices", "Static"]
-    MooncakeLuxLibNNlibExt = ["LuxLib", "NNlib"]
-    MooncakeLuxLibSLEEFPiratesExtension = ["LuxLib", "SLEEFPirates"]
-    MooncakeNNlibExt = ["NNlib", "LinearAlgebra"]
-    MooncakeSpecialFunctionsExt = "SpecialFunctions"
-    MooncakecuDNNExt = ["CUDA", "cuDNN"]
-
-    [deps.Mooncake.weakdeps]
-    AllocCheck = "9b6a8646-10ed-4001-bbdc-1d2f46dfbb1a"
-    BFloat16s = "ab4f0b2a-ad5b-11e8-123f-65d77653426b"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-    Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-    DynamicExpressions = "a40a106e-89c9-4ca8-8020-a735e8728b6b"
-    Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-    FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
-    GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
-    JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
-    LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-    LuxLib = "82251201-b29d-42c6-8e01-566dec8acb11"
-    MLDataDevices = "7e8f7934-dd98-4c1a-8fe8-92b47a384d40"
-    NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-    SLEEFPirates = "476501e8-09a2-5ece-8869-fb82de89a1fa"
-    SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
-    Static = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
-    Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-    cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [[deps.Moshi]]
 deps = ["ExproniconLite", "Jieko"]
@@ -1290,12 +1228,6 @@ deps = ["Random"]
 git-tree-sha1 = "c6ec94d2aaba1ab2ff983052cf6a606ca5985902"
 uuid = "e6cf234a-135c-5ec9-84dd-332b85af5143"
 version = "1.6.0"
-
-[[deps.RealDot]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "9f0a1b71baaf7650f4fa8a1d168c7fb6ee41f0c9"
-uuid = "c1ae055f-0cd5-4b69-90a6-9a35b1a98df9"
-version = "0.1.0"
 
 [[deps.RecipesBase]]
 deps = ["PrecompileTools"]
@@ -1547,12 +1479,6 @@ version = "1.2.2"
     NaNMath = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
     SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
-[[deps.SparseInverseSubset]]
-deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "52962839426b75b3021296f7df242e40ecfc0852"
-uuid = "dc90abb0-5640-4711-901d-7e5b23a2fada"
-version = "0.1.2"
-
 [[deps.SparseMatrixColorings]]
 deps = ["ADTypes", "DocStringExtensions", "LinearAlgebra", "PrecompileTools", "Random", "SparseArrays"]
 git-tree-sha1 = "f63d76c7b7c329cf11badd564fd8ba877b09c3fe"
@@ -1645,27 +1571,6 @@ deps = ["PrecompileTools"]
 git-tree-sha1 = "532e983cd333609f95d618c744fc40d01ea6e17a"
 uuid = "892a3eda-7b42-436c-8928-eab12a02cf0e"
 version = "0.4.6"
-
-[[deps.StructArrays]]
-deps = ["ConstructionBase", "DataAPI", "Tables"]
-git-tree-sha1 = "ad8002667372439f2e3611cfd14097e03fa4bccd"
-uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
-version = "0.7.3"
-
-    [deps.StructArrays.extensions]
-    StructArraysAdaptExt = "Adapt"
-    StructArraysGPUArraysCoreExt = ["GPUArraysCore", "KernelAbstractions"]
-    StructArraysLinearAlgebraExt = "LinearAlgebra"
-    StructArraysSparseArraysExt = "SparseArrays"
-    StructArraysStaticArraysExt = "StaticArrays"
-
-    [deps.StructArrays.weakdeps]
-    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-    GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
-    KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
-    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.StructUtils]]
 deps = ["Dates", "UUIDs"]
@@ -1789,32 +1694,6 @@ version = "3.8.4"
     IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
     Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
-
-[[deps.Zygote]]
-deps = ["AbstractFFTs", "ChainRules", "ChainRulesCore", "DiffRules", "Distributed", "FillArrays", "ForwardDiff", "GPUArraysCore", "IRTools", "InteractiveUtils", "LinearAlgebra", "LogExpFunctions", "MacroTools", "NaNMath", "PrecompileTools", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "b6a713b80d2b8fd515bf46e9c499dd9cb96bae3d"
-uuid = "e88e6eb3-aa80-5325-afca-941959d7151f"
-version = "0.7.12"
-
-    [deps.Zygote.extensions]
-    ZygoteAtomExt = "Atom"
-    ZygoteCUDAExt = "CUDA"
-    ZygoteColorsExt = "Colors"
-    ZygoteDistancesExt = "Distances"
-    ZygoteTrackerExt = "Tracker"
-
-    [deps.Zygote.weakdeps]
-    Atom = "c52e3926-4ff0-5f6e-af25-54175e0327b1"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
-    Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-
-[[deps.ZygoteRules]]
-deps = ["ChainRulesCore", "MacroTools"]
-git-tree-sha1 = "434b3de333c75fc446aa0d19fc394edafd07ab08"
-uuid = "700de1a5-db45-46bc-99cf-38207098b444"
-version = "0.2.7"
 
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]

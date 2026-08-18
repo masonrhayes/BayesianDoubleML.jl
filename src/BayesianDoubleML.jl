@@ -45,7 +45,6 @@ using Random
 using ReverseDiff
 using Statistics
 using NaNMath
-using Optim
 using Optimisers
 using LogDensityProblems
 using LogDensityProblemsAD
