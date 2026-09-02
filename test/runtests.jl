@@ -15,12 +15,20 @@ println("\n=== Phase 1: Core Functionality ===")
     include("core.jl")
 end
 
+@safetestset "Data Generating Processes" begin
+    include("dgp.jl")
+end
+
 @safetestset "BDMLModel Constructors" begin
     include("models.jl")
 end
 
 @safetestset "Inference Methods" begin
     include("methods.jl")
+end
+
+@safetestset "Experimental Bayes-DR" begin
+    include("bayes_dr.jl")
 end
 
 # Phase 2: Inference method tests (slower, involves sampling)

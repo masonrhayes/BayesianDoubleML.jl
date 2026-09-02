@@ -82,6 +82,86 @@ function Base.summary(result::AbstractBDMLResult)
     return Base.summary(stdout, result)
 end
 
+function Base.summary(io::IO, result::BayesDRResult)
+    print_title_box(io)
+    print_section_header(io, COLOR_BLUE, "Model Information")
+    @printf io "  Model Type:       Bayes-DR\n"
+    @printf io "  Estimand:         ATE (binary treatment)\n"
+    @printf io "  Outcome Scale:    original\n"
+
+    print_section_header(io, COLOR_GREEN, "Inference Method")
+    @printf io "  Method:           Spike-and-slab Gibbs MCMC\n"
+    @printf io "  Posterior Draws:  %d\n" length(result.posterior_effects)
+    @printf io "  Bootstrap Draws:  %d\n" length(result.bootstrap_estimates)
+    print_bayes_dr_diagnostics(io, result)
+
+    print_section_header(io, COLOR_MAGENTA, "Variance Decomposition")
+    @printf io "  Naive Variance:   %.6f\n" result.naive_variance
+    @printf io "  Posterior Term:   %.6f\n" result.posterior_variance
+    @printf io "  Total Variance:   %.6f\n" result.standard_error^2
+
+    print_section_header(io, COLOR_YELLOW, "Causal Effect (ATE)")
+    @printf io "  Estimate:         %s%.4f%s\n" COLOR_BOLD result.estimate COLOR_RESET
+    @printf io "  Std Error:        %.4f\n" result.standard_error
+    @printf io "  %.0f%% CI:          [%s%.4f%s, %s%.4f%s]\n" (100 * result.level) COLOR_BOLD result.confidence_interval[1] COLOR_RESET COLOR_BOLD result.confidence_interval[2] COLOR_RESET
+    @printf io "  Propensity Range: [%.4f, %.4f]\n" minimum(result.propensity_mean) maximum(result.propensity_mean)
+    @printf io "  Propensities Clipped: %.2f%%\n" (100 * result.propensity_clipped_fraction)
+    return nothing
+end
+
+Base.summary(result::BayesDRResult) = Base.summary(stdout, result)
+
+function Base.summary(io::IO, result::BayesDRCurveResult)
+    print_title_box(io)
+    print_section_header(io, COLOR_BLUE, "Model Information")
+    @printf io "  Model Type:       Bayes-DR\n"
+    @printf io "  Estimand:         Exposure-response curve E[Y(t)]\n"
+    @printf io "  Treatment Range:  [%.4f, %.4f]\n" minimum(result.treatment_grid) maximum(result.treatment_grid)
+    @printf io "  Grid Points:      %d\n" length(result.treatment_grid)
+    @printf io "  Curve Degree:     %d\n" result.curve_degree
+
+    print_section_header(io, COLOR_GREEN, "Inference Method")
+    @printf io "  Method:           Spike-and-slab Gibbs MCMC\n"
+    @printf io "  Posterior Draws:  %d\n" size(result.posterior_curves, 1)
+    @printf io "  Bootstrap Draws:  %d\n" size(result.bootstrap_curves, 1)
+    @printf io "  Intervals:        pointwise %.0f%% confidence\n" (100 * result.level)
+    @printf io "  Density Ratios Clipped: %.2f%%\n" (100 * result.density_ratio_clipped_fraction)
+    print_bayes_dr_diagnostics(io, result)
+
+    derivative = average_derivative(result)
+    print_section_header(io, COLOR_MAGENTA, "Average Derivative Diagnostic")
+    @printf io "  Treatment Interval: [%.4f, %.4f]\n" derivative.treatment_interval[1] derivative.treatment_interval[2]
+    @printf io "  Estimate:           %s%.4f%s\n" COLOR_BOLD derivative.estimate COLOR_RESET
+    @printf io "  Std Error:          %.4f\n" derivative.standard_error
+    @printf io "  %.0f%% CI:            [%s%.4f%s, %s%.4f%s]\n" (100 * derivative.level) COLOR_BOLD derivative.confidence_interval[1] COLOR_RESET COLOR_BOLD derivative.confidence_interval[2] COLOR_RESET
+
+    print_section_header(io, COLOR_YELLOW, "Exposure-Response Curve")
+    for location in eachindex(result.treatment_grid)
+        @printf io "  t=%8.4f  E[Y(t)]=%9.4f  SE=%8.4f  CI=[%9.4f, %9.4f]\n" result.treatment_grid[location] result.estimate[location] result.standard_error[location] result.confidence_interval[location, 1] result.confidence_interval[location, 2]
+    end
+    return nothing
+end
+
+Base.summary(result::BayesDRCurveResult) = Base.summary(stdout, result)
+
+function print_bayes_dr_diagnostics(io::IO, result::Union{BayesDRResult, BayesDRCurveResult})
+    info = chain_info(result)
+    @printf io "  Chains:           %d\n" info.n_chains
+    ess_value = ess(result)
+    if ismissing(ess_value)
+        @printf io "  Nuisance ESS:     not available\n"
+    else
+        @printf io "  Nuisance ESS:     %.1f (minimum)\n" ess_value
+    end
+    rhat_value = rhat(result)
+    if ismissing(rhat_value)
+        @printf io "  Nuisance R-hat:   not available\n"
+    else
+        @printf io "  Nuisance R-hat:   %.3f (maximum)\n" rhat_value
+    end
+    return nothing
+end
+
 function print_title_box(io::IO)
     title = "Bayesian Double ML Model Summary"
     box_width = 70

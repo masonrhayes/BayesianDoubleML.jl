@@ -5,6 +5,7 @@ using StatsAPI
 # Core exports - dispatch-based API with mutating fit!
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
+    BayesDRModel, BayesDRMCMCMethod, BayesDRMCMC, BayesDRResult, BayesDRCurveResult,
     AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod, VMPMethod,
     MCMCNUTS, UnifiedVI, SimpleVI, VMP,
     # VMP backends
@@ -19,7 +20,8 @@ export fit!, BDMLModel,
     # Results
     extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult, BDMLVMPResult,
     # Coeftable
-    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
+    coeftable, BDMLCoeftable, confint, exposure_response_curve, average_derivative,
+    ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
     # StatsAPI functions
     coef, stderror, vcov,
     # Summary
@@ -29,7 +31,7 @@ export fit!, BDMLModel,
     # AD backends for VI configuration
     AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoMooncake,
     # DGP
-    make_plr_DTL2025
+    make_plr_DTL2025, make_irm_APD2022, make_er_APD2022, make_plr_LML2025
 
 using Turing
 using Turing.Variational
@@ -63,6 +65,7 @@ include("alpha_extraction.jl")       # Additional extract_alpha methods for VI
 include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod
 include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
 include("fit.jl")  # Dispatch-based fit!() functions
+include("experimental/bayes_dr.jl")
 include("vmp/vmp_manual_coordinate_ascent.jl")
 
 include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals

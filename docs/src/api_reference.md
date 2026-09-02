@@ -7,6 +7,7 @@
 BayesianDoubleML.AbstractBDMLModel
 BayesianDoubleML.BDMLBasicModel
 BayesianDoubleML.BDMLHierarchicalModel
+BayesianDoubleML.BayesDRModel
 BayesianDoubleML.BDMLModel
 ```
 
@@ -30,6 +31,7 @@ BayesianDoubleML.MCMCMethod
 BayesianDoubleML.UnifiedVIMethod
 BayesianDoubleML.SimpleVIMethod
 BayesianDoubleML.VMPMethod
+BayesianDoubleML.BayesDRMCMCMethod
 BayesianDoubleML.AbstractVMPBackend
 BayesianDoubleML.RxInferVMP
 BayesianDoubleML.ManualCoordinateAscentVMP
@@ -50,6 +52,7 @@ BayesianDoubleML.MeanFieldVI
 BayesianDoubleML.LowRankVI
 BayesianDoubleML.LowRankScoreVI
 BayesianDoubleML.VMP
+BayesianDoubleML.BayesDRMCMC
 ```
 
 ### Variational Families
@@ -84,6 +87,8 @@ BayesianDoubleML.AbstractBDMLResult
 BayesianDoubleML.BDMLMCMCResult
 BayesianDoubleML.BDMLVIResult
 BayesianDoubleML.BDMLVMPResult
+BayesianDoubleML.BayesDRResult
+BayesianDoubleML.BayesDRCurveResult
 BayesianDoubleML.BDMLData
 BayesianDoubleML.StandardizationStats
 ```
@@ -145,6 +150,9 @@ BayesianDoubleML.bdml_hier
 
 ```@docs
 BayesianDoubleML.make_plr_DTL2025
+BayesianDoubleML.make_irm_APD2022
+BayesianDoubleML.make_er_APD2022
+BayesianDoubleML.make_plr_LML2025
 ```
 
 ## Index
