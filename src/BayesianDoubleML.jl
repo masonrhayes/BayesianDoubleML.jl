@@ -6,7 +6,8 @@ using StatsAPI
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
     AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod, VMPMethod,
-    MCMCNUTS, UnifiedVI, SimpleVI, VMP,
+    CollapsedVIMethod,
+    MCMCNUTS, UnifiedVI, SimpleVI, VMP, CollapsedVI,
     # VMP backends
     AbstractVMPBackend, RxInferVMP, ManualCoordinateAscentVMP,
     # Variational families
@@ -60,10 +61,13 @@ include("alpha_extraction.jl")       # Additional extract_alpha methods for VI
 
 # Multiple Dispatch System for BDML
 # Provides unified fit!() interface that dispatches on model type and method type
-include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod
+include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod, CollapsedVI
 include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
+include("collapsed/collapsed.jl")
+include("collapsed/collapsed_vi_model.jl")
 include("fit.jl")  # Dispatch-based fit!() functions
 include("vmp/vmp_manual_coordinate_ascent.jl")
+include("collapsed/collapsed_vi_fit.jl")
 
 include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals
 

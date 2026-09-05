@@ -111,6 +111,20 @@ end
     @test_throws ArgumentError VMPMethod(; S0 = [1.0 2.0; 2.0 1.0])  # not posdef
 end
 
+@testset "CollapsedVIMethod Constructor" begin
+    method = CollapsedVI()
+    @test method isa CollapsedVIMethod
+    @test method.ad_backend == AutoReverseDiff
+    @test method.n_montecarlo == 10
+    @test method.fullrank
+
+    custom = CollapsedVI(; ad_backend = AutoMooncake, n_montecarlo = 5, fullrank = false)
+    @test custom.ad_backend == AutoMooncake
+    @test custom.n_montecarlo == 5
+    @test !custom.fullrank
+    @test_throws AssertionError CollapsedVI(; n_montecarlo = 0)
+end
+
 @testset "Method Traits - uses_sampling" begin
     # All methods use sampling
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
@@ -119,6 +133,7 @@ end
     @test BayesianDoubleML.uses_sampling(SimpleVIMethod()) == true
     @test BayesianDoubleML.uses_sampling(VMPMethod()) == true
     @test BayesianDoubleML.uses_sampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == true
+    @test BayesianDoubleML.uses_sampling(CollapsedVI()) == true
 end
 
 @testset "Method Traits - supports_subsampling" begin
@@ -128,6 +143,7 @@ end
     @test BayesianDoubleML.supports_subsampling(SimpleVIMethod()) == false
     @test BayesianDoubleML.supports_subsampling(VMPMethod()) == false
     @test BayesianDoubleML.supports_subsampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
+    @test BayesianDoubleML.supports_subsampling(CollapsedVI()) == false
 end
 
 @testset "Method Traits - is_deterministic" begin
@@ -137,6 +153,7 @@ end
     @test BayesianDoubleML.is_deterministic(SimpleVIMethod()) == false
     @test BayesianDoubleML.is_deterministic(VMPMethod()) == false
     @test BayesianDoubleML.is_deterministic(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
+    @test BayesianDoubleML.is_deterministic(CollapsedVI()) == false
 end
 
 @testset "Method Traits - default_n_samples" begin
@@ -146,6 +163,7 @@ end
     @test BayesianDoubleML.default_n_samples(SimpleVIMethod()) == 2000
     @test BayesianDoubleML.default_n_samples(VMPMethod()) == 2000
     @test BayesianDoubleML.default_n_samples(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 2000
+    @test BayesianDoubleML.default_n_samples(CollapsedVI()) == 2000
 end
 
 @testset "Method Traits - default_n_iterations" begin
@@ -155,6 +173,7 @@ end
     @test BayesianDoubleML.default_n_iterations(SimpleVIMethod()) == 1000
     @test BayesianDoubleML.default_n_iterations(VMPMethod()) == 50
     @test BayesianDoubleML.default_n_iterations(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 50
+    @test BayesianDoubleML.default_n_iterations(CollapsedVI()) == 1000
 end
 
 @testset "Method Type Stability" begin
@@ -171,4 +190,5 @@ end
 
     @test typeof(VMP()) <: VMPMethod
     @test typeof(VMP(; backend = ManualCoordinateAscentVMP())) <: VMPMethod
+    @test typeof(CollapsedVI()) == CollapsedVIMethod
 end

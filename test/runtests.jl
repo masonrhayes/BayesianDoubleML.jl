@@ -33,6 +33,9 @@ end
 @safetestset "VI (Unified and Simple)" begin
     include("vi.jl")
 end
+@safetestset "Collapsed VI" begin
+    include("collapsed_vi.jl")
+end
 @safetestset "VMP Manual without Extension" begin
     include("vmp_manual_no_ext.jl")
 end

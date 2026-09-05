@@ -589,6 +589,57 @@ See [`VMPMethod`](@ref) for full documentation.
 """
 VMP(; kwargs...) = VMPMethod(; kwargs...)
 
+# Collapsed VI method
+
+"""
+    CollapsedVIMethod <: AbstractInferenceMethod
+
+Collapsed variational inference integrates `(delta, gamma)` out analytically
+and runs ADVI on the 3-dimensional (`:basic`) or 5-dimensional (`:hier`)
+posterior for the error scales, correlation, and optional coefficient
+variances. Conditional coefficient draws can then be recovered from their
+exact joint Gaussian distribution.
+
+The implementation uses the same priors as the existing VI model and a
+rank-aware SVD marginal likelihood. Each objective evaluation is `O(rank(X))`
+and remains stable when `X` is rank deficient or `p` is close to `n`.
+
+# Fields
+- `ad_backend::Type{<:AbstractADType}`: AD backend (default `AutoReverseDiff`)
+- `n_montecarlo::Int`: MC samples per ELBO gradient (default 10)
+- `fullrank::Bool`: use a full-rank Gaussian if true, otherwise a mean-field Gaussian
+
+# Examples
+```julia
+fit!(model, CollapsedVI(); n_iterations=1000, n_draws=2000)
+fit!(model, CollapsedVI(; ad_backend=AutoMooncake, fullrank=true))
+```
+
+See also: [`UnifiedVIMethod`](@ref), [`SimpleVIMethod`](@ref)
+"""
+struct CollapsedVIMethod <: AbstractInferenceMethod
+    ad_backend::Type{<:AbstractADType}
+    n_montecarlo::Int
+    fullrank::Bool
+    function CollapsedVIMethod(;
+            ad_backend::Type{<:AbstractADType} = AutoReverseDiff,
+            n_montecarlo::Int = 10,
+            fullrank::Bool = true,
+        )
+        @assert n_montecarlo > 0 "n_montecarlo must be positive"
+        return new(ad_backend, n_montecarlo, fullrank)
+    end
+end
+
+"""
+    CollapsedVI(; kwargs...)
+
+Convenience constructor for `CollapsedVIMethod`.
+
+See [`CollapsedVIMethod`](@ref).
+"""
+CollapsedVI(; kwargs...) = CollapsedVIMethod(; kwargs...)
+
 # Trait functions
 
 """
@@ -602,6 +653,7 @@ uses_sampling(::MCMCMethod) = true
 uses_sampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
 uses_sampling(::SimpleVIMethod) = true
 uses_sampling(::VMPMethod{<:AbstractVMPBackend}) = true
+uses_sampling(::CollapsedVIMethod) = true
 
 """
     supports_subsampling(method::AbstractInferenceMethod)
@@ -614,6 +666,7 @@ supports_subsampling(::MCMCMethod) = false
 supports_subsampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
 supports_subsampling(::SimpleVIMethod) = false
 supports_subsampling(::VMPMethod{<:AbstractVMPBackend}) = false
+supports_subsampling(::CollapsedVIMethod) = false
 
 """
     is_deterministic(method::AbstractInferenceMethod)
@@ -636,6 +689,7 @@ default_n_samples(::MCMCMethod) = 2000
 default_n_samples(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 2000
 default_n_samples(::SimpleVIMethod) = 2000
 default_n_samples(::VMPMethod{<:AbstractVMPBackend}) = 2000
+default_n_samples(::CollapsedVIMethod) = 2000
 
 """
     default_n_iterations(method::AbstractInferenceMethod)
@@ -648,3 +702,4 @@ default_n_iterations(::MCMCMethod) = 1000  # Warm-up iterations
 default_n_iterations(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 1000
 default_n_iterations(::SimpleVIMethod) = 1000
 default_n_iterations(::VMPMethod{<:AbstractVMPBackend}) = 50  # VMP converges in ~20-50 iterations
+default_n_iterations(::CollapsedVIMethod) = 1000
