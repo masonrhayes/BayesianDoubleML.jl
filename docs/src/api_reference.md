@@ -27,8 +27,7 @@ BayesianDoubleML.isfitted
 ```@docs
 BayesianDoubleML.AbstractInferenceMethod
 BayesianDoubleML.MCMCMethod
-BayesianDoubleML.UnifiedVIMethod
-BayesianDoubleML.SimpleVIMethod
+BayesianDoubleML.CollapsedVIMethod
 BayesianDoubleML.VMPMethod
 BayesianDoubleML.AbstractVMPBackend
 BayesianDoubleML.RxInferVMP
@@ -41,24 +40,11 @@ BayesianDoubleML.ManualCoordinateAscentVMP
 BayesianDoubleML.MCMCNUTS
 ```
 
-### VI Method Constructors
+### VI/VMP Method Constructors
 
 ```@docs
-BayesianDoubleML.UnifiedVI
-BayesianDoubleML.SimpleVI
-BayesianDoubleML.MeanFieldVI
-BayesianDoubleML.LowRankVI
-BayesianDoubleML.LowRankScoreVI
+BayesianDoubleML.CollapsedVI
 BayesianDoubleML.VMP
-```
-
-### Variational Families
-
-```@docs
-BayesianDoubleML.AbstractVariationalFamily
-BayesianDoubleML.MeanField
-BayesianDoubleML.LowRank
-BayesianDoubleML.LowRankScore
 ```
 
 ### Method Traits

@@ -119,8 +119,8 @@ Results from Variational Inference (ADVI) approximation.
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation
 - `model_type::Symbol`: :basic or :hier
-- `variational_family::Symbol`: :meanfield, :lowrank, or :fullrank
-- `vi_method::Symbol`: :unified or :simple (which VI method was used)
+- `variational_family::Symbol`: :collapsed_meanfield or :collapsed_fullrank
+- `vi_method::Symbol`: :collapsed (which VI method was used)
 - `n_iterations::Int`: Number of optimization iterations performed
 - `elbo_history::Vector{Float64}`: ELBO values during optimization
 - `converged::Bool`: Whether convergence criteria were met
@@ -128,7 +128,7 @@ Results from Variational Inference (ADVI) approximation.
 
 # Usage
 ```julia
-result = fit(problem, UnifiedVI())
+result = fit(problem, CollapsedVI())
 alpha_mean = mean(result.alpha_samples)
 println("Converged: ", result.converged)
 println("Final ELBO: ", result.final_elbo)

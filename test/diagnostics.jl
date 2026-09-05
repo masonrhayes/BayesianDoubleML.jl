@@ -96,7 +96,7 @@ end
     println("\n=== coeftable: BDMLVIResult via Model ===")
 
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    method = UnifiedVI()
+    method = CollapsedVI()
     fit!(model, method; n_iterations = 500, n_draws = 500)
 
     ct = coeftable(model)
@@ -112,7 +112,7 @@ end
     println("  ✓ coeftable works for VI via Model")
 end
 
-@testset "confint for MCMC and VI via Model" begin
+@testset "confint for MCMC and CollapsedVI via Model" begin
     Random.seed!(704)
     df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(704))
     Y = df.y
@@ -130,9 +130,9 @@ end
     @test length(ci_mcmc) == 2
     @test ci_mcmc[1] < ci_mcmc[2]
 
-    # VI
+    # CollapsedVI
     model_vi = BDMLModel(df, :y, :d; model_type = :hier)
-    fit!(model_vi, UnifiedVI())
+    fit!(model_vi, CollapsedVI())
 
     ci_vi = confint(model_vi)
     @test length(ci_vi) == 2
@@ -140,7 +140,7 @@ end
 
     println("  MCMC 95% CI: [$(round(ci_mcmc[1], digits = 4)), $(round(ci_mcmc[2], digits = 4))]")
     println("  VI 95% CI: [$(round(ci_vi[1], digits = 4)), $(round(ci_vi[2], digits = 4))]")
-    println("  ✓ confint works for both MCMC and VI via Model")
+    println("  ✓ confint works for both MCMC and CollapsedVI via Model")
 end
 
 @testset "Effective Sample Size (ESS) via Model" begin
@@ -266,9 +266,9 @@ end
 
     println("\n=== Model Comparison Statistics via Model ===")
 
-    # VI result with ELBO
+    # CollapsedVI result with ELBO
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    fit!(model, UnifiedVI(); n_iterations = 400, n_draws = 400)
+    fit!(model, CollapsedVI(); n_iterations = 400, n_draws = 400)
 
     # ELBO should be present in VI results
     @test hasfield(typeof(model.result), :final_elbo)

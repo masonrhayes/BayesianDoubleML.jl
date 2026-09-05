@@ -7,7 +7,7 @@
 Bayesian Double Machine Learning with various inference methods:
 
 - Markov chain Monte Carlo (MCMC),
-- Automatic Differentiation Variational Inference (ADVI), and
+- Collapsed Automatic Differentiation Variational Inference (CollapsedVI), and
 - Variational Message Passing (VMP)
 
 This package implements BDML as in  [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
@@ -15,9 +15,8 @@ This package implements BDML as in  [DiTraglia and Liu (2025)](https://arxiv.org
 ## Features
 
 - **MCMC**: NUTS sampler for inference using MCMC
-- **VI**: Fast approximate inference with multiple AD backends
-  - **Automatic subsampling with VI**: For large datasets (n > 10,000)
-- **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend
+- **CollapsedVI**: Fast approximate inference on the analytically collapsed (Rao-Blackwellized) posterior, with multiple AD backends
+- **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend 
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
 
 ## Installation
@@ -68,18 +67,15 @@ fit!(model, MCMCNUTS())  # Default NUTS
 fit!(model, MCMCNUTS(; target_acceptance = 0.9); n_samples = 2000, n_chains = 4)
 ```
 
-**VI:**
+**CollapsedVI:**
 
 ```julia
-# UnifiedVI (default ReverseDiff)
-fit!(model, UnifiedVI(); n_iterations = 1000)
+# CollapsedVI (default ReverseDiff)
+fit!(model, CollapsedVI(); n_iterations = 1000)
 
-# SimpleVI with Mooncake (faster after warmup)
+# CollapsedVI with Mooncake, mean-field family
 using Mooncake
-fit!(model, SimpleVI(; ad_backend = AutoMooncake))
-
-# Low-rank variational family
-fit!(model, LowRankVI(10))
+fit!(model, CollapsedVI(; ad_backend = AutoMooncake, fullrank = false))
 ```
 
 **VMP with the optional RxInfer extension:**
@@ -134,16 +130,13 @@ coeftable(model)
 
 ### Inference Methods
 
-| Method                          | Description                             |
-| ------------------------------- | --------------------------------------- |
-| `MCMCNUTS()`                  | NUTS sampler                            |
-| `UnifiedVI()`                 | AdvancedVI with bijectors               |
-| `SimpleVI()`                  | Turing's native VI                      |
-| `MeanFieldVI()`               | Mean-field VI (AdvancedVI)              |
-| `LowRankVI(rank)`             | Low-rank VI (AdvancedVI)                |
-| `VMP()`                       | Conjugate VMP (default: manual backend) |
-| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)       |
-| `RxInferVMP()`                | RxInfer VMP backend                     |
+| Method                          | Description                              |
+| ------------------------------- | ---------------------------------------- |
+| `MCMCNUTS()`                  | NUTS sampler                             |
+| `CollapsedVI()`               | Collapsed ADVI (full-rank or mean-field) |
+| `VMP()`                       | Conjugate VMP (default: manual backend)  |
+| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)        |
+| `RxInferVMP()`                | RxInfer VMP backend                      |
 
 ### StatsAPI Functions
 
@@ -151,12 +144,12 @@ coeftable(model)
 
 ## Performance
 
-| Inference Method             | Best For                                                 |
-| ---------------------------- | -------------------------------------------------------- |
-| VMP (ManualCoordinateAscent) | Fastest (<seconds), with good appoximation of posterior |
-| ADVI (AutoReverseDiff)       | Quite fast, good appoximation of posterior               |
-| ADVI (AutoMooncake)          | Fast, ~5-10x faster than ADVI with AutoReverseDiff      |
-| MCMC                         | Most accurate inference                                  |
+| Inference Method              | Best For                                                   |
+| ----------------------------- | ---------------------------------------------------------- |
+| VMP (ManualCoordinateAscent)  | Fastest (<seconds), with good appoximation of posterior   |
+| CollapsedVI (AutoReverseDiff) | Quite fast, good appoximation of posterior                 |
+| CollapsedVI (AutoMooncake)    | Fast, ~5-10x faster than CollapsedVI with AutoReverseDiff |
+| MCMC                          | Most accurate inference                                    |
 
 ## Model Variations
 

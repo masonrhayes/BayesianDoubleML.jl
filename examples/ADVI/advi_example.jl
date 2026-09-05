@@ -84,13 +84,15 @@ md"""
 md"""
 And we then fit the model using Automatic Differentiation Variational Inference (ADVI). 
 
-In this example, we first try using the SimpleVIMethod with the AutoMooncake AD backend. (Note: AutoMooncake from [Mooncake.jl](https://chalk-lab.github.io/Mooncake.jl/stable/) provides extremely fast automatic differentiation, at the cost of a longer compile time.)
+In this example, we first try using the CollapsedVI method with the AutoMooncake AD backend. (Note: AutoMooncake from [Mooncake.jl](https://chalk-lab.github.io/Mooncake.jl/stable/) provides extremely fast automatic differentiation, at the cost of a longer compile time.)
+
+The `CollapsedVI` method differs from the MCMC implementation in that it works by **integrating out** the large coefficient vectors before variational optimization, making it magnitudes faster while retaining good inference. It does this using [Rao–Blackwellization](https://en.wikipedia.org/wiki/Rao%E2%80%93Blackwell_theorem) of the estimator of the causal parameter.
 """
 
 # ╔═╡ 751ef964-a74b-4a41-a9b9-799241bebda0
 fit!(
     model,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );
@@ -101,26 +103,24 @@ begin
     coeftable(model)
 end
 
+# ╔═╡ cf1670f6-97c5-4130-a7f3-8bf7e2e9b066
+md"""
+## Problems less suitable to ADVI
+
+As we see above, for this problem, ADVI is a good fit for the problem above where ``p`` is large relative to ``n``; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is $(alpha_true), and the above model estimated $(round(coef(model)[1], digits =2)).
+
+However, ADVI does not yield a good approximation where ``n << p``.
+"""
+
 # ╔═╡ 9a46ba39-21f4-4c32-8e55-a60cf253aab7
 begin
-    n2 = 1_000
-    lower_p = floor(sqrt(n2)) |> Int
-    upper_p = floor(n2 / 2) |> Int
-    default_p = Int(floor(sqrt(n2)))
+    n2 = 50
+    lower_p = floor(n2) |> Int
+    upper_p = floor(4 * n2) |> Int
+    default_p = Int(floor(n2 * 2))
     @assert lower_p < upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end
-
-# ╔═╡ cf1670f6-97c5-4130-a7f3-8bf7e2e9b066
-md"""
-## Problems more suitable to ADVI
-
-As we see above, for this problem, ADVI is *not* a good fit for the problem above where ``p`` is large relative to ``n``; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is $(alpha_true), but the above model estimated $(round(coef(model)[1], digits =2)).
-
-However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=$(n2), p = $(p2).
-
-As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when ``n >> p``.
-"""
 
 # ╔═╡ a452de95-aa14-472b-8be9-50e18ecab69d
 begin
@@ -134,7 +134,7 @@ model2 = BDMLModel(df2, :y, :d; model_type = :hier)
 # ╔═╡ 66ca6f4b-d0ae-4481-bf13-dba9f983c3fe
 fit!(
     model2,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );
@@ -156,10 +156,10 @@ end
 # ╠═ebf5e3c0-3e95-45d1-a734-7177f14a0182
 # ╠═a9fa5ba9-f25d-4cf0-b9bb-99101c6f90af
 # ╟─3e5ab29c-0961-4c34-83dc-2c8ca295fef8
-# ╠═cad72553-b33b-445d-85f2-28bec0d2a20b
+# ╟─cad72553-b33b-445d-85f2-28bec0d2a20b
 # ╠═751ef964-a74b-4a41-a9b9-799241bebda0
 # ╠═1251af4f-8941-425a-bef4-0bbb999e420f
-# ╟─cf1670f6-97c5-4130-a7f3-8bf7e2e9b066
+# ╠═cf1670f6-97c5-4130-a7f3-8bf7e2e9b066
 # ╠═9a46ba39-21f4-4c32-8e55-a60cf253aab7
 # ╠═a452de95-aa14-472b-8be9-50e18ecab69d
 # ╠═f3c45acf-78a2-44d0-87fc-6eb472ae7d77

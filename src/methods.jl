@@ -3,10 +3,7 @@
 
 export AbstractInferenceMethod
 export MCMCMethod, MCMCNUTS
-export UnifiedVIMethod, SimpleVIMethod, VMPMethod
-export UnifiedVI, SimpleVI, VMP
-export AbstractVariationalFamily, MeanField, LowRank, LowRankScore
-export MeanFieldVI, LowRankVI, LowRankScoreVI
+export VMPMethod, VMP
 
 # Abstract types
 
@@ -16,13 +13,14 @@ export MeanFieldVI, LowRankVI, LowRankScoreVI
 Abstract type for all inference methods/algorithms.
 
 Subtypes define HOW to fit a BDML problem:
-- MCMC methods: NUTS, HMC, etc.
-- VI methods: Unified (AdvancedVI), Simple (Turing vi())
+- MCMC methods: NUTS (reference method)
+- Collapsed VI: ADVI on the analytically collapsed 3-d/5-d posterior
+- VMP methods: conjugate message passing (manual or RxInfer backend)
 
 Each concrete method type is dispatched on in the `fit()` function
 along with the problem type to execute the appropriate algorithm.
 
-See also: [`MCMCMethod`](@ref), [`UnifiedVIMethod`](@ref), [`SimpleVIMethod`](@ref)
+See also: [`MCMCMethod`](@ref), [`CollapsedVIMethod`](@ref), [`VMPMethod`](@ref)
 """
 abstract type AbstractInferenceMethod end
 
@@ -116,329 +114,6 @@ See also: [`MCMCMethod`](@ref)
 """
 MCMCNUTS(; target_acceptance::Float64 = 0.8, max_depth::Int = 10) =
     MCMCMethod(:nuts; target_acceptance, max_depth)
-
-# VI methods
-
-# Variational family types
-
-"""
-    AbstractVariationalFamily
-
-Abstract type for variational distribution families in UnifiedVI.
-
-Subtypes define the shape of the variational posterior approximation:
-- MeanField: Diagonal covariance (independent dimensions)
-- LowRank: Low-rank plus diagonal covariance structure
-
-Each family type is dispatched on for initialization in `initialize_variational_distribution`.
-"""
-abstract type AbstractVariationalFamily end
-
-"""
-    MeanField <: AbstractVariationalFamily
-
-Mean-field (factorized) Gaussian variational family.
-
-Uses a diagonal covariance matrix, assuming independence between
-all parameters in the variational posterior.
-
-Best for: High-dimensional problems, fast inference, when parameters
-are approximately uncorrelated in the posterior.
-"""
-struct MeanField <: AbstractVariationalFamily end
-
-"""
-    LowRank <: AbstractVariationalFamily
-
-Low-rank Gaussian variational family.
-
-Uses a low-rank plus diagonal decomposition of the covariance:
-Σ = D² + U*U' where U is d×r with r << d.
-
-Best for: Problems with structured correlations, balancing between
-mean-field and full-rank flexibility.
-
-# Constructor
-```julia
-LowRank(rank::Int)  # rank is the number of low-rank factors
-```
-"""
-struct LowRank <: AbstractVariationalFamily
-    rank::Int
-
-    function LowRank(rank::Int)
-        @assert rank > 0 "LowRank rank must be positive"
-        return new(rank)
-    end
-end
-
-"""
-    LowRankScore <: AbstractVariationalFamily
-
-Low-rank Gaussian variational family using score gradient estimator (BBVI).
-
-Uses a low-rank plus diagonal decomposition of the covariance:
-Σ = D² + U*U' where U is d×r with r << d.
-
-Uses the score gradient (REINFORCE) estimator with VarGrad control variate,
-which can be more stable than the reparameterization gradient for some problems.
-
-Best for: Problems where reparameterization gradient is unstable or when
-exploring different gradient estimators.
-
-# Constructor
-```julia
-LowRankScore(rank::Int)  # rank is the number of low-rank factors
-```
-"""
-struct LowRankScore <: AbstractVariationalFamily
-    rank::Int
-
-    function LowRankScore(rank::Int)
-        @assert rank > 0 "LowRankScore rank must be positive"
-        return new(rank)
-    end
-end
-
-"""
-    UnifiedVIMethod{F<:AbstractVariationalFamily} <: AbstractInferenceMethod
-
-Unified Variational Inference method using AdvancedVI with explicit Bijectors.
-
-This is the primary VI implementation with:
-- Explicit bijector transformations (unconstrained → constrained)
-- Support for all AD backends (ReverseDiff, Mooncake, Zygote, ForwardDiff)
-- Subsampling support for large datasets (n > 10,000)
-- Multiple variational families (MeanField, LowRank) via type parameter
-- Full control over the optimization process
-
-# Type Parameters
-- `F<:AbstractVariationalFamily`: The variational family type (MeanField, LowRank)
-
-# Fields
-- `ad_backend::Type{<:AbstractADType}`: AD backend (AutoReverseDiff, AutoMooncake, etc.)
-- `subsample::Union{Bool, Nothing}`: Whether to use mini-batch gradients
-- `batch_size::Int`: Mini-batch size (auto-computed if -1)
-- `n_montecarlo::Int`: Number of Monte Carlo samples for gradient estimation (default: 10)
-- `family::F`: Variational family instance (carries type-specific parameters like rank)
-
-# Constructors
-```julia
-# Default MeanField
-UnifiedVIMethod()
-
-# LowRank with specific rank
-UnifiedVIMethod(; family=LowRank(10))
-
-# Convenience aliases
-MeanFieldVI()      # Explicit mean-field
-LowRankVI(10)      # Low-rank with rank 10
-UnifiedVI()        # Backwards-compatible alias (defaults to MeanField)
-```
-
-# AD Backend Options
-- `AutoReverseDiff` (default): Most stable, no warmup needed (compile=false required by AdvancedVI >= 0.7)
-- `AutoMooncake`: 5-10x faster after warmup, requires compilation
-- `AutoZygote`: Source-to-source, higher memory usage
-- `AutoForwardDiff`: Forward-mode, good for small p
-
-# Subsampling
-- `subsample=nothing`: Auto-enable for n >= 10,000
-- `subsample=true`: Force subsampling with auto batch size
-- `subsample=false`: Force full-batch
-- `batch_size`: Manual control (default: min(256, ceil(n/1000)))
-
-# Examples
-```julia
-# Default - MeanField with ReverseDiff
-method = UnifiedVIMethod()
-
-# Low-rank with rank 10
-method = UnifiedVIMethod(; family=LowRank(10))
-
-# With Mooncake (fast after warmup)
-method = UnifiedVIMethod(; ad_backend=AutoMooncake, family=LowRank(10))
-
-# Explicit subsampling control with low-rank
-method = UnifiedVIMethod(; subsample=true, batch_size=512, family=LowRank(5))
-
-# Convenience aliases
-method = MeanFieldVI()           # Explicit mean-field
-method = LowRankVI(10)           # Low-rank with rank 10
-method = UnifiedVI()             # Backwards-compatible
-```
-
-# Notes
-This implementation uses explicit bijectors (LogNormal, Beta) to transform
-parameters from unconstrained space (where VI optimizes) to constrained space
-(where model is defined). This provides better AD compatibility than relying
-on Turing's automatic bijectors.
-
-The variational family determines the covariance structure:
-- MeanField: Diagonal only (fastest, assumes independence)
-- LowRank: Diagonal + low-rank factors (balances speed and correlation capture)
-
-See also: [`MeanField`](@ref), [`LowRank`](@ref), [`SimpleVIMethod`](@ref)
-"""
-struct UnifiedVIMethod{F <: AbstractVariationalFamily} <: AbstractInferenceMethod
-    ad_backend::Type{<:AbstractADType}
-    subsample::Union{Bool, Nothing}
-    batch_size::Int
-    n_montecarlo::Int
-    family::F
-
-    function UnifiedVIMethod(;
-            ad_backend::Type{<:AbstractADType} = AutoReverseDiff,
-            subsample::Union{Bool, Nothing} = nothing,
-            batch_size::Int = -1,
-            n_montecarlo::Int = 10,
-            family::AbstractVariationalFamily = MeanField()
-        )
-        @assert n_montecarlo > 0 "n_montecarlo must be positive"
-        return new{typeof(family)}(ad_backend, subsample, batch_size, n_montecarlo, family)
-    end
-end
-
-"""
-    SimpleVIMethod <: AbstractInferenceMethod
-
-Simple Variational Inference method using Turing's native `vi()` function.
-
-This is an alternative VI implementation that:
-- Uses Turing's built-in ADVI with automatic bijectors
-- Works well with AutoMooncake (5-10x speedup after warmup)
-- Has simpler code, less maintenance overhead
-- Does NOT support subsampling (Turing limitation)
-
-Best for: Production use with Mooncake when n < 10,000 and you want
-maximum performance after initial warmup.
-
-# Fields
-- `ad_backend::Type{<:AbstractADType}`: AD backend (AutoMooncake recommended, AutoReverseDiff works)
-
-# Constructor
-```julia
-SimpleVIMethod(; ad_backend=AutoMooncake)
-SimpleVI(; kwargs...)  # Convenience alias
-```
-
-# Examples
-```julia
-# Default - Mooncake (recommended for this implementation)
-using Mooncake                    # Must be loaded before using AutoMooncake
-method = SimpleVIMethod()
-
-# With ReverseDiff
-method = SimpleVIMethod(; ad_backend=AutoReverseDiff)
-
-# Convenience alias
-method = SimpleVI()
-```
-
-# Mooncake Usage
-The default `AutoMooncake` backend requires `Mooncake` to be loaded in the
-session (`using Mooncake`). If Mooncake is not loaded, `AutoMooncake` will
-raise a `MethodError` from `DifferentiationInterface`. Use
-`SimpleVIMethod(; ad_backend=AutoReverseDiff)` if you prefer a backend that
-does not require an extra import.
-
-# Comparison with UnifiedVIMethod
-| Feature | UnifiedVIMethod | SimpleVIMethod |
-|---------|----------------|----------------|
-| Bijectors | Explicit | Automatic (Turing) |
-| Subsampling | Yes | No |
-| Mooncake | Has issues | Works well |
-| ReverseDiff | Excellent | Good |
-| Large data (n>10k) | Yes | No (memory) |
-| Code complexity | More control | Simpler |
-
-See also: [`UnifiedVIMethod`](@ref), [`SimpleVI`](@ref)
-"""
-struct SimpleVIMethod <: AbstractInferenceMethod
-    ad_backend::Type{<:AbstractADType}
-
-    function SimpleVIMethod(; ad_backend::Type{<:AbstractADType} = AutoMooncake)
-        return new(ad_backend)
-    end
-end
-
-"""
-    UnifiedVI(; kwargs...)
-
-Convenience alias for `UnifiedVIMethod()` with MeanField family.
-
-Backwards-compatible - defaults to mean-field approximation.
-
-See [`UnifiedVIMethod`](@ref) for full documentation.
-"""
-UnifiedVI(; kwargs...) = UnifiedVIMethod(; family = MeanField(), kwargs...)
-
-"""
-    MeanFieldVI(; kwargs...)
-
-Convenience constructor for MeanField VI.
-
-Creates a UnifiedVIMethod with MeanField variational family.
-
-# Examples
-```julia
-method = MeanFieldVI()                      # Default MeanField
-method = MeanFieldVI(; ad_backend=AutoMooncake)  # With Mooncake
-```
-
-See also: [`UnifiedVIMethod`](@ref), [`LowRankVI`](@ref)
-"""
-MeanFieldVI(; kwargs...) = UnifiedVIMethod(; family = MeanField(), kwargs...)
-
-"""
-    LowRankVI(rank::Int; kwargs...)
-
-Convenience constructor for LowRank VI.
-
-Creates a UnifiedVIMethod with LowRank variational family.
-
-# Arguments
-- `rank::Int`: Number of low-rank factors to use
-
-# Examples
-```julia
-method = LowRankVI(10)                      # Low-rank with 10 factors
-method = LowRankVI(5; ad_backend=AutoMooncake)   # With Mooncake
-```
-
-See also: [`UnifiedVIMethod`](@ref), [`MeanFieldVI`](@ref)
-"""
-LowRankVI(rank::Int; kwargs...) = UnifiedVIMethod(; family = LowRank(rank), kwargs...)
-
-"""
-    LowRankScoreVI(rank::Int; kwargs...)
-
-Convenience constructor for LowRankScore VI (using score gradient).
-
-Creates a UnifiedVIMethod with LowRankScore variational family.
-Uses the score gradient (REINFORCE) estimator with VarGrad control variate.
-
-# Arguments
-- `rank::Int`: Number of low-rank factors to use
-
-# Examples
-```julia
-method = LowRankScoreVI(10)                      # Low-rank score gradient with 10 factors
-method = LowRankScoreVI(5; ad_backend=AutoMooncake)   # With Mooncake
-```
-
-See also: [`UnifiedVIMethod`](@ref), [`LowRankVI`](@ref)
-"""
-LowRankScoreVI(rank::Int; kwargs...) = UnifiedVIMethod(; family = LowRankScore(rank), kwargs...)
-
-"""
-    SimpleVI(; ad_backend=AutoMooncake)
-
-Convenience alias for `SimpleVIMethod()`.
-
-See [`SimpleVIMethod`](@ref) for full documentation.
-"""
-SimpleVI(; kwargs...) = SimpleVIMethod(; kwargs...)
 
 # VMP backend types
 
@@ -600,7 +275,7 @@ posterior for the error scales, correlation, and optional coefficient
 variances. Conditional coefficient draws can then be recovered from their
 exact joint Gaussian distribution.
 
-The implementation uses the same priors as the existing VI model and a
+The implementation uses the paper's priors and a
 rank-aware SVD marginal likelihood. Each objective evaluation is `O(rank(X))`
 and remains stable when `X` is rank deficient or `p` is close to `n`.
 
@@ -615,7 +290,7 @@ fit!(model, CollapsedVI(); n_iterations=1000, n_draws=2000)
 fit!(model, CollapsedVI(; ad_backend=AutoMooncake, fullrank=true))
 ```
 
-See also: [`UnifiedVIMethod`](@ref), [`SimpleVIMethod`](@ref)
+See also: [`VMPMethod`](@ref)
 """
 struct CollapsedVIMethod <: AbstractInferenceMethod
     ad_backend::Type{<:AbstractADType}
@@ -650,8 +325,6 @@ Return true if the method uses sampling (MCMC or Monte Carlo VI).
 All current methods return true, but this enables future deterministic methods.
 """
 uses_sampling(::MCMCMethod) = true
-uses_sampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
-uses_sampling(::SimpleVIMethod) = true
 uses_sampling(::VMPMethod{<:AbstractVMPBackend}) = true
 uses_sampling(::CollapsedVIMethod) = true
 
@@ -660,11 +333,9 @@ uses_sampling(::CollapsedVIMethod) = true
 
 Return true if the method supports mini-batch subsampling for large datasets.
 
-Only `UnifiedVIMethod` supports subsampling. MCMC and SimpleVI do not.
+No current method supports subsampling.
 """
 supports_subsampling(::MCMCMethod) = false
-supports_subsampling(::UnifiedVIMethod{<:AbstractVariationalFamily}) = true
-supports_subsampling(::SimpleVIMethod) = false
 supports_subsampling(::VMPMethod{<:AbstractVMPBackend}) = false
 supports_subsampling(::CollapsedVIMethod) = false
 
@@ -686,8 +357,6 @@ Return the default number of samples/draws for the method.
 Returns 2000 for MCMC, 2000 for VI draw phase.
 """
 default_n_samples(::MCMCMethod) = 2000
-default_n_samples(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 2000
-default_n_samples(::SimpleVIMethod) = 2000
 default_n_samples(::VMPMethod{<:AbstractVMPBackend}) = 2000
 default_n_samples(::CollapsedVIMethod) = 2000
 
@@ -699,7 +368,5 @@ Return the default number of optimization iterations for the method.
 MCMC uses iterations as warm-up/tuning. VI uses iterations for optimization.
 """
 default_n_iterations(::MCMCMethod) = 1000  # Warm-up iterations
-default_n_iterations(::UnifiedVIMethod{<:AbstractVariationalFamily}) = 1000
-default_n_iterations(::SimpleVIMethod) = 1000
 default_n_iterations(::VMPMethod{<:AbstractVMPBackend}) = 50  # VMP converges in ~20-50 iterations
 default_n_iterations(::CollapsedVIMethod) = 1000

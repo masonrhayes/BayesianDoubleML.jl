@@ -24,14 +24,11 @@ end
 end
 
 # Phase 2: Inference method tests (slower, involves sampling)
-# These tests verify MCMC and VI inference work correctly
+# These tests verify MCMC, CollapsedVI, and VMP inference work correctly
 println("\n=== Phase 2: Inference Methods ===")
 
 @safetestset "MCMC Inference" begin
     include("mcmc.jl")
-end
-@safetestset "VI (Unified and Simple)" begin
-    include("vi.jl")
 end
 @safetestset "Collapsed VI" begin
     include("collapsed_vi.jl")
@@ -50,9 +47,6 @@ println("\n=== Phase 3: Feature Tests ===")
 @safetestset "AD Backends (Smoke Test)" begin
     include("ad_backends_smoke.jl")
 end
-@safetestset "Subsampling" begin
-    include("subsampling.jl")
-end
 @safetestset "Diagnostics" begin
     include("diagnostics.jl")
 end
@@ -64,6 +58,6 @@ end
 # These tests verify real data handling
 println("\n=== Phase 4: Integration Tests ===")
 
-@safetestset "Real Data (MCMC and VI)" begin
+@safetestset "Real Data (MCMC and CollapsedVI)" begin
     include("real_data.jl")
 end

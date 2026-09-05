@@ -221,7 +221,7 @@ function _vmp_step_shared(
     ν_Σ, Ψ_Σ = Distributions.params(state.qΣ)
     Ω = ν_Σ * inv(Symmetric(Ψ_Σ))
     Ω = Matrix(Symmetric(Ω))
-    Om11, Om12, Om22 = Ω[1,1], Ω[1,2], Ω[2,2]
+    Om11, Om12, Om22 = Ω[1, 1], Ω[1, 2], Ω[2, 2]
     GOm = G * Ω  # p×2, (Q'X'W)*Omega
 
     p = length(state.m1)
@@ -237,39 +237,39 @@ function _vmp_step_shared(
 
     @inbounds for j in 1:p
         lamj = state.lam[j]
-        a = lamj*Om11 + λδ
-        c = lamj*Om12
-        d = lamj*Om22 + λγ
-        det2 = a*d - c*c
+        a = lamj * Om11 + λδ
+        c = lamj * Om12
+        d = lamj * Om22 + λγ
+        det2 = a * d - c * c
         # numerical guard: M_j is PD by construction, det2>0
-        if det2 <= 1e-14
+        if det2 <= 1.0e-14
             # jitter if near-singular (should not happen with positive λ)
-            det2 = max(det2, 1e-12)
+            det2 = max(det2, 1.0e-12)
         end
-        i11 = d/det2
-        i22 = a/det2
-        i12 = -c/det2
+        i11 = d / det2
+        i22 = a / det2
+        i12 = -c / det2
         new_v11[j] = i11
         new_v22[j] = i22
         new_v12[j] = i12
         # mean: m_j = inv(M_j) * (GOm_j)
-        g1 = GOm[j,1]; g2 = GOm[j,2]
-        x1 = i11*g1 + i12*g2
-        x2 = i12*g1 + i22*g2
+        g1 = GOm[j, 1]; g2 = GOm[j, 2]
+        x1 = i11 * g1 + i12 * g2
+        x2 = i12 * g1 + i22 * g2
         new_m1[j] = x1
         new_m2[j] = x2
-        s11 += lamj*(x1*x1 + i11)
-        s22 += lamj*(x2*x2 + i22)
-        s12 += lamj*(x1*x2 + i12)
-        t11 += x1*x1 + i11
-        t22 += x2*x2 + i22
+        s11 += lamj * (x1 * x1 + i11)
+        s22 += lamj * (x2 * x2 + i22)
+        s12 += lamj * (x1 * x2 + i12)
+        t11 += x1 * x1 + i11
+        t22 += x2 * x2 + i22
         logdet_prec += log(det2)
     end
     logdet_joint = -logdet_prec  # logdet of joint covariance = - sum logdet(M_j)
 
-    r11 = Sww[1, 1] - 2 * dot(G[:,1], new_m1) + s11
-    r22 = Sww[2, 2] - 2 * dot(G[:,2], new_m2) + s22
-    r12 = Sww[1, 2] - dot(G[:,1], new_m2) - dot(G[:,2], new_m1) + s12
+    r11 = Sww[1, 1] - 2 * dot(G[:, 1], new_m1) + s11
+    r22 = Sww[2, 2] - 2 * dot(G[:, 2], new_m2) + s22
+    r12 = Sww[1, 2] - dot(G[:, 1], new_m2) - dot(G[:, 2], new_m1) + s12
     S = S0_mat + [r11 r12; r12 r22]
     S = Matrix(Symmetric(S))
     isposdef(Symmetric(S)) || throw(ArgumentError("VMP covariance update is not positive definite"))
@@ -396,7 +396,7 @@ function _fit_vmp(
     lam = F.values
     # Guard against tiny negative eigenvalues from numerical error
     @inbounds for i in eachindex(lam)
-        if lam[i] < 0 && lam[i] > -1e-10
+        if lam[i] < 0 && lam[i] > -1.0e-10
             lam[i] = 0.0
         end
     end
@@ -467,7 +467,7 @@ function _fit_vmp(
     F = eigen(Symmetric(model.X' * model.X))
     lam = F.values
     @inbounds for i in eachindex(lam)
-        if lam[i] < 0 && lam[i] > -1e-10
+        if lam[i] < 0 && lam[i] > -1.0e-10
             lam[i] = 0.0
         end
     end
