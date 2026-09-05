@@ -85,91 +85,43 @@ fit!(
 - `n_samples`: Number of posterior samples per chain (default: 2000)
 - `n_chains`: Number of parallel chains (default: 4)
 
-### Simple VI with Mooncake
+### Collapsed VI
 
-Simple VI uses Turing's native ADVI implementation and works excellently with the Mooncake AD backend, which provides  5-10x speedup (after initial warmup).
-
-```julia
-# Default: SimpleVI with Mooncake
-using Mooncake 
-
-fit!(
-    model, 
-    SimpleVIMethod(; ad_backend=AutoMooncake);
-    n_iterations=1000,
-    n_draws=2000
-)
-```
-
-### Unified VI with AutoReverseDiff
-
-Unified VI uses AdvancedVI.jl with explicit bijectors and supports multiple variational families and subsampling for large datasets.
-
-#### MeanField (Diagonal Covariance)
-
-The default MeanField approximation assumes independent parameters:
+Collapsed VI integrates the high-dimensional coefficients out analytically
+and runs ADVI on the 3-dimensional (`:basic`) or 5-dimensional (`:hier`)
+marginal posterior for the error scales, correlation, and optional
+coefficient variances.
 
 ```julia
-# MeanField with ReverseDiff (default)
+# Default: CollapsedVI with ReverseDiff (full-rank Gaussian)
 fit!(
     model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=MeanField()
-    );
+    CollapsedVI();
     n_iterations=1000,
     n_draws=2000
 )
 
-# Or use the convenience constructor
-fit!(model, MeanFieldVI())
-```
+# Mean-field family with the Mooncake AD backend (faster after warmup)
+using Mooncake
 
-#### LowRank (Low-Rank + Diagonal Covariance)
-
-LowRank captures parameter correlations with fewer parameters than full covariance:
-
-```julia
-# LowRank with rank 3
 fit!(
     model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=LowRank(3)
-    );
+    CollapsedVI(; ad_backend=AutoMooncake, fullrank=false);
     n_iterations=1000,
     n_draws=2000
 )
-
-# Or use the convenience constructor
-fit!(model, LowRankVI(3))
 ```
 
 **When to use:**
 
-- Large datasets (automatically enables subsampling when n ≥ 10,000)
-- When you need specific variational family control
-- For exploring mean-field vs low-rank tradeoffs
+- Medium to large datasets where MCMC is too slow
+- When you want a fast posterior approximation with ELBO diagnostics
 
-**Subsampling:**
-Automatically enabled for n ≥ 10,000:
+**Key parameters:**
 
-```julia
-# Auto-subsampling (default batch size: min(256, ceil(n/1000)))
-fit!(model, UnifiedVIMethod())  # Auto-enabled for large n
-
-# Explicit control
-fit!(
-    model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=MeanField(),
-        subsample=true,
-        batch_size=512
-    );
-    n_iterations=1000
-)
-```
+- `ad_backend`: AD backend (default: `AutoReverseDiff`)
+- `n_montecarlo`: Monte Carlo samples per ELBO gradient (default: 10)
+- `fullrank`: `true` for a full-rank Gaussian, `false` for mean-field (default: `true`)
 
 ### Variational Message Passing (VMP)
 

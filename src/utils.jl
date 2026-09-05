@@ -4,8 +4,11 @@ function _standardize_vector(x)
     output = Vector{Float64}(undef, length(x))
     scale = 1.0 / Float64(σ)
 
-    @inbounds @simd for i in eachindex(x)
-        output[i] = (Float64(x[i]) - Float64(μ)) * scale
+    # Iterate over values rather than `eachindex(x)`: table columns such as
+    # SentinelArrays.ChainedVector expose a non-indexable index iterator that
+    # Julia's `@simd` machinery cannot handle.
+    @inbounds for (i, value) in enumerate(x)
+        output[i] = (Float64(value) - Float64(μ)) * scale
     end
 
     return output, Float64(μ), Float64(σ)

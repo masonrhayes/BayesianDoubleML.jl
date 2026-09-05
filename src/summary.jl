@@ -24,7 +24,7 @@ For VI results, shows ELBO convergence and includes an ASCII plot.
 
 # Examples
 ```julia
-result = fit(problem, UnifiedVIMethod())
+result = fit(problem, CollapsedVI())
 summary(result)
 
 # Or capture output
@@ -204,18 +204,9 @@ function print_method_info(io::IO, result::BDMLVMPResult)
 end
 
 function print_method_info(io::IO, result::BDMLVIResult)
-    # Determine VI method and family
-    if result.vi_method == :simple
-        # Simple VI only supports Mean-Field Gaussian
-        @printf io "  Method:           Simple VI (Mean-Field Gaussian)\n"
-    elseif result.vi_method == :vmp
-        @printf io "  Method:           VMP (Conjugate Inverse-Wishart)\n"
-    else
-        # Unified VI supports multiple families
-        vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :
-            result.variational_family == :lowrank ? "Low-Rank Gaussian" : "Mean-Field Gaussian"
-        @printf io "  Method:           Unified VI (%s)\n" vi_type
-    end
+    # CollapsedVI supports mean-field and full-rank Gaussians on the collapsed posterior
+    vi_type = result.variational_family == :collapsed_fullrank ? "Full-Rank Gaussian" : "Mean-Field Gaussian"
+    @printf io "  Method:           Collapsed VI (%s)\n" vi_type
     @printf io "  Iterations:       %d\n" result.n_iterations
     return @printf io "  Samples Drawn:    %d\n" length(result.alpha_samples)
 end

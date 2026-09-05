@@ -192,7 +192,7 @@ model_hier = BDMLModel(Y, D, X; model_type=:hier)
 
 # Fit with different methods
 fit!(model_basic, MCMCMethod(:nuts))
-fit!(model_hier, UnifiedVIMethod())
+fit!(model_hier, CollapsedVI())
 ```
 
 # Performance Notes

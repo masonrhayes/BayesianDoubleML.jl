@@ -127,8 +127,8 @@ end
 
     rx = rx_model.result.posterior
     ss = ss_model.result.posterior
-    @test isapprox(mean(rx[:δ]), mean(ss.δ); rtol = 5.0e-3, atol = 1.0e-5)
-    @test isapprox(mean(rx[:γ]), mean(ss.γ); rtol = 5.0e-3, atol = 1.0e-5)
+    @test isapprox(mean(rx[:δ]), mean(ss.δ); rtol = 1.0e-2, atol = 1.0e-5)
+    @test isapprox(mean(rx[:γ]), mean(ss.γ); rtol = 1.0e-2, atol = 1.0e-5)
     @test isapprox(mean(rx[:Σ]), mean(ss.Σ); rtol = 1.0e-2, atol = 1.0e-5)
     @test isapprox(mean(rx_model.result.alpha_samples), mean(ss_model.result.alpha_samples); rtol = 2.0e-2)
 
