@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "ce05e5333bd14a2adf2681487168a551ef50188c"
+project_hash = "ca682bb92132909e7cdfccb6cbc520dd76004df2"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -251,17 +251,19 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
 [[deps.BayesianDoubleML]]
-deps = ["ADTypes", "AdvancedVI", "Bijectors", "DataFrames", "DifferentiationInterface", "Distributions", "FlexiChains", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "NaNMath", "Optimisers", "Printf", "Random", "ReverseDiff", "Statistics", "StatsAPI", "Turing", "UnicodePlots"]
+deps = ["ADTypes", "AdvancedVI", "Bijectors", "DataFrames", "DifferentiationInterface", "Distributions", "FlexiChains", "LinearAlgebra", "LogDensityProblems", "LogDensityProblemsAD", "NaNMath", "Optimisers", "Polynomials", "Printf", "Random", "ReverseDiff", "Statistics", "StatsAPI", "Turing", "UnicodePlots"]
 path = "."
 uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 version = "0.2.0"
 
     [deps.BayesianDoubleML.extensions]
+    BayesianDoubleMLMakieExt = "Makie"
     BayesianDoubleMLMooncakeExt = "Mooncake"
     BayesianDoubleMLRxInferExt = "RxInfer"
     BayesianDoubleMLZygoteExt = "Zygote"
 
     [deps.BayesianDoubleML.weakdeps]
+    Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
     RxInfer = "86711068-29c9-4ff7-b620-ae75d7495b3d"
     Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
@@ -1123,6 +1125,26 @@ deps = ["Distributions", "FillArrays", "InvertedIndices", "IrrationalConstants",
 git-tree-sha1 = "621944b594bec8df388aeecd2d694824cbe71ecd"
 uuid = "569bd051-8d7b-4221-bcb8-d78512b5866a"
 version = "0.1.0"
+
+[[deps.Polynomials]]
+deps = ["LinearAlgebra", "OrderedCollections", "Setfield", "SparseArrays"]
+git-tree-sha1 = "da6a2b41f576505c800df8854d691670638449a0"
+uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+version = "4.1.2"
+
+    [deps.Polynomials.extensions]
+    PolynomialsChainRulesCoreExt = "ChainRulesCore"
+    PolynomialsFFTWExt = "FFTW"
+    PolynomialsMakieExt = "Makie"
+    PolynomialsMutableArithmeticsExt = "MutableArithmetics"
+    PolynomialsRecipesBaseExt = "RecipesBase"
+
+    [deps.Polynomials.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+    Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+    MutableArithmetics = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
+    RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]

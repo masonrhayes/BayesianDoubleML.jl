@@ -115,10 +115,25 @@ BayesianDoubleML.stderror
 BayesianDoubleML.vcov
 ```
 
+### BayesDR Functions
+
+```@docs
+BayesianDoubleML.exposure_response_curve
+BayesianDoubleML.average_derivative
+```
+
 ## Utility Functions
 
 ```@docs
 BayesianDoubleML.credible_interval
+```
+
+## Visualization
+
+Requires a Makie backend (e.g. `CairoMakie`). Loaded via package extension.
+
+```@docs
+BayesianDoubleML.plot_exposure_response_curve
 ```
 
 ## Internal Functions

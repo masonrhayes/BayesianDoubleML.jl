@@ -244,3 +244,30 @@ end
 function fit!(model::BayesDRModel; force::Bool = false, kwargs...)
     return fit!(model, BayesDRMCMC(); force, kwargs...)
 end
+
+"""
+    fit!(rng::AbstractRNG, model::BayesDRModel, method::BayesDRMCMCMethod; force=false, kwargs...)
+    fit!(rng::AbstractRNG, model::BayesDRModel; force=false, kwargs...)
+
+Fit a `BayesDRModel` with an explicitly passed RNG, following the `Random`
+stdlib convention (`rand(rng, ...)`, `randn(rng, ...)`).
+
+Equivalent to `fit!(model, method; rng = rng, kwargs...)`. Do not pass both a
+positional `rng` and an `rng` keyword.
+
+# Examples
+```julia
+fit!(MersenneTwister(99), model, BayesDRMCMC(); n_samples = 60)
+fit!(MersenneTwister(99), model; n_samples = 60)  # default method
+```
+"""
+function fit!(
+        rng::AbstractRNG, model::BayesDRModel, method::BayesDRMCMCMethod;
+        force::Bool = false, kwargs...,
+    )
+    return fit!(model, method; force, rng, kwargs...)
+end
+
+function fit!(rng::AbstractRNG, model::BayesDRModel; force::Bool = false, kwargs...)
+    return fit!(rng, model, BayesDRMCMC(); force, kwargs...)
+end

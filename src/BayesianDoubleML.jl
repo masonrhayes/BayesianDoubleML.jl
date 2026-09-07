@@ -19,6 +19,7 @@ export fit!, BDMLModel,
     extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult, BDMLVMPResult,
     # Coeftable
     coeftable, BDMLCoeftable, confint, exposure_response_curve, average_derivative,
+    plot_exposure_response_curve,
     ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
     # StatsAPI functions
     coef, stderror, vcov,
@@ -62,7 +63,7 @@ include("collapsed/collapsed.jl")
 include("collapsed/collapsed_vi_model.jl")
 include("collapsed/vi_diagnostics.jl")  # ELBO convergence checking (shared by CollapsedVI)
 include("fit.jl")  # Dispatch-based fit!() functions
-include("experimental/bayes_dr.jl")
+include("bdr/bayes_dr.jl")
 include("vmp/vmp_manual_coordinate_ascent.jl")
 include("collapsed/collapsed_vi_fit.jl")
 

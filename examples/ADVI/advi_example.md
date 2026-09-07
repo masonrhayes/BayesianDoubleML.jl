@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "adf71fd813411a032aa294733453275f3cbccddfc3aaf94aa800eeae96843538"
+    input_sha = "5cd74ee88d55490b9b4b5cd78fe79976e317cb9c2b0eb4cdaac6d7d1cbd456e8"
     julia_version = "1.12.6"
 -->
 
@@ -77,11 +77,11 @@ end;</code></pre>
 <div class="markdown"><h3 id="Model-fitting">Model fitting</h3></div>
 
 
-<div class="markdown"><p>And we then fit the model using Automatic Differentiation Variational Inference (ADVI). </p><p>In this example, we first try using the SimpleVIMethod with the AutoMooncake AD backend. (Note: AutoMooncake from <a href="https://chalk-lab.github.io/Mooncake.jl/stable/">Mooncake.jl</a> provides extremely fast automatic differentiation, at the cost of a longer compile time.)</p></div>
+<div class="markdown"><p>And we then fit the model using Automatic Differentiation Variational Inference (ADVI). </p><p>In this example, we first try using the CollapsedVI method with the AutoMooncake AD backend. (Note: AutoMooncake from <a href="https://chalk-lab.github.io/Mooncake.jl/stable/">Mooncake.jl</a> provides extremely fast automatic differentiation, at the cost of a longer compile time.)</p><p>The <code>CollapsedVI</code> method differs from the MCMC implementation in that it works by <strong>integrating out</strong> the large coefficient vectors before variational optimization, making it magnitudes faster while retaining good inference. It does this using <a href="https://en.wikipedia.org/wiki/Rao%E2%80%93Blackwell_theorem">Rao–Blackwellization</a> of the estimator of the causal parameter.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -101,30 +101,30 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.0125       0.1665       0.0000       0.0000
+  α               1.9637       0.1955       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [0.7208, 1.3535]
+  α: [1.608, 2.3592]
 
 Diagnostics:
-  Final ELBO: -725.79
+  Final ELBO: -667.07
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.01.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
-    n2 = 1_000
-    lower_p = floor(sqrt(n2)) |&gt; Int
-    upper_p = floor(n2 / 2) |&gt; Int
-    default_p = Int(floor(sqrt(n2)))
+    n2 = 50
+    lower_p = floor(n2) |&gt; Int
+    upper_p = floor(4 * n2) |&gt; Int
+    default_p = Int(floor(n2 * 2))
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="cstmeuaxgyjk"><input max="47" min="1" type="range" value="1"/><script>
+<bond def="p2" unique_id="riqjuvlgnwzt"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
-					const displays = ["31", "41", "51", "61", "71", "81", "91", "101", "111", "121", "131", "141", "151", "161", "171", "181", "191", "201", "211", "221", "231", "241", "251", "261", "271", "281", "291", "301", "311", "321", "331", "341", "351", "361", "371", "381", "391", "401", "411", "421", "431", "441", "451", "461", "471", "481", "491"]
+					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
 
 					let update_output = () => {
 						output_el.value = displays[input_el.valueAsNumber - 1]
@@ -143,7 +143,7 @@ end</code></pre>
     					font-size: 15px;
     					margin-left: 3px;
     					transform: translateY(-4px);
-    					display: inline-block;">31</output></bond>
+    					display: inline-block;">100</output></bond>
 
 <pre class='language-julia'><code class='language-julia'>begin
     # Generate data as DataFrame
@@ -153,13 +153,13 @@ end;</code></pre>
 
 <pre class='language-julia'><code class='language-julia'>model2 = BDMLModel(df2, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model2">BDMLHierarchicalModel (not fitted)
-  Observations: 1000
-  Covariates: 31
+  Observations: 50
+  Covariates: 100
 </pre>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model2,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -179,13 +179,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9553       0.0628       0.0000       0.0000
+  α               0.1167       2.3469       0.0000       0.9320
 
 HPD Credible Intervals:
-  α: [1.8323, 2.0814]
+  α: [-4.5729, 3.6111]
 
 Diagnostics:
-  Final ELBO: -2161.27
+  Final ELBO: -230.6
 </pre>
 
 <!-- PlutoStaticHTML.End -->

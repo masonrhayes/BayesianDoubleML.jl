@@ -134,7 +134,7 @@ model2 = BDMLModel(df2, :y, :d; model_type = :hier)
 
 # ╔═╡ 3426efe3-eb2a-42ee-9a6c-069714f852ad
 md"""
-For example, with n=$(n2) observations and p = $(p2) regressors, VMP gives a good estimate of the posterior in <1 second. 
+For example, with n=$(n2) observations and p = $(p2) regressors, VMP does not give a good estimate of the posterior.
 
 """
 
@@ -167,11 +167,11 @@ We could also fit the exact same model using RxInfer as a backend:
 
 # ╔═╡ 405ed58e-0cc6-417a-9c9f-959b1ad619b9
 begin
-    model2_rx = BDMLModel(df2, :y, :d; model_type = :hier)
+    model_rx = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Fit using RxInfer
     @time fit!(
-        model2_rx,
+        model_rx,
         VMP(; backend = RxInferVMP()),
         n_iterations = 50,
         show_progress = true,
@@ -182,8 +182,8 @@ end
 
 # ╔═╡ cecbc982-cb59-4ca1-81b7-ed4491cb387c
 begin
-    summary(model2_rx)
-    coeftable(model2_rx)
+    summary(model_rx)
+    coeftable(model_rx)
 end
 
 # ╔═╡ Cell order:

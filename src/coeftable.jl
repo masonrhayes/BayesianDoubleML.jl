@@ -367,6 +367,65 @@ function exposure_response_curve(model::BayesDRModel; kwargs...)
 end
 
 """
+    plot_exposure_response_curve(fitted::Union{BayesDRModel,BayesDRCurveResult}; kwargs...)
+
+Plot the continuous-treatment exposure-response curve `E[Y(t)]` with pointwise
+confidence band, posterior-mean line, and observed grid points.
+
+This function is implemented in the `BayesianDoubleMLMakieExt` package
+extension and requires a Makie backend to be loaded, e.g.
+`using CairoMakie` (headless/static output) or `using GLMakie` (interactive).
+Calling it without a Makie backend errors with instructions.
+
+# Arguments
+- `fitted`: A fitted continuous-treatment `BayesDRModel`, or a
+  `BayesDRCurveResult` directly.
+
+# Keyword Arguments
+- `level=nothing`: Confidence level for the band; defaults to the result's level.
+- `color=:steelblue`: Base color for band, curve, and points.
+- `title="Bayes-DR Exposure-Response Curve"`: Axis title.
+- `xlabel="Treatment"`, `ylabel="Expected outcome E[Y(t)]"`: Axis labels.
+- `figure_size=(900, 600)`: Figure size in pixels.
+- `show_points::Bool=true`: Scatter the posterior-mean grid estimates.
+- `linewidth=3`: Line width for the curve (and trend overlay).
+- `trend_degree::Union{Nothing,Integer}=nothing`: If an integer `d`, fit a
+  degree-`d` polynomial to the grid estimates with `Polynomials.jl` and overlay
+  it as a dashed trend line (e.g. `trend_degree=3` for a cubic).
+- `trend_color=:darkorange`: Color of the trend overlay.
+- `trend_linestyle=:dash`: Linestyle of the trend overlay.
+- `show_trend_equation::Bool=true`: Annotate the fitted polynomial, e.g.
+  `E[Y(t)] ≈ 1.02 + 0.58t - 0.15t² + 0.04t³`, in the top-left of the axis.
+  Only applies when `trend_degree` is given.
+- `equation_digits::Integer=2`: Decimals shown per polynomial coefficient.
+- `legend_position=:rt`: Legend position.
+
+# Returns
+A `Makie.Figure`.
+
+# Examples
+```julia
+using CairoMakie
+fig = plot_exposure_response_curve(model; trend_degree = 3)
+save("exposure_response_curve.png", fig)
+```
+
+See also: [`exposure_response_curve`](@ref).
+"""
+function plot_exposure_response_curve end
+
+# Fallback when no Makie backend is loaded. Takes an untyped argument on
+# purpose: the extension method (typed on `Union{BayesDRModel,
+# BayesDRCurveResult}`) must be strictly more specific, since redefining an
+# identical method signature from an extension is not permitted.
+function plot_exposure_response_curve(fitted; kwargs...)
+    return error(
+        "plot_exposure_response_curve requires a Makie backend to be loaded " *
+            "(e.g. `using CairoMakie` or `using GLMakie`).",
+    )
+end
+
+"""
     average_derivative(result::BayesDRCurveResult;
                        treatment_interval=extrema(result.treatment_grid),
                        level=result.level)

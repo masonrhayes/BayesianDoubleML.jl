@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "4b50fe7639e218561a5c8197a3251d53139f20c73e4f72ad075f07d37a064cef"
+    input_sha = "92dc540bd61e61d3ea343630b9307735a9ea4aaf59b25509a23c89a84dc8583e"
     julia_version = "1.12.6"
 -->
 
@@ -102,13 +102,13 @@ Number of posterior samples: 1600
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9175       0.1936       0.0022       0.0000
+  α               1.9208       0.1971       0.0022       0.0000
 
 HPD Credible Intervals:
-  α: [1.5575, 2.3023]
+  α: [1.5535, 2.3197]
 
 Diagnostics:
-  Effective Sample Size (ESS): 769.8
+  Effective Sample Size (ESS): 731.0
 </pre>
 
 <!-- PlutoStaticHTML.End -->

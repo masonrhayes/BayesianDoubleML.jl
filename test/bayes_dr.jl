@@ -254,6 +254,38 @@ end
     @test repeated.result.bootstrap_curves == result.bootstrap_curves
 end
 
+@testset "BayesDR summary curve plot" begin
+    rng = MersenneTwister(2024)
+    n = 50
+    X = randn(rng, n, 4)
+    T = 0.7 .* X[:, 1] .- 0.4 .* X[:, 2] .+ randn(rng, n)
+    Y = @. 1.0 + 0.6 * T + 0.8 * X[:, 1] + 0.4 * randn(rng)
+    grid = [-1.0, 0.0, 1.0]
+
+    model = BayesDRModel(Y, T, X)
+    fit!(
+        model, BayesDRMCMC();
+        n_samples = 8,
+        n_burn = 5,
+        n_chains = 1,
+        n_boot = 5,
+        treatment_grid = grid,
+        rng = MersenneTwister(7),
+    )
+
+    plotted = IOBuffer()
+    @test_nowarn summary(plotted, model; show_curve = true)
+    @test occursin("Exposure-Response Curve E[Y(t)]", String(take!(plotted)))
+
+    unplotted = IOBuffer()
+    @test_nowarn summary(unplotted, model)
+    @test !occursin("Exposure-Response Curve E[Y(t)]", String(take!(unplotted)))
+
+    result_plotted = IOBuffer()
+    @test_nowarn summary(result_plotted, model.result; show_curve = true)
+    @test occursin("Exposure-Response Curve E[Y(t)]", String(take!(result_plotted)))
+end
+
 @testset "BayesDR end-to-end" begin
     rng = MersenneTwister(2022)
     n = 80
@@ -312,6 +344,29 @@ end
     )
     @test repeated.result.posterior_effects == result.posterior_effects
     @test repeated.result.bootstrap_estimates == result.bootstrap_estimates
+end
+
+@testset "BayesDR RNG-first fit!" begin
+    rng = MersenneTwister(2022)
+    n = 80
+    X = randn(rng, n, 4)
+    propensity = 1.0 ./ (1.0 .+ exp.(-(0.6 .* X[:, 1] .- 0.3 .* X[:, 2])))
+    T = Float64.(rand(rng, n) .< propensity)
+    Y = 0.75 .* T .+ 0.7 .* X[:, 1] .+ 0.4 .* X[:, 3] .+ 0.5 .* randn(rng, n)
+    fit_kwargs = (n_samples = 60, n_burn = 40, n_chains = 2, n_boot = 50)
+
+    reference = BayesDRModel(Y, T, X)
+    fit!(reference, BayesDRMCMC(); fit_kwargs..., rng = MersenneTwister(99))
+
+    explicit = BayesDRModel(Y, T, X)
+    fit!(MersenneTwister(99), explicit, BayesDRMCMC(); fit_kwargs...)
+    @test explicit.result.posterior_effects == reference.result.posterior_effects
+    @test explicit.result.bootstrap_estimates == reference.result.bootstrap_estimates
+
+    defaulted = BayesDRModel(Y, T, X)
+    fit!(MersenneTwister(99), defaulted; fit_kwargs...)
+    @test defaulted.result.posterior_effects == reference.result.posterior_effects
+    @test defaulted.result.bootstrap_estimates == reference.result.bootstrap_estimates
 end
 
 @testset "BayesDR p greater than n smoke test" begin

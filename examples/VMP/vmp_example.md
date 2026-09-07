@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "3615ecb3393386d5eb43ab503405d27b54332ffc38cdb8f0a92336e18acdb454"
+    input_sha = "ccbd3b17fa6424d0110ae96de9f4bf89d6a21271d5a1aa0f882dbad3bf441f81"
     julia_version = "1.12.6"
 -->
 
@@ -83,7 +83,7 @@ end;</code></pre>
 
 
 
-<div class="markdown"><p>As shown from the results below, VMP's <em>approximation</em> to the posterior is not a good approximation for this particular problem. However, in a variety of scenarios (e.g., where the number of observations is relatively large relative to the number of covariates), VMP performs very well and is extremely fast.</p></div>
+<div class="markdown"><p>As shown from the results below, VMP's <em>approximation</em> to the posterior is a good approximation for this particular problem. However, in a some scenarios (e.g., where the number of covariates is small relative to the number of observations: <span class="tex">\(n &lt; p\)</span>), VMP performs more poorly.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>coeftable(model)</code></pre>
 <pre class="code-output documenter-example-output" id="var-hash179594">Bayesian Double ML Coefficient Table
@@ -96,20 +96,20 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.2747       0.1753       0.0000       0.0000
+  α               1.9601       0.1448       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [0.9386, 1.6213]
+  α: [1.6723, 2.2383]
 
 Diagnostics:
-  Final Diagnostic: -682.51
+  Final Diagnostic: -664.99
 </pre>
 
 <pre class='language-julia'><code class='language-julia'>summary(model)</code></pre>
 
 
 
-<div class="markdown"><h2 id="Problems-more-suitable-to-VMP">Problems more suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; VMP is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.27.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=100000, p = 316.</p><p>As a general rule of thumb: in anecdotal testing, variational methods like ADVI and VMP are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>, but not larger than n; VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'># Generate data with more observations
 df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
@@ -117,22 +117,22 @@ df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
 
 <pre class='language-julia'><code class='language-julia'>model2 = BDMLModel(df2, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model2">BDMLHierarchicalModel (not fitted)
-  Observations: 100000
-  Covariates: 316
+  Observations: 50
+  Covariates: 100
 </pre>
 
 <pre class='language-julia'><code class='language-julia'>begin
-    n2 = 100_000
-    lower_p = floor(sqrt(n2)) |&gt; Int
-    upper_p = floor(n2 / 2) |&gt; Int
-    default_p = Int(floor(sqrt(n2)))
+    n2 = 50
+    lower_p = floor(n2) |&gt; Int
+    upper_p = floor(4 * n2) |&gt; Int
+    default_p = Int(floor(n2 * 2))
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="bpsygyzuqqps"><input max="1000" min="1" type="range" value="1"/><script>
+<bond def="p2" unique_id="qaipvmelofnp"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
-					const displays = ["316", "366", "416", "466", "516", "566", "616", "666", "716", "766", "816", "866", "916", "966", "1016", "1066", "1116", "1166", "1216", "1256", "1306", "1356", "1406", "1456", "1506", "1556", "1606", "1656", "1706", "1756", "1806", "1856", "1906", "1956", "2006", "2056", "2106", "2156", "2206", "2256", "2306", "2356", "2406", "2456", "2506", "2556", "2606", "2656", "2706", "2756", "2806", "2856", "2906", "2956", "3006", "3056", "3096", "3146", "3196", "3246", "3296", "3346", "3396", "3446", "3496", "3546", "3596", "3646", "3696", "3746", "3796", "3846", "3896", "3946", "3996", "4046", "4096", "4146", "4196", "4246", "4296", "4346", "4396", "4446", "4496", "4546", "4596", "4646", "4696", "4746", "4796", "4846", "4896", "4936", "4986", "5036", "5086", "5136", "5186", "5236", "5286", "5336", "5386", "5436", "5486", "5536", "5586", "5636", "5686", "5736", "5786", "5836", "5886", "5936", "5986", "6036", "6086", "6136", "6186", "6236", "6286", "6336", "6386", "6436", "6486", "6536", "6586", "6636", "6686", "6736", "6776", "6826", "6876", "6926", "6976", "7026", "7076", "7126", "7176", "7226", "7276", "7326", "7376", "7426", "7476", "7526", "7576", "7626", "7676", "7726", "7776", "7826", "7876", "7926", "7976", "8026", "8076", "8126", "8176", "8226", "8276", "8326", "8376", "8426", "8476", "8526", "8576", "8616", "8666", "8716", "8766", "8816", "8866", "8916", "8966", "9016", "9066", "9116", "9166", "9216", "9266", "9316", "9366", "9416", "9466", "9516", "9566", "9616", "9666", "9716", "9766", "9816", "9866", "9916", "9966", "10016", "10066", "10116", "10166", "10216", "10266", "10316", "10366", "10416", "10456", "10506", "10556", "10606", "10656", "10706", "10756", "10806", "10856", "10906", "10956", "11006", "11056", "11106", "11156", "11206", "11256", "11306", "11356", "11406", "11456", "11506", "11556", "11606", "11656", "11706", "11756", "11806", "11856", "11906", "11956", "12006", "12056", "12106", "12156", "12206", "12256", "12296", "12346", "12396", "12446", "12496", "12546", "12596", "12646", "12696", "12746", "12796", "12846", "12896", "12946", "12996", "13046", "13096", "13146", "13196", "13246", "13296", "13346", "13396", "13446", "13496", "13546", "13596", "13646", "13696", "13746", "13796", "13846", "13896", "13946", "13996", "14046", "14096", "14136", "14186", "14236", "14286", "14336", "14386", "14436", "14486", "14536", "14586", "14636", "14686", "14736", "14786", "14836", "14886", "14936", "14986", "15036", "15086", "15136", "15186", "15236", "15286", "15336", "15386", "15436", "15486", "15536", "15586", "15636", "15686", "15736", "15786", "15836", "15886", "15936", "15976", "16026", "16076", "16126", "16176", "16226", "16276", "16326", "16376", "16426", "16476", "16526", "16576", "16626", "16676", "16726", "16776", "16826", "16876", "16926", "16976", "17026", "17076", "17126", "17176", "17226", "17276", "17326", "17376", "17426", "17476", "17526", "17576", "17626", "17676", "17726", "17776", "17816", "17866", "17916", "17966", "18016", "18066", "18116", "18166", "18216", "18266", "18316", "18366", "18416", "18466", "18516", "18566", "18616", "18666", "18716", "18766", "18816", "18866", "18916", "18966", "19016", "19066", "19116", "19166", "19216", "19266", "19316", "19366", "19416", "19466", "19516", "19566", "19616", "19656", "19706", "19756", "19806", "19856", "19906", "19956", "20006", "20056", "20106", "20156", "20206", "20256", "20306", "20356", "20406", "20456", "20506", "20556", "20606", "20656", "20706", "20756", "20806", "20856", "20906", "20956", "21006", "21056", "21106", "21156", "21206", "21256", "21306", "21356", "21406", "21456", "21496", "21546", "21596", "21646", "21696", "21746", "21796", "21846", "21896", "21946", "21996", "22046", "22096", "22146", "22196", "22246", "22296", "22346", "22396", "22446", "22496", "22546", "22596", "22646", "22696", "22746", "22796", "22846", "22896", "22946", "22996", "23046", "23096", "23146", "23196", "23246", "23296", "23336", "23386", "23436", "23486", "23536", "23586", "23636", "23686", "23736", "23786", "23836", "23886", "23936", "23986", "24036", "24086", "24136", "24186", "24236", "24286", "24336", "24386", "24436", "24486", "24536", "24586", "24636", "24686", "24736", "24786", "24836", "24886", "24936", "24986", "25036", "25086", "25136", "25176", "25226", "25276", "25326", "25376", "25426", "25476", "25526", "25576", "25626", "25676", "25726", "25776", "25826", "25876", "25926", "25976", "26026", "26076", "26126", "26176", "26226", "26276", "26326", "26376", "26426", "26476", "26526", "26576", "26626", "26676", "26726", "26776", "26826", "26876", "26926", "26976", "27016", "27066", "27116", "27166", "27216", "27266", "27316", "27366", "27416", "27466", "27516", "27566", "27616", "27666", "27716", "27766", "27816", "27866", "27916", "27966", "28016", "28066", "28116", "28166", "28216", "28266", "28316", "28366", "28416", "28466", "28516", "28566", "28616", "28666", "28716", "28766", "28816", "28856", "28906", "28956", "29006", "29056", "29106", "29156", "29206", "29256", "29306", "29356", "29406", "29456", "29506", "29556", "29606", "29656", "29706", "29756", "29806", "29856", "29906", "29956", "30006", "30056", "30106", "30156", "30206", "30256", "30306", "30356", "30406", "30456", "30506", "30556", "30606", "30656", "30696", "30746", "30796", "30846", "30896", "30946", "30996", "31046", "31096", "31146", "31196", "31246", "31296", "31346", "31396", "31446", "31496", "31546", "31596", "31646", "31696", "31746", "31796", "31846", "31896", "31946", "31996", "32046", "32096", "32146", "32196", "32246", "32296", "32346", "32396", "32446", "32496", "32536", "32586", "32636", "32686", "32736", "32786", "32836", "32886", "32936", "32986", "33036", "33086", "33136", "33186", "33236", "33286", "33336", "33386", "33436", "33486", "33536", "33586", "33636", "33686", "33736", "33786", "33836", "33886", "33936", "33986", "34036", "34086", "34136", "34186", "34236", "34286", "34336", "34376", "34426", "34476", "34526", "34576", "34626", "34676", "34726", "34776", "34826", "34876", "34926", "34976", "35026", "35076", "35126", "35176", "35226", "35276", "35326", "35376", "35426", "35476", "35526", "35576", "35626", "35676", "35726", "35776", "35826", "35876", "35926", "35976", "36026", "36076", "36126", "36176", "36216", "36266", "36316", "36366", "36416", "36466", "36516", "36566", "36616", "36666", "36716", "36766", "36816", "36866", "36916", "36966", "37016", "37066", "37116", "37166", "37216", "37266", "37316", "37366", "37416", "37466", "37516", "37566", "37616", "37666", "37716", "37766", "37816", "37866", "37916", "37966", "38016", "38056", "38106", "38156", "38206", "38256", "38306", "38356", "38406", "38456", "38506", "38556", "38606", "38656", "38706", "38756", "38806", "38856", "38906", "38956", "39006", "39056", "39106", "39156", "39206", "39256", "39306", "39356", "39406", "39456", "39506", "39556", "39606", "39656", "39706", "39756", "39806", "39856", "39896", "39946", "39996", "40046", "40096", "40146", "40196", "40246", "40296", "40346", "40396", "40446", "40496", "40546", "40596", "40646", "40696", "40746", "40796", "40846", "40896", "40946", "40996", "41046", "41096", "41146", "41196", "41246", "41296", "41346", "41396", "41446", "41496", "41546", "41596", "41646", "41696", "41736", "41786", "41836", "41886", "41936", "41986", "42036", "42086", "42136", "42186", "42236", "42286", "42336", "42386", "42436", "42486", "42536", "42586", "42636", "42686", "42736", "42786", "42836", "42886", "42936", "42986", "43036", "43086", "43136", "43186", "43236", "43286", "43336", "43386", "43436", "43486", "43536", "43576", "43626", "43676", "43726", "43776", "43826", "43876", "43926", "43976", "44026", "44076", "44126", "44176", "44226", "44276", "44326", "44376", "44426", "44476", "44526", "44576", "44626", "44676", "44726", "44776", "44826", "44876", "44926", "44976", "45026", "45076", "45126", "45176", "45226", "45276", "45326", "45376", "45416", "45466", "45516", "45566", "45616", "45666", "45716", "45766", "45816", "45866", "45916", "45966", "46016", "46066", "46116", "46166", "46216", "46266", "46316", "46366", "46416", "46466", "46516", "46566", "46616", "46666", "46716", "46766", "46816", "46866", "46916", "46966", "47016", "47066", "47116", "47166", "47216", "47256", "47306", "47356", "47406", "47456", "47506", "47556", "47606", "47656", "47706", "47756", "47806", "47856", "47906", "47956", "48006", "48056", "48106", "48156", "48206", "48256", "48306", "48356", "48406", "48456", "48506", "48556", "48606", "48656", "48706", "48756", "48806", "48856", "48906", "48956", "49006", "49056", "49096", "49146", "49196", "49246", "49296", "49346", "49396", "49446", "49496", "49546", "49596", "49646", "49696", "49746", "49796", "49846", "49896", "49946", "49996"]
+					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
 
 					let update_output = () => {
 						output_el.value = displays[input_el.valueAsNumber - 1]
@@ -151,15 +151,15 @@ end</code></pre>
     					font-size: 15px;
     					margin-left: 3px;
     					transform: translateY(-4px);
-    					display: inline-block;">316</output></bond>
+    					display: inline-block;">100</output></bond>
 
 
-<div class="markdown"><p>For example, with n=100000 observations and p = 316 regressors, VMP gives a good estimate of the posterior in &lt;1 second. </p></div>
+<div class="markdown"><p>For example, with n=50 observations and p = 100 regressors, VMP does not give a good estimate of the posterior.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>@time fit!(
     model2,
     VMP(; backend = ManualCoordinateAscentVMP()),
-    n_iterations = 50,
+    n_iterations = 100,
     show_progress = false
 );</code></pre>
 
@@ -178,13 +178,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9892       0.0063       0.0000       0.0000
+  α               0.1027       0.3323       0.0000       0.7620
 
 HPD Credible Intervals:
-  α: [1.9765, 2.0004]
+  α: [-0.5418, 0.7328]
 
 Diagnostics:
-  Final Diagnostic: -201458.99
+  Final Diagnostic: -232.31
 </pre>
 
 
@@ -194,11 +194,11 @@ Diagnostics:
 <div class="markdown"><p>We could also fit the exact same model using RxInfer as a backend:</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
-    model2_rx = BDMLModel(df2, :y, :d; model_type = :hier)
+    model_rx = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Fit using RxInfer
     @time fit!(
-        model2_rx,
+        model_rx,
         VMP(; backend = RxInferVMP()),
         n_iterations = 50,
         show_progress = true,
@@ -209,10 +209,10 @@ end
 
 
 <pre class='language-julia'><code class='language-julia'>begin
-    summary(model2_rx)
-    coeftable(model2_rx)
+    summary(model_rx)
+    coeftable(model_rx)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash144115">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash164973">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -222,13 +222,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9894       0.0063       0.0000       0.0000
+  α               1.9581       0.1424       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.9776, 2.0015]
+  α: [1.6921, 2.2419]
 
 Diagnostics:
-  Final Diagnostic: -201458.99
+  Final Diagnostic: -665.01
 </pre>
 
 <!-- PlutoStaticHTML.End -->

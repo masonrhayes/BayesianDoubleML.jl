@@ -111,7 +111,7 @@ end
 
 Base.summary(result::BayesDRResult) = Base.summary(stdout, result)
 
-function Base.summary(io::IO, result::BayesDRCurveResult)
+function Base.summary(io::IO, result::BayesDRCurveResult; show_curve::Bool = false)
     print_title_box(io)
     print_section_header(io, COLOR_BLUE, "Model Information")
     @printf io "  Model Type:       Bayes-DR\n"
@@ -139,10 +139,14 @@ function Base.summary(io::IO, result::BayesDRCurveResult)
     for location in eachindex(result.treatment_grid)
         @printf io "  t=%8.4f  E[Y(t)]=%9.4f  SE=%8.4f  CI=[%9.4f, %9.4f]\n" result.treatment_grid[location] result.estimate[location] result.standard_error[location] result.confidence_interval[location, 1] result.confidence_interval[location, 2]
     end
+    if show_curve
+        print_exposure_response_plot(io, result)
+    end
     return nothing
 end
 
-Base.summary(result::BayesDRCurveResult) = Base.summary(stdout, result)
+Base.summary(result::BayesDRCurveResult; show_curve::Bool = false) =
+    Base.summary(stdout, result; show_curve = show_curve)
 
 function print_bayes_dr_diagnostics(io::IO, result::Union{BayesDRResult, BayesDRCurveResult})
     info = chain_info(result)
@@ -375,6 +379,47 @@ function print_elbo_plot(
     end
 end
 
+"""
+    print_exposure_response_plot(io::IO, result::BayesDRCurveResult; height=10, width=60)
+
+Print a UnicodePlots line plot of the posterior-mean exposure-response curve
+`E[Y(t)]` over the treatment grid, with the pointwise confidence limits drawn
+as flanking lines. The grid and intervals come from [`exposure_response_curve`](@ref).
+
+# Arguments
+- `io::IO`: Output stream
+- `result::BayesDRCurveResult`: Fitted continuous-treatment BayesDR result
+- `height::Int=10`: Plot height in characters
+- `width::Int=60`: Plot width in characters
+"""
+function print_exposure_response_plot(
+        io::IO,
+        result::BayesDRCurveResult;
+        height::Int = 10,
+        width::Int = 60,
+    )
+    curve = exposure_response_curve(result)
+    order = sortperm(curve.treatment)
+    treatment = curve.treatment[order]
+
+    plot = lineplot(
+        treatment,
+        curve.estimate[order],
+        title = "Exposure-Response Curve E[Y(t)]",
+        xlabel = "Treatment",
+        ylabel = "E[Y(t)]",
+        width = width,
+        height = height,
+        border = :ascii,
+        name = "estimate",
+        color = :green
+    )
+    lineplot!(plot, treatment, curve.lower[order]; name = "lower CI", color = :blue)
+    lineplot!(plot, treatment, curve.upper[order]; name = "upper CI", color = :red)
+
+    return println(io, plot)
+end
+
 function print_convergence_summary(io::IO, result::AbstractBDMLResult)
     println(io, COLOR_BOLD, "─"^62, COLOR_RESET)
     if result isa BDMLVMPResult
@@ -399,11 +444,16 @@ export summary
 # Model delegation - allow summary() to be called directly on fitted models
 
 """
-    summary(model::AbstractBDMLModel)
+    summary(model::AbstractBDMLModel; show_curve=false)
 
 Display a comprehensive summary of a fitted BDML model.
 
 Delegates to the stored result. Throws an error if the model has not been fitted.
+
+# Keyword Arguments
+- `show_curve::Bool=false`: For continuous-treatment `BayesDRModel`s, also
+  print a UnicodePlots rendering of the exposure-response curve. Ignored for
+  all other model types.
 
 # Examples
 ```julia
@@ -412,12 +462,15 @@ fit!(model)
 summary(model)
 ```
 """
-function Base.summary(io::IO, model::AbstractBDMLModel)
+function Base.summary(io::IO, model::AbstractBDMLModel; show_curve::Bool = false)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    if show_curve && model.result isa BayesDRCurveResult
+        return Base.summary(io, model.result; show_curve = true)
+    end
     return Base.summary(io, model.result)
 end
 
-function Base.summary(model::AbstractBDMLModel)
+function Base.summary(model::AbstractBDMLModel; show_curve::Bool = false)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
-    return Base.summary(stdout, model)
+    return Base.summary(stdout, model; show_curve = show_curve)
 end
