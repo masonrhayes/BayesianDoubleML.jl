@@ -361,90 +361,138 @@ function _continuous_design(model, method, treatment_grid)
     )
 end
 
-function _continuous_curve_for_draw(
-        model, treatment_posterior, outcome_posterior, method, draw, design,
+function _continuous_bootstrap_weights(indices)
+    n, n_boot = size(indices)
+    weights = zeros(n, n_boot)
+    for bootstrap in 1:n_boot, i in view(indices, :, bootstrap)
+        weights[i, bootstrap] += 1
+    end
+    weights ./= n
+    return weights
+end
+
+# Recenter on the sampled support if the global scaling underflows there.
+function _sampled_log_density_ratio(log_ratios, weights)
+    largest = maximum(log_ratios[j] for j in eachindex(weights) if weights[j] > 0)
+    total = 0.0
+    for j in eachindex(weights)
+        if weights[j] > 0
+            total += weights[j] * exp(log_ratios[j] - largest)
+        end
+    end
+    return largest + log(total)
+end
+
+"""
+Accumulate a draw's residual-weighted density ratios for one observed treatment.
+
+If every pairwise ratio is within the clipping bounds, every empirical mixture
+is also within them. In that case posterior averaging and bootstrap weighting
+commute exactly, so accumulate a kernel column once. Otherwise clip each
+bootstrap mixture within this draw, before averaging over the posterior.
+"""
+function _accumulate_continuous_residual!(
+        kernel, bootstrap_residual, log_ratios, scaled_ratios, bootstrap_ratios,
+        weights, residual, log_lower, log_upper,
     )
-    degree = method.curve_degree
+    smallest, largest = extrema(log_ratios)
+    if log_lower <= smallest && largest <= log_upper &&
+            largest < log(floatmax(Float64)) - log(length(log_ratios))
+        @. scaled_ratios = exp(log_ratios)
+        @. kernel += residual * scaled_ratios
+        return mean(scaled_ratios), false
+    end
+
+    @. scaled_ratios = exp(log_ratios - largest)
+    log_ratio = largest + log(mean(scaled_ratios))
+    clipped = log_ratio < log_lower || log_ratio > log_upper
+    mul!(bootstrap_ratios, transpose(weights), scaled_ratios)
+    for bootstrap in eachindex(bootstrap_ratios)
+        mixture = bootstrap_ratios[bootstrap]
+        bootstrap_log_ratio = if mixture >= floatmin(Float64)
+            largest + log(mixture)
+        else
+            _sampled_log_density_ratio(log_ratios, view(weights, :, bootstrap))
+        end
+        bootstrap_residual[bootstrap] +=
+            residual * exp(clamp(bootstrap_log_ratio, log_lower, log_upper))
+    end
+    return exp(clamp(log_ratio, log_lower, log_upper)), clipped
+end
+
+"""
+Evaluate posterior curves and bootstrap-specific posterior-mean pseudo-outcomes.
+
+Equation 10's empirical covariate integrals are recomputed using `weights` for
+each bootstrap, with nuisance parameters held fixed. Unclipped residual kernels
+and additive outcome terms are averaged before bootstrap evaluation; mixtures
+that may require clipping are evaluated draw by draw. Workspace is O(n² + nM),
+rather than storing an O(Bn²) array of kernels or O(BnM) pseudo-outcomes.
+"""
+function _continuous_posterior_curves(
+        model, treatment_posterior, outcome_posterior, method, design, weights,
+    )
     n = model.n
-    treatment = design.treatment
-    treatment_basis = design.treatment_basis
-    covariates = model.X
-
-    treatment_coefficients = view(treatment_posterior.coefficients, draw, :)
-    treatment_mean = covariates * view(treatment_coefficients, 2:length(treatment_coefficients))
-    treatment_mean .+= treatment_coefficients[1]
-    treatment_variance = treatment_posterior.residual_variance[draw]
-    log_density_constant = -0.5 * log(2π * treatment_variance)
-    inverse_twice_variance = inv(2 * treatment_variance)
-
-    outcome_coefficients = view(outcome_posterior.coefficients, draw, :)
-    covariate_start = degree + 2
-    covariate_predictor = covariates * view(outcome_coefficients, covariate_start:length(outcome_coefficients))
-    outcome_mean = treatment_basis * view(outcome_coefficients, 2:(degree + 1))
-    outcome_mean .+= outcome_coefficients[1]
-    outcome_mean .+= covariate_predictor
-    marginal_covariate_mean = mean(covariate_predictor)
-
-    pseudo_outcome = Vector{Float64}(undef, n)
+    n_boot = size(weights, 2)
+    n_draws = size(treatment_posterior.coefficients, 1)
+    curves = Matrix{Float64}(undef, n_draws, size(design.grid_design, 1))
+    bootstrap_pseudo_outcome = zeros(n, n_boot)
+    kernel = zeros(n, n)
+    mean_treatment_outcome = zeros(n)
+    mean_covariate_outcome = zeros(n)
+    log_ratios = zeros(n)
+    scaled_ratios = zeros(n)
+    bootstrap_ratios = zeros(n_boot)
+    pseudo_outcome = zeros(n)
     clipped = 0
     log_lower = log(method.density_ratio_lower)
     log_upper = log(method.density_ratio_upper)
-    @inbounds for i in 1:n
-        log_marginal_density = -Inf
-        for j in 1:n
-            difference = treatment[i] - treatment_mean[j]
-            log_marginal_density = _logaddexp(
-                log_marginal_density,
-                log_density_constant - difference^2 * inverse_twice_variance,
-            )
-        end
-        log_marginal_density -= log(n)
-        difference = treatment[i] - treatment_mean[i]
-        log_conditional_density =
-            log_density_constant - difference^2 * inverse_twice_variance
-        log_ratio = log_marginal_density - log_conditional_density
-        clipped += log_ratio < log_lower || log_ratio > log_upper
-        ratio = exp(clamp(log_ratio, log_lower, log_upper))
-        marginal_outcome = outcome_coefficients[1] +
-            dot(view(treatment_basis, i, :), view(outcome_coefficients, 2:(degree + 1))) +
-            marginal_covariate_mean
-        pseudo_outcome[i] = (model.Y[i] - outcome_mean[i]) * ratio + marginal_outcome
-    end
 
-    curve_coefficients = design.regression_factor \ pseudo_outcome
-    return design.grid_design * curve_coefficients, pseudo_outcome, clipped
-end
-
-function _continuous_posterior_curves(
-        model, treatment_posterior, outcome_posterior, method, design, treatment_grid,
-    )
-    n_draws = size(treatment_posterior.coefficients, 1)
-    curves = Matrix{Float64}(undef, n_draws, length(treatment_grid))
-    mean_pseudo_outcome = zeros(model.n)
-    clipped = 0
     for draw in 1:n_draws
-        curve, pseudo_outcome, draw_clipped = _continuous_curve_for_draw(
-            model, treatment_posterior, outcome_posterior, method, draw, design,
-        )
-        curves[draw, :] .= curve
-        mean_pseudo_outcome .+= pseudo_outcome
-        clipped += draw_clipped
+        treatment_coefficients = view(treatment_posterior.coefficients, draw, :)
+        treatment_mean = model.X * view(treatment_coefficients, 2:length(treatment_coefficients))
+        treatment_mean .+= treatment_coefficients[1]
+        inverse_twice_variance = inv(2 * treatment_posterior.residual_variance[draw])
+
+        outcome_coefficients = view(outcome_posterior.coefficients, draw, :)
+        covariate_start = method.curve_degree + 2
+        covariate_outcome = model.X * view(outcome_coefficients, covariate_start:length(outcome_coefficients))
+        treatment_outcome = design.treatment_basis * view(outcome_coefficients, 2:(method.curve_degree + 1))
+        treatment_outcome .+= outcome_coefficients[1]
+        mean_treatment_outcome .+= treatment_outcome
+        mean_covariate_outcome .+= covariate_outcome
+        marginal_covariate_outcome = mean(covariate_outcome)
+
+        for i in 1:n
+            conditional_distance2 = (design.treatment[i] - treatment_mean[i])^2
+            @. log_ratios = (conditional_distance2 - (design.treatment[i] - treatment_mean)^2) *
+                inverse_twice_variance
+            residual = model.Y[i] - treatment_outcome[i] - covariate_outcome[i]
+            ratio, draw_clipped = _accumulate_continuous_residual!(
+                view(kernel, :, i), view(bootstrap_pseudo_outcome, i, :),
+                log_ratios, scaled_ratios, bootstrap_ratios, weights, residual,
+                log_lower, log_upper,
+            )
+            clipped += draw_clipped
+            pseudo_outcome[i] = residual * ratio + treatment_outcome[i] + marginal_covariate_outcome
+        end
+        curves[draw, :] .= design.grid_design * (design.regression_factor \ pseudo_outcome)
     end
-    mean_pseudo_outcome ./= n_draws
-    return curves, mean_pseudo_outcome, clipped / (n_draws * model.n)
+
+    mul!(bootstrap_pseudo_outcome, transpose(kernel), weights, 1.0, 1.0)
+    marginal_covariate_outcome = transpose(weights) * mean_covariate_outcome
+    bootstrap_pseudo_outcome .+= mean_treatment_outcome .+ transpose(marginal_covariate_outcome)
+    bootstrap_pseudo_outcome ./= n_draws
+    return curves, bootstrap_pseudo_outcome, clipped / (n_draws * n)
 end
 
-function _continuous_bootstrap_curves(
-        rng, model, design, mean_pseudo_outcome, n_boot,
-    )
-    # As in the binary path, hold posterior-averaged nuisance quantities fixed
-    # and bootstrap the observation-level estimating data.
+function _continuous_bootstrap_curves(design, bootstrap_pseudo_outcome, indices)
+    n_boot = size(indices, 2)
     curves = Matrix{Float64}(undef, n_boot, size(design.grid_design, 1))
-    indices = Vector{Int}(undef, model.n)
     for bootstrap in 1:n_boot
-        rand!(rng, indices, 1:model.n)
-        coefficients = qr(view(design.regression_design, indices, :), ColumnNorm()) \
-            view(mean_pseudo_outcome, indices)
+        sample = view(indices, :, bootstrap)
+        coefficients = qr(view(design.regression_design, sample, :), ColumnNorm()) \
+            view(bootstrap_pseudo_outcome, sample, bootstrap)
         curves[bootstrap, :] .= design.grid_design * coefficients
     end
     return curves

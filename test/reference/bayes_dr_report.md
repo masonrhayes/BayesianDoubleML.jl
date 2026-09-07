@@ -23,12 +23,12 @@ Comparison of Julia `BayesDRModel` fits against `DoublyRobustHD` version `0.0.0.
 | Estimate | -0.5000 | 1.0962 | 1.1545 | 0.0583 | 0.6 | pass |
 | Estimate | 0.0000 | 1.3532 | 1.4155 | 0.0623 | 0.6 | pass |
 | Estimate | 0.5000 | 1.5223 | 1.5430 | 0.0207 | 0.6 | pass |
-| Standard error | -0.5000 | 0.9623 | 0.9608 | 0.0015 | 0.6 | pass |
-| Standard error | 0.0000 | 0.8605 | 0.8229 | 0.0376 | 0.6 | pass |
-| Standard error | 0.5000 | 0.4542 | 0.2893 | 0.1649 | 0.6 | pass |
-| CI lower bound | -0.5000 | 0.1691 | 0.1541 | 0.0150 | 0.9 | pass |
-| CI lower bound | 0.0000 | 0.5973 | 0.5997 | 0.0024 | 0.9 | pass |
-| CI lower bound | 0.5000 | 1.0289 | 1.1308 | 0.1020 | 0.9 | pass |
-| CI upper bound | -0.5000 | 2.7925 | 2.8885 | 0.0960 | 0.9 | pass |
-| CI upper bound | 0.0000 | 2.7930 | 2.8714 | 0.0784 | 0.9 | pass |
-| CI upper bound | 0.5000 | 2.2937 | 2.1903 | 0.1034 | 0.9 | pass |
+| Standard error | -0.5000 | 0.9623 | 0.9620 | 0.0003 | 0.6 | pass |
+| Standard error | 0.0000 | 0.8605 | 0.8273 | 0.0332 | 0.6 | pass |
+| Standard error | 0.5000 | 0.4542 | 0.2952 | 0.1590 | 0.6 | pass |
+| CI lower bound | -0.5000 | 0.1691 | 0.1326 | 0.0366 | 0.9 | pass |
+| CI lower bound | 0.0000 | 0.5973 | 0.5612 | 0.0361 | 0.9 | pass |
+| CI lower bound | 0.5000 | 1.0289 | 1.1047 | 0.0758 | 0.9 | pass |
+| CI upper bound | -0.5000 | 2.7925 | 2.8914 | 0.0989 | 0.9 | pass |
+| CI upper bound | 0.0000 | 2.7930 | 2.8767 | 0.0837 | 0.9 | pass |
+| CI upper bound | 0.5000 | 2.2937 | 2.1874 | 0.1063 | 0.9 | pass |

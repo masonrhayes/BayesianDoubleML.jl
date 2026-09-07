@@ -1,5 +1,6 @@
 using BayesianDoubleML
 using DataFrames
+using Distributions
 using LinearAlgebra
 using Random
 using Statistics
@@ -252,6 +253,126 @@ end
     )
     @test repeated.result.posterior_curves == result.posterior_curves
     @test repeated.result.bootstrap_curves == result.bootstrap_curves
+end
+
+@testset "BayesDR continuous empirical-distribution bootstrap" begin
+    function fixed_nuisance_posterior(coefficients, sigma2, p)
+        n_draws = size(coefficients, 1)
+        return BayesianDoubleML.BayesDRNuisancePosterior(
+            coefficients, falses(n_draws, p), sigma2, ones(n_draws),
+            fill(0.5, n_draws), ones(Int, n_draws),
+        )
+    end
+
+    # Literal Equation 10 evaluation: recompute both empirical integrals in
+    # every draw and resample, then regress and average the resulting curves.
+    function reference_curves(model, treatment_posterior, outcome_posterior, method, design, samples)
+        n_draws = size(treatment_posterior.coefficients, 1)
+        curves = zeros(size(samples, 2), size(design.grid_design, 1))
+        for b in axes(samples, 2), draw in 1:n_draws
+            sample = samples[:, b]
+            treatment_beta = treatment_posterior.coefficients[draw, :]
+            outcome_beta = outcome_posterior.coefficients[draw, :]
+            mu_t = treatment_beta[1] .+ model.X * treatment_beta[2:end]
+            sigma_t = sqrt(treatment_posterior.residual_variance[draw])
+            pseudo = Float64[]
+            for i in sample
+                density = pdf(Normal(mu_t[i], sigma_t), design.treatment[i])
+                marginal_density = mean(
+                    pdf(Normal(mu_t[j], sigma_t), design.treatment[i]) for j in sample
+                )
+                outcome(j) = dot(design.regression_design[i, :], outcome_beta[1:(method.curve_degree + 1)]) +
+                    dot(model.X[j, :], outcome_beta[(method.curve_degree + 2):end])
+                ratio = clamp(marginal_density / density, method.density_ratio_lower, method.density_ratio_upper)
+                push!(pseudo, (model.Y[i] - outcome(i)) * ratio + mean(outcome(j) for j in sample))
+            end
+            curves[b, :] .+= design.grid_design * (design.regression_design[sample, :] \ pseudo) / n_draws
+        end
+        return curves
+    end
+
+    rng = MersenneTwister(827)
+    n = 9
+    X = randn(rng, n, 2)
+    T = collect(range(-1.5, 1.5; length = n))
+    Y = 0.3 .+ 0.7T .+ X[:, 1] .+ randn(rng, n)
+    model = BayesDRModel(Y, T, X)
+    treatment_posterior = fixed_nuisance_posterior(
+        [0.0 0.15 -0.1; 0.1 -0.2 0.05; -0.1 0.1 0.2], [1.0, 0.8, 1.2], 2,
+    )
+    outcome_posterior = fixed_nuisance_posterior(
+        [0.3 0.5 -0.1 0.7 -0.3; -0.1 0.6 0.2 1.0 0.1; 0.2 0.8 0.0 0.8 -0.2], ones(3), 2,
+    )
+    indices = hcat(1:n, [1, 1, 2, 3, 4, 4, 6, 8, 9], [2, 3, 3, 3, 5, 6, 7, 8, 8])
+    weights = BayesianDoubleML._continuous_bootstrap_weights(indices)
+    for bounds in ((1.0e-20, 1.0e20), (0.8, 1.2))
+        method = BayesDRMCMC(curve_degree = 2, density_ratio_bounds = bounds)
+        design = BayesianDoubleML._continuous_design(model, method, [-0.5, 0.0, 0.5])
+        posterior_curves, bootstrap_pseudo, clipped = BayesianDoubleML._continuous_posterior_curves(
+            model, treatment_posterior, outcome_posterior, method, design, weights,
+        )
+        actual = BayesianDoubleML._continuous_bootstrap_curves(design, bootstrap_pseudo, indices)
+        expected = reference_curves(model, treatment_posterior, outcome_posterior, method, design, indices)
+        @test actual ≈ expected rtol = 1.0e-12 atol = 1.0e-12
+        @test vec(mean(posterior_curves; dims = 1)) ≈ expected[1, :] rtol = 1.0e-12
+        @test bounds[1] == 0.8 ? clipped > 0 : clipped == 0
+        for draw in 1:3
+            tp = fixed_nuisance_posterior(
+                treatment_posterior.coefficients[draw:draw, :],
+                treatment_posterior.residual_variance[draw:draw], 2,
+            )
+            yp = fixed_nuisance_posterior(outcome_posterior.coefficients[draw:draw, :], ones(1), 2)
+            original_curve = reference_curves(model, tp, yp, method, design, indices[:, 1:1])
+            @test posterior_curves[draw, :] ≈ vec(original_curve) rtol = 1.0e-12 atol = 1.0e-12
+        end
+    end
+
+    # If a resample excludes the global maximum, scaled densities can all
+    # underflow even though its actual density ratio is finite and unclipped.
+    for largest in (744.0, 1000.0)
+        logs = [0.0, largest, -1000.0]
+        kernel = zeros(3)
+        residuals = zeros(3)
+        BayesianDoubleML._accumulate_continuous_residual!(
+            kernel, residuals, logs, zeros(3), zeros(3), Matrix{Float64}(I, 3, 3),
+            2.0, log(0.1), log(10.0),
+        )
+        @test residuals ≈ [2.0, 20.0, 0.2]
+    end
+
+    # Oracle nuisances: the only uncertainty is the empirical mean of X1.
+    # Freezing this integral used to produce an essentially zero bootstrap SE.
+    rng = MersenneTwister(781)
+    n = 50
+    X = randn(rng, n, 2)
+    T = randn(rng, n)
+    Y = 1 .+ 0.7T .+ 3X[:, 1]
+    model = BayesDRModel(Y, T, X)
+    method = BayesDRMCMC(curve_degree = 1)
+    grid = [-0.5, 0.0, 0.5]
+    design = BayesianDoubleML._continuous_design(model, method, grid)
+    treatment_posterior = fixed_nuisance_posterior(
+        repeat([-model.stats.D_mean / model.stats.D_sd 0.0 0.0], 2, 1),
+        fill(inv(model.stats.D_sd^2), 2), 2,
+    )
+    outcome_posterior = fixed_nuisance_posterior(
+        repeat(
+            [1 + 0.7model.stats.D_mean + 3model.stats.X_mean[1] 0.7model.stats.D_sd 3model.stats.X_sd[1] 0.0],
+            2, 1,
+        ), ones(2), 2,
+    )
+    indices = rand(rng, 1:n, n, 1000)
+    posterior_curves, bootstrap_pseudo, _ = BayesianDoubleML._continuous_posterior_curves(
+        model, treatment_posterior, outcome_posterior, method, design,
+        BayesianDoubleML._continuous_bootstrap_weights(indices),
+    )
+    actual = BayesianDoubleML._continuous_bootstrap_curves(design, bootstrap_pseudo, indices)
+    marginal_means = [mean(X[indices[:, b], 1]) for b in axes(indices, 2)]
+    expected = 1 .+ 0.7grid' .+ 3marginal_means
+    @test actual ≈ expected rtol = 1.0e-12 atol = 1.0e-12
+    @test posterior_curves[1, :] ≈ 1 .+ 0.7grid .+ 3mean(X[:, 1])
+    @test var(actual[:, 2]) ≈ 9var(marginal_means)
+    @test var(actual[:, 2]) > 0.05
 end
 
 @testset "BayesDR summary curve plot" begin

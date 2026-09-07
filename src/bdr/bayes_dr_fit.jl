@@ -152,12 +152,14 @@ function _fit_continuous_bayes_dr(
         _sample_nuisance_posteriors(rng, model, method, plan)
     design = _continuous_design(model, method, grid)
 
-    posterior_curves, mean_pseudo_outcome, clipped_fraction = _continuous_posterior_curves(
-        model, treatment_posterior, outcome_posterior, method, design, grid,
+    bootstrap_indices = rand(rng, 1:model.n, model.n, plan.n_boot)
+    bootstrap_weights = _continuous_bootstrap_weights(bootstrap_indices)
+    posterior_curves, bootstrap_pseudo_outcome, clipped_fraction = _continuous_posterior_curves(
+        model, treatment_posterior, outcome_posterior, method, design, bootstrap_weights,
     )
     estimate = vec(mean(posterior_curves; dims = 1))
     bootstrap_curves = _continuous_bootstrap_curves(
-        rng, model, design, mean_pseudo_outcome, plan.n_boot,
+        design, bootstrap_pseudo_outcome, bootstrap_indices,
     )
     naive_covariance = _curve_covariance(bootstrap_curves)
     posterior_covariance = _curve_covariance(posterior_curves)

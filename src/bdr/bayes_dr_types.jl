@@ -296,6 +296,11 @@ Posterior-averaged doubly robust exposure-response curve for a continuous
 treatment. Rows of `posterior_curves` and `bootstrap_curves` are curve draws;
 columns correspond to `treatment_grid`. Confidence intervals are pointwise.
 
+Each bootstrap curve recomputes the pseudo-outcome's empirical covariate
+integrals on the resampled observations while holding nuisance parameters
+fixed. Its variance therefore includes uncertainty in the empirical covariate
+distribution for the population target E[Y(t)].
+
 Use `ess`, `rhat`, `mcse`, and `chain_info` to inspect conservative summaries
 across both nuisance-model chains.
 """
