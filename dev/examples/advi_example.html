@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>ADVI Example · BayesianDoubleML.jl</title><meta name="title" content="ADVI Example · BayesianDoubleML.jl"/><meta property="og:title" content="ADVI Example · BayesianDoubleML.jl"/><meta property="twitter:title" content="ADVI Example · BayesianDoubleML.jl"/><meta name="description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:description" content="Documentation for BayesianDoubleML.jl."/><meta property="twitter:description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><meta property="twitter:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><link rel="canonical" href="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../index.html">BayesianDoubleML.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../index.html">Home</a></li><li><a class="tocitem" href="../user_guide.html">User Guide</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="mcmc_example.html">MCMC Example</a></li><li class="is-active"><a class="tocitem" href="advi_example.html">ADVI Example</a></li><li><a class="tocitem" href="vmp_example.html">VMP Example</a></li></ul></li><li><a class="tocitem" href="../api_reference.html">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href="advi_example.html">ADVI Example</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="advi_example.html">ADVI Example</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl/blob/master/nothing" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><style>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>ADVI Example · BayesianDoubleML.jl</title><meta name="title" content="ADVI Example · BayesianDoubleML.jl"/><meta property="og:title" content="ADVI Example · BayesianDoubleML.jl"/><meta property="twitter:title" content="ADVI Example · BayesianDoubleML.jl"/><meta name="description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:description" content="Documentation for BayesianDoubleML.jl."/><meta property="twitter:description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><meta property="twitter:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><link rel="canonical" href="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/advi_example.html"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../index.html">BayesianDoubleML.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../index.html">Home</a></li><li><a class="tocitem" href="../user_guide.html">User Guide</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="mcmc_example.html">MCMC Example</a></li><li class="is-active"><a class="tocitem" href="advi_example.html">ADVI Example</a></li><li><a class="tocitem" href="vmp_example.html">VMP Example</a></li><li><a class="tocitem" href="bdr_example.html">BayesDR Example</a></li></ul></li><li><a class="tocitem" href="../api_reference.html">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href="advi_example.html">ADVI Example</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="advi_example.html">ADVI Example</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl/blob/master/nothing" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><style>
     #documenter-page table {
         display: table !important;
         margin: 2rem auto !important;
@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "adf71fd813411a032aa294733453275f3cbccddfc3aaf94aa800eeae96843538"
-    julia_version = "1.12.6"
+    input_sha = "5cd74ee88d55490b9b4b5cd78fe79976e317cb9c2b0eb4cdaac6d7d1cbd456e8"
+    julia_version = "1.12.7"
 -->
 
 
@@ -77,11 +77,11 @@ end;</code></pre>
 <div class="markdown"><h3 id="Model-fitting">Model fitting</h3></div>
 
 
-<div class="markdown"><p>And we then fit the model using Automatic Differentiation Variational Inference (ADVI). </p><p>In this example, we first try using the SimpleVIMethod with the AutoMooncake AD backend. (Note: AutoMooncake from <a href="https://chalk-lab.github.io/Mooncake.jl/stable/">Mooncake.jl</a> provides extremely fast automatic differentiation, at the cost of a longer compile time.)</p></div>
+<div class="markdown"><p>And we then fit the model using Automatic Differentiation Variational Inference (ADVI). </p><p>In this example, we first try using the CollapsedVI method with the AutoMooncake AD backend. (Note: AutoMooncake from <a href="https://chalk-lab.github.io/Mooncake.jl/stable/">Mooncake.jl</a> provides extremely fast automatic differentiation, at the cost of a longer compile time.)</p><p>The <code>CollapsedVI</code> method differs from the MCMC implementation in that it works by <strong>integrating out</strong> the large coefficient vectors before variational optimization, making it magnitudes faster while retaining good inference. It does this using <a href="https://en.wikipedia.org/wiki/Rao%E2%80%93Blackwell_theorem">Rao–Blackwellization</a> of the estimator of the causal parameter.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -101,30 +101,30 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               0.9975       0.1772       0.0000       0.0000
+  α               1.9523       0.1945       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [0.6662, 1.349]
+  α: [1.5842, 2.333]
 
 Diagnostics:
-  Final ELBO: -729.51
+  Final ELBO: -668.18
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-more-suitable-to-ADVI">Problems more suitable to ADVI</h2><p>As we see above, for this problem, ADVI is <em>not</em> a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is 2.0, but the above model estimated 1.0.</p><p>However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=1000, p = 31.</p><p>As a general rule of thumb: in anecdotal testing, ADVI methods are generally reliable on similar problems when <span class="tex">\(n &gt;&gt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.95.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
-    n2 = 1_000
-    lower_p = floor(sqrt(n2)) |&gt; Int
-    upper_p = floor(n2 / 2) |&gt; Int
-    default_p = Int(floor(sqrt(n2)))
+    n2 = 50
+    lower_p = floor(n2) |&gt; Int
+    upper_p = floor(4 * n2) |&gt; Int
+    default_p = Int(floor(n2 * 2))
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="qiluojoflwsu"><input max="47" min="1" type="range" value="1"/><script>
+<bond def="p2" unique_id="gbfeqymecjrb"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
-					const displays = ["31", "41", "51", "61", "71", "81", "91", "101", "111", "121", "131", "141", "151", "161", "171", "181", "191", "201", "211", "221", "231", "241", "251", "261", "271", "281", "291", "301", "311", "321", "331", "341", "351", "361", "371", "381", "391", "401", "411", "421", "431", "441", "451", "461", "471", "481", "491"]
+					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
 
 					let update_output = () => {
 						output_el.value = displays[input_el.valueAsNumber - 1]
@@ -143,7 +143,7 @@ end</code></pre>
     					font-size: 15px;
     					margin-left: 3px;
     					transform: translateY(-4px);
-    					display: inline-block;">31</output></bond>
+    					display: inline-block;">100</output></bond>
 
 <pre class='language-julia'><code class='language-julia'>begin
     # Generate data as DataFrame
@@ -153,13 +153,13 @@ end;</code></pre>
 
 <pre class='language-julia'><code class='language-julia'>model2 = BDMLModel(df2, :y, :d; model_type = :hier)</code></pre>
 <pre class="code-output documenter-example-output" id="var-model2">BDMLHierarchicalModel (not fitted)
-  Observations: 1000
-  Covariates: 31
+  Observations: 50
+  Covariates: 100
 </pre>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model2,
-    SimpleVIMethod(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -179,13 +179,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9531       0.0632       0.0000       0.0000
+  α               0.1554       2.2554       0.0000       0.9620
 
 HPD Credible Intervals:
-  α: [1.8325, 2.0729]
+  α: [-3.505, 4.1305]
 
 Diagnostics:
-  Final ELBO: -2153.28
+  Final ELBO: -229.34
 </pre>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="vmp_example.html">VMP Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 26 July 2026 22:11">Sunday 26 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="vmp_example.html">VMP Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 8 September 2026 12:21">Tuesday 8 September 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
