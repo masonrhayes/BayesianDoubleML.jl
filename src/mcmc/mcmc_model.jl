@@ -53,7 +53,7 @@ use `bdml_hier()` (BDML-Hierarchical) instead.
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 
-See also: `bdml_hier`, `bdml_basic_vi`
+See also: `bdml_hier`
 """
 @model function bdml_basic(Y, D, X)
     n, p = size(X)
@@ -184,7 +184,7 @@ For fixed shrinkage with simpler interpretation, use `bdml_basic()` instead.
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for 
   Causal Inference", arXiv:2508.12688v1, Section 4, Algorithm 1, Section 6.
 
-See also: `bdml_basic`, `bdml_hier_vi`
+See also: `bdml_basic`
 """
 @model function bdml_hier(Y, D, X)
     n, p = size(X)

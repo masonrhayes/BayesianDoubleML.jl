@@ -1,6 +1,10 @@
 # AD Backends Smoke Test (CI)
-# Minimal test to verify AD backends work - runs fast in CI
+# Minimal test to verify AD backends work with CollapsedVI - runs fast in CI
 # Comprehensive tests are in test/extended/
+#
+# NOTE: test/extended/ad_backends_extended.jl (UnifiedVI/SimpleVI) was archived
+# to src/.archive/removed_unified_simple_2026-09-05/ when UnifiedVI/SimpleVI
+# support was removed.
 
 using BayesianDoubleML
 using Test
@@ -16,7 +20,7 @@ include("utils.jl")
     alpha_true = 0.5
 
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    method = UnifiedVI(; ad_backend = AutoReverseDiff)
+    method = CollapsedVI(; ad_backend = AutoReverseDiff)
     fit!(model, method; n_iterations = 100, n_draws = 100)
 
     alpha_mean = mean(extract_alpha(model))
@@ -32,7 +36,7 @@ end
     alpha_true = 0.5
 
     model = BDMLModel(df, :y, :d; model_type = :basic)
-    method = UnifiedVI(; ad_backend = AutoReverseDiff)
+    method = CollapsedVI(; ad_backend = AutoReverseDiff)
     fit!(model, method; n_iterations = 100, n_draws = 100)
 
     alpha_mean = mean(extract_alpha(model))

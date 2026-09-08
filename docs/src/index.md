@@ -11,19 +11,17 @@ Welcome to the documentation for **BayesianDoubleML.jl**, a Julia package for Ba
 BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688). It offers various inference methods:
 
 - MCMC (as in the paper), built on [Turing.jl](https://turinglang.org/)
-- Automatic Differentiation Variational Inference (ADVI) methods with multiple automatic differentiation backends, built on [Turing.jl](https://turinglang.org/) and [AdvancedVI.jl](https://turinglang.org/AdvancedVI.jl/stable/)
+- Collapsed Automatic Differentiation Variational Inference (CollapsedVI) with multiple automatic differentiation backends, built on [AdvancedVI.jl](https://turinglang.org/AdvancedVI.jl/stable/)
 - Variational Message Passing (VMP), both manually implemented and with an optional [RxInfer.jl](https://rxinfer.com) backend
 
 ## Key Features
 
 - **Causal Inference**: Estimate treatment effects with uncertainty quantification
 - **Multiple Inference Methods**:
-  - MCMC with NUTS sampler
-  - Variational Inference, with two primary methods:
-    - The `SimpleVIMethod()` relies on Turing.jl's VI implementation, offering simplicity and ease of use at the expense of less flexibility.
-    - The `UnifiedVIMethod()` relies on `Bijectors.jl` and  `AdvancedVI.jl`, offering greater flexibility. This method supports both MeanFieldGuassian and LowRankGaussian [variational families](https://turinglang.org/AdvancedVI.jl/dev/families/) from `AdvancedVI.jl`. However, this method does not currently support the Mooncake AD backend (which is extremely fast). Thus, for performance, it's recommended to stick with `SimpleVIMethod()` with `AutoMooncake` backend.
+  - MCMC with NUTS sampler (reference method)
+  - Collapsed VI (`CollapsedVI`), which integrates coefficients out analytically and runs ADVI on the low-dimensional marginal posterior
+  - Variational Message Passing (`VMP`) with manual or RxInfer backends
 - **Multiple AD Backends**: ReverseDiff, Mooncake, Zygote, ForwardDiff.
-- **Automatic Subsampling**: For large datasets (n > 10,000)
 
 ## The BDML Model
 

@@ -5,13 +5,12 @@ using StatsAPI
 # Core exports - dispatch-based API with mutating fit!
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
-    AbstractInferenceMethod, MCMCMethod, UnifiedVIMethod, SimpleVIMethod, VMPMethod,
-    MCMCNUTS, UnifiedVI, SimpleVI, VMP,
+    BayesDRModel, BayesDRMCMCMethod, BayesDRMCMC, BayesDRResult, BayesDRCurveResult,
+    AbstractInferenceMethod, MCMCMethod, VMPMethod,
+    CollapsedVIMethod,
+    MCMCNUTS, VMP, CollapsedVI,
     # VMP backends
     AbstractVMPBackend, RxInferVMP, ManualCoordinateAscentVMP,
-    # Variational families
-    AbstractVariationalFamily, MeanField, LowRank, LowRankScore,
-    MeanFieldVI, LowRankVI, LowRankScoreVI,
     # Method traits
     uses_sampling, supports_subsampling, is_deterministic, default_n_samples, default_n_iterations,
     # Accessors
@@ -19,7 +18,9 @@ export fit!, BDMLModel,
     # Results
     extract_alpha, BDMLData, AbstractBDMLResult, BDMLMCMCResult, BDMLVIResult, BDMLVMPResult,
     # Coeftable
-    coeftable, BDMLCoeftable, confint, ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
+    coeftable, BDMLCoeftable, confint, exposure_response_curve, average_derivative,
+    plot_exposure_response_curve,
+    ess, pvalues, hpd_interval, mcse, rhat, rhat_statistic, chain_info,
     # StatsAPI functions
     coef, stderror, vcov,
     # Summary
@@ -29,12 +30,10 @@ export fit!, BDMLModel,
     # AD backends for VI configuration
     AutoReverseDiff, AutoForwardDiff, AutoZygote, AutoMooncake,
     # DGP
-    make_plr_DTL2025
+    make_plr_DTL2025, make_irm_APD2022, make_er_APD2022, make_plr_LML2025
 
 using Turing
-using Turing.Variational
 using AdvancedVI
-using Bijectors
 using ADTypes
 using DataFrames
 using Distributions
@@ -45,10 +44,8 @@ using Random
 using ReverseDiff
 using Statistics
 using NaNMath
-using Optim
 using Optimisers
 using LogDensityProblems
-using LogDensityProblemsAD
 using UnicodePlots
 using Printf
 
@@ -56,28 +53,21 @@ using Printf
 include("types.jl")
 include("utils.jl")
 include("mcmc/mcmc_model.jl")          # MCMC model specifications (bdml_basic, bdml_hier)
-include("alpha.jl")                   # Basic extract_alpha for MCMC
-include("alpha_extraction.jl")       # Additional extract_alpha methods for VI
+include("alpha.jl")                   # Basic extract_alpha for MCMC, VI, VMP results
 
 # Multiple Dispatch System for BDML
 # Provides unified fit!() interface that dispatches on model type and method type
-include("methods.jl")       # Method types: MCMCMethod, UnifiedVIMethod, SimpleVIMethod
+include("methods.jl")       # Method types: MCMCMethod, VMPMethod, CollapsedVIMethod
 include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
+include("collapsed/collapsed.jl")
+include("collapsed/collapsed_vi_model.jl")
+include("collapsed/vi_diagnostics.jl")  # ELBO convergence checking (shared by CollapsedVI)
 include("fit.jl")  # Dispatch-based fit!() functions
+include("bdr/bayes_dr.jl")
 include("vmp/vmp_manual_coordinate_ascent.jl")
+include("collapsed/collapsed_vi_fit.jl")
 
 include("coeftable.jl")    # StatsAPI-compliant coeftable with HPD intervals
-
-# VI model definitions (used by dispatch system)
-include("vi/vi_model.jl")
-include("vi/vi_bijectors.jl")
-include("vi/vi_logdensity.jl")
-include("vi/vi_diagnostics.jl")  # ELBO convergence checking
-include("vi/vi_fit.jl")
-
-# Simple VI model definitions (used by dispatch system)
-include("vi_simple/model_vi.jl")
-include("vi_simple/fit_vi.jl")
 
 # Summary and visualization
 include("summary.jl")

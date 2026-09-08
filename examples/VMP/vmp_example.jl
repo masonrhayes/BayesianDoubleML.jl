@@ -96,7 +96,7 @@ fit!(
 
 # ╔═╡ 65ef7695-3d5c-4538-bb2f-ad1063d2052f
 md"""
-As shown from the results below, VMP's *approximation* to the posterior is not a good approximation for this particular problem. However, in a variety of scenarios (e.g., where the number of observations is relatively large relative to the number of covariates), VMP performs very well and is extremely fast.
+As shown from the results below, VMP's *approximation* to the posterior is a good approximation for this particular problem. However, in a some scenarios (e.g., where the number of covariates is small relative to the number of observations: ``n < p``), VMP performs more poorly.
 
 """
 
@@ -106,26 +106,24 @@ coeftable(model)
 # ╔═╡ 25ccb315-787d-4b2b-84b3-3c03ef631d5d
 summary(model)
 
+# ╔═╡ 8f6392ca-632a-49ab-873f-90678df6c9e8
+md"""
+## Problems less suitable to VMP
+
+As we see above, for this problem, as with ADVI, VMP is a good fit for the problem above where ``p`` is large relative to ``n``, but not larger than n; VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is $(alpha_true), and the above model estimated $(round(coef(model)[1], digits =2)).
+
+However, VMP does not yield a good approximation where ``n << p``.
+"""
+
 # ╔═╡ 98323223-dc7f-49b2-bc56-62d0591350f0
 begin
-    n2 = 100_000
-    lower_p = floor(sqrt(n2)) |> Int
-    upper_p = floor(n2 / 2) |> Int
-    default_p = Int(floor(sqrt(n2)))
+    n2 = 50
+    lower_p = floor(n2) |> Int
+    upper_p = floor(4 * n2) |> Int
+    default_p = Int(floor(n2 * 2))
     @assert lower_p < upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end
-
-# ╔═╡ 8f6392ca-632a-49ab-873f-90678df6c9e8
-md"""
-## Problems more suitable to VMP
-
-As we see above, for this problem, as with ADVI, VMP is *not* a good fit for the problem above where ``p`` is large relative to ``n``; VMP is not as able to reach a good approximation, at least not with this data generation process. The true causal effect is $(alpha_true), but the above model estimated $(round(coef(model)[1], digits =2)).
-
-However, ADVI is yields a good approximation in a variety of other real-world scenarios; let's try a case where e.g., n=$(n2), p = $(p2).
-
-As a general rule of thumb: in anecdotal testing, variational methods like ADVI and VMP are generally reliable on similar problems when ``n >> p``.
-"""
 
 # ╔═╡ c51ca999-58a8-4f5d-94d5-4fef41191c11
 # Generate data with more observations
@@ -136,7 +134,7 @@ model2 = BDMLModel(df2, :y, :d; model_type = :hier)
 
 # ╔═╡ 3426efe3-eb2a-42ee-9a6c-069714f852ad
 md"""
-For example, with n=$(n2) observations and p = $(p2) regressors, VMP gives a good estimate of the posterior in <1 second. 
+For example, with n=$(n2) observations and p = $(p2) regressors, VMP does not give a good estimate of the posterior.
 
 """
 
@@ -144,7 +142,7 @@ For example, with n=$(n2) observations and p = $(p2) regressors, VMP gives a goo
 @time fit!(
     model2,
     VMP(; backend = ManualCoordinateAscentVMP()),
-    n_iterations = 50,
+    n_iterations = 100,
     show_progress = false
 );
 
@@ -169,11 +167,11 @@ We could also fit the exact same model using RxInfer as a backend:
 
 # ╔═╡ 405ed58e-0cc6-417a-9c9f-959b1ad619b9
 begin
-    model2_rx = BDMLModel(df2, :y, :d; model_type = :hier)
+    model_rx = BDMLModel(df, :y, :d; model_type = :hier)
 
     # Fit using RxInfer
     @time fit!(
-        model2_rx,
+        model_rx,
         VMP(; backend = RxInferVMP()),
         n_iterations = 50,
         show_progress = true,
@@ -184,8 +182,8 @@ end
 
 # ╔═╡ cecbc982-cb59-4ca1-81b7-ed4491cb387c
 begin
-    summary(model2_rx)
-    coeftable(model2_rx)
+    summary(model_rx)
+    coeftable(model_rx)
 end
 
 # ╔═╡ Cell order:
@@ -199,7 +197,7 @@ end
 # ╠═25e871ed-0b54-4e14-bdcd-32195741cba7
 # ╟─d79788fb-94c0-4fb5-9c68-14144182a92a
 # ╠═473a4905-fece-45ee-b1f6-69f0a73af362
-# ╟─65ef7695-3d5c-4538-bb2f-ad1063d2052f
+# ╠═65ef7695-3d5c-4538-bb2f-ad1063d2052f
 # ╠═f098ae2a-89a5-4262-95bf-42584e04a29f
 # ╠═25ccb315-787d-4b2b-84b3-3c03ef631d5d
 # ╟─8f6392ca-632a-49ab-873f-90678df6c9e8

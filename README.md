@@ -6,19 +6,22 @@
 
 Bayesian Double Machine Learning with various inference methods:
 
-- Markov chain Monte Carlo (MCMC),
-- Automatic Differentiation Variational Inference (ADVI), and
-- Variational Message Passing (VMP)
+- Markov chain Monte Carlo (MCMC), as in the original paper [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), as well as:
+- Alternative approaches using variational inference:
+  - CollapsedVI: using a collapsed (i.e., Rao-Blackwellized) version of the model and Automatic Differentiation Variational Inference, and
+  - VMP (Variational Message Passing) based methods
 
-This package implements BDML as in  [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
+This package implement BDML as in  [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), Algorithm 1, using a bivariate reduced form parameterization to avoid regularization-induced confounding.
+
+In addition, an experimental version of the Bayes-DR model from [Antonelli et al (2022)](https://doi.org/10.1111/biom.13417) (see below).
 
 ## Features
 
 - **MCMC**: NUTS sampler for inference using MCMC
-- **VI**: Fast approximate inference with multiple AD backends
-  - **Automatic subsampling with VI**: For large datasets (n > 10,000)
+- **CollapsedVI**: Fast approximate inference on the analytically collapsed (Rao-Blackwellized) posterior, with multiple AD backends
 - **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
+- **Experimental Bayes-DR**: Binary-treatment ATE estimation following [Antonelli et al (2022)](https://doi.org/10.1111/biom.13417)
 
 ## Installation
 
@@ -68,18 +71,15 @@ fit!(model, MCMCNUTS())  # Default NUTS
 fit!(model, MCMCNUTS(; target_acceptance = 0.9); n_samples = 2000, n_chains = 4)
 ```
 
-**VI:**
+**CollapsedVI:**
 
 ```julia
-# UnifiedVI (default ReverseDiff)
-fit!(model, UnifiedVI(); n_iterations = 1000)
+# CollapsedVI (default ReverseDiff)
+fit!(model, CollapsedVI(); n_iterations = 1000)
 
-# SimpleVI with Mooncake (faster after warmup)
+# CollapsedVI with Mooncake, mean-field family
 using Mooncake
-fit!(model, SimpleVI(; ad_backend = AutoMooncake))
-
-# Low-rank variational family
-fit!(model, LowRankVI(10))
+fit!(model, CollapsedVI(; ad_backend = AutoMooncake, fullrank = false))
 ```
 
 **VMP with the optional RxInfer extension:**
@@ -122,6 +122,35 @@ summary(model)
 coeftable(model)
 ```
 
+### Experimental Bayes-DR
+
+The experimental Bayes-DR model combines separate Bayesian probit treatment and Gaussian outcome models with an augmented inverse-probability weighted ATE estimator. Its standard error includes the paper's empirical-bootstrap and posterior nuisance-parameter variance components.
+
+```julia
+model = BayesDRModel(Y, T, X)  # T must be coded as 0/1
+fit!(
+    model,
+    BayesDRMCMC();
+    n_samples = 1000,
+    n_burn = 500,
+    n_chains = 2,
+    n_boot = 500,
+)
+
+coef(model)
+stderror(model)
+confint(model)
+```
+
+Reproduce the paper's primary simulation design with:
+
+```julia
+df = make_irm_APD2022(100, 500; scenario = :nonlinear)
+model = BayesDRModel(df, :y, :d)
+```
+
+This initial implementation supports continuous outcomes and linear additive nuisance models. It reports a posterior-corrected confidence interval, not a posterior credible interval.
+
 ## API Reference
 
 ### Core Functions
@@ -134,16 +163,14 @@ coeftable(model)
 
 ### Inference Methods
 
-| Method                          | Description                             |
-| ------------------------------- | --------------------------------------- |
-| `MCMCNUTS()`                  | NUTS sampler                            |
-| `UnifiedVI()`                 | AdvancedVI with bijectors               |
-| `SimpleVI()`                  | Turing's native VI                      |
-| `MeanFieldVI()`               | Mean-field VI (AdvancedVI)              |
-| `LowRankVI(rank)`             | Low-rank VI (AdvancedVI)                |
-| `VMP()`                       | Conjugate VMP (default: manual backend) |
-| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)       |
-| `RxInferVMP()`                | RxInfer VMP backend                     |
+| Method                          | Description                              |
+| ------------------------------- | ---------------------------------------- |
+| `MCMCNUTS()`                  | NUTS sampler                             |
+| `CollapsedVI()`               | Collapsed ADVI (full-rank or mean-field) |
+| `VMP()`                       | Conjugate VMP (default: manual backend)  |
+| `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)        |
+| `RxInferVMP()`                | RxInfer VMP backend                      |
+| `BayesDRMCMC()`               | Experimental binary-treatment Bayes-DR   |
 
 ### StatsAPI Functions
 
@@ -151,12 +178,12 @@ coeftable(model)
 
 ## Performance
 
-| Inference Method             | Best For                                                 |
-| ---------------------------- | -------------------------------------------------------- |
-| VMP (ManualCoordinateAscent) | Fastest (<seconds), with good appoximation of posterior |
-| ADVI (AutoReverseDiff)       | Quite fast, good appoximation of posterior               |
-| ADVI (AutoMooncake)          | Fast, ~5-10x faster than ADVI with AutoReverseDiff      |
-| MCMC                         | Most accurate inference                                  |
+| Inference Method              | Best For                                                   |
+| ----------------------------- | ---------------------------------------------------------- |
+| VMP (ManualCoordinateAscent)  | Fastest (<seconds), with good appoximation of posterior   |
+| CollapsedVI (AutoReverseDiff) | Quite fast, good appoximation of posterior                 |
+| CollapsedVI (AutoMooncake)    | Fast, ~5-10x faster than CollapsedVI with AutoReverseDiff |
+| MCMC                          | Most accurate inference                                    |
 
 ## Model Variations
 
@@ -174,6 +201,7 @@ coeftable(model)
 
 - DiTraglia & Liu (2025): [arXiv:2508.12688](https://arxiv.org/abs/2508.12688)
 - Chernozhukov et al. (2018): [Econometrics Journal](https://doi.org/10.1111/ectj.12097)
+- Antonelli, Papadogeorgou, & Dominici (2022): [Biometrics](https://doi.org/10.1111/biom.13417)
 
 ## License
 

@@ -15,6 +15,10 @@ println("\n=== Phase 1: Core Functionality ===")
     include("core.jl")
 end
 
+@safetestset "Data Generating Processes" begin
+    include("dgp.jl")
+end
+
 @safetestset "BDMLModel Constructors" begin
     include("models.jl")
 end
@@ -23,15 +27,19 @@ end
     include("methods.jl")
 end
 
+@safetestset "Experimental Bayes-DR" begin
+    include("bayes_dr.jl")
+end
+
 # Phase 2: Inference method tests (slower, involves sampling)
-# These tests verify MCMC and VI inference work correctly
+# These tests verify MCMC, CollapsedVI, and VMP inference work correctly
 println("\n=== Phase 2: Inference Methods ===")
 
 @safetestset "MCMC Inference" begin
     include("mcmc.jl")
 end
-@safetestset "VI (Unified and Simple)" begin
-    include("vi.jl")
+@safetestset "Collapsed VI" begin
+    include("collapsed_vi.jl")
 end
 @safetestset "VMP Manual without Extension" begin
     include("vmp_manual_no_ext.jl")
@@ -47,9 +55,6 @@ println("\n=== Phase 3: Feature Tests ===")
 @safetestset "AD Backends (Smoke Test)" begin
     include("ad_backends_smoke.jl")
 end
-@safetestset "Subsampling" begin
-    include("subsampling.jl")
-end
 @safetestset "Diagnostics" begin
     include("diagnostics.jl")
 end
@@ -61,6 +66,6 @@ end
 # These tests verify real data handling
 println("\n=== Phase 4: Integration Tests ===")
 
-@safetestset "Real Data (MCMC and VI)" begin
+@safetestset "Real Data (MCMC and CollapsedVI)" begin
     include("real_data.jl")
 end

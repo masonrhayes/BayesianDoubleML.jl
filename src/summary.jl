@@ -24,7 +24,7 @@ For VI results, shows ELBO convergence and includes an ASCII plot.
 
 # Examples
 ```julia
-result = fit(problem, UnifiedVIMethod())
+result = fit(problem, CollapsedVI())
 summary(result)
 
 # Or capture output
@@ -82,6 +82,90 @@ function Base.summary(result::AbstractBDMLResult)
     return Base.summary(stdout, result)
 end
 
+function Base.summary(io::IO, result::BayesDRResult)
+    print_title_box(io)
+    print_section_header(io, COLOR_BLUE, "Model Information")
+    @printf io "  Model Type:       Bayes-DR\n"
+    @printf io "  Estimand:         ATE (binary treatment)\n"
+    @printf io "  Outcome Scale:    original\n"
+
+    print_section_header(io, COLOR_GREEN, "Inference Method")
+    @printf io "  Method:           Spike-and-slab Gibbs MCMC\n"
+    @printf io "  Posterior Draws:  %d\n" length(result.posterior_effects)
+    @printf io "  Bootstrap Draws:  %d\n" length(result.bootstrap_estimates)
+    print_bayes_dr_diagnostics(io, result)
+
+    print_section_header(io, COLOR_MAGENTA, "Variance Decomposition")
+    @printf io "  Naive Variance:   %.6f\n" result.naive_variance
+    @printf io "  Posterior Term:   %.6f\n" result.posterior_variance
+    @printf io "  Total Variance:   %.6f\n" result.standard_error^2
+
+    print_section_header(io, COLOR_YELLOW, "Causal Effect (ATE)")
+    @printf io "  Estimate:         %s%.4f%s\n" COLOR_BOLD result.estimate COLOR_RESET
+    @printf io "  Std Error:        %.4f\n" result.standard_error
+    @printf io "  %.0f%% CI:          [%s%.4f%s, %s%.4f%s]\n" (100 * result.level) COLOR_BOLD result.confidence_interval[1] COLOR_RESET COLOR_BOLD result.confidence_interval[2] COLOR_RESET
+    @printf io "  Propensity Range: [%.4f, %.4f]\n" minimum(result.propensity_mean) maximum(result.propensity_mean)
+    @printf io "  Propensities Clipped: %.2f%%\n" (100 * result.propensity_clipped_fraction)
+    return nothing
+end
+
+Base.summary(result::BayesDRResult) = Base.summary(stdout, result)
+
+function Base.summary(io::IO, result::BayesDRCurveResult; show_curve::Bool = false)
+    print_title_box(io)
+    print_section_header(io, COLOR_BLUE, "Model Information")
+    @printf io "  Model Type:       Bayes-DR\n"
+    @printf io "  Estimand:         Exposure-response curve E[Y(t)]\n"
+    @printf io "  Treatment Range:  [%.4f, %.4f]\n" minimum(result.treatment_grid) maximum(result.treatment_grid)
+    @printf io "  Grid Points:      %d\n" length(result.treatment_grid)
+    @printf io "  Curve Degree:     %d\n" result.curve_degree
+
+    print_section_header(io, COLOR_GREEN, "Inference Method")
+    @printf io "  Method:           Spike-and-slab Gibbs MCMC\n"
+    @printf io "  Posterior Draws:  %d\n" size(result.posterior_curves, 1)
+    @printf io "  Bootstrap Draws:  %d\n" size(result.bootstrap_curves, 1)
+    @printf io "  Intervals:        pointwise %.0f%% confidence\n" (100 * result.level)
+    @printf io "  Density Ratios Clipped: %.2f%%\n" (100 * result.density_ratio_clipped_fraction)
+    print_bayes_dr_diagnostics(io, result)
+
+    derivative = average_derivative(result)
+    print_section_header(io, COLOR_MAGENTA, "Average Derivative Diagnostic")
+    @printf io "  Treatment Interval: [%.4f, %.4f]\n" derivative.treatment_interval[1] derivative.treatment_interval[2]
+    @printf io "  Estimate:           %s%.4f%s\n" COLOR_BOLD derivative.estimate COLOR_RESET
+    @printf io "  Std Error:          %.4f\n" derivative.standard_error
+    @printf io "  %.0f%% CI:            [%s%.4f%s, %s%.4f%s]\n" (100 * derivative.level) COLOR_BOLD derivative.confidence_interval[1] COLOR_RESET COLOR_BOLD derivative.confidence_interval[2] COLOR_RESET
+
+    print_section_header(io, COLOR_YELLOW, "Exposure-Response Curve")
+    for location in eachindex(result.treatment_grid)
+        @printf io "  t=%8.4f  E[Y(t)]=%9.4f  SE=%8.4f  CI=[%9.4f, %9.4f]\n" result.treatment_grid[location] result.estimate[location] result.standard_error[location] result.confidence_interval[location, 1] result.confidence_interval[location, 2]
+    end
+    if show_curve
+        print_exposure_response_plot(io, result)
+    end
+    return nothing
+end
+
+Base.summary(result::BayesDRCurveResult; show_curve::Bool = false) =
+    Base.summary(stdout, result; show_curve = show_curve)
+
+function print_bayes_dr_diagnostics(io::IO, result::Union{BayesDRResult, BayesDRCurveResult})
+    info = chain_info(result)
+    @printf io "  Chains:           %d\n" info.n_chains
+    ess_value = ess(result)
+    if ismissing(ess_value)
+        @printf io "  Nuisance ESS:     not available\n"
+    else
+        @printf io "  Nuisance ESS:     %.1f (minimum)\n" ess_value
+    end
+    rhat_value = rhat(result)
+    if ismissing(rhat_value)
+        @printf io "  Nuisance R-hat:   not available\n"
+    else
+        @printf io "  Nuisance R-hat:   %.3f (maximum)\n" rhat_value
+    end
+    return nothing
+end
+
 function print_title_box(io::IO)
     title = "Bayesian Double ML Model Summary"
     box_width = 70
@@ -124,18 +208,9 @@ function print_method_info(io::IO, result::BDMLVMPResult)
 end
 
 function print_method_info(io::IO, result::BDMLVIResult)
-    # Determine VI method and family
-    if result.vi_method == :simple
-        # Simple VI only supports Mean-Field Gaussian
-        @printf io "  Method:           Simple VI (Mean-Field Gaussian)\n"
-    elseif result.vi_method == :vmp
-        @printf io "  Method:           VMP (Conjugate Inverse-Wishart)\n"
-    else
-        # Unified VI supports multiple families
-        vi_type = result.variational_family == :fullrank ? "Full-Rank Gaussian" :
-            result.variational_family == :lowrank ? "Low-Rank Gaussian" : "Mean-Field Gaussian"
-        @printf io "  Method:           Unified VI (%s)\n" vi_type
-    end
+    # CollapsedVI supports mean-field and full-rank Gaussians on the collapsed posterior
+    vi_type = result.variational_family == :collapsed_fullrank ? "Full-Rank Gaussian" : "Mean-Field Gaussian"
+    @printf io "  Method:           Collapsed VI (%s)\n" vi_type
     @printf io "  Iterations:       %d\n" result.n_iterations
     return @printf io "  Samples Drawn:    %d\n" length(result.alpha_samples)
 end
@@ -304,6 +379,47 @@ function print_elbo_plot(
     end
 end
 
+"""
+    print_exposure_response_plot(io::IO, result::BayesDRCurveResult; height=10, width=60)
+
+Print a UnicodePlots line plot of the posterior-mean exposure-response curve
+`E[Y(t)]` over the treatment grid, with the pointwise confidence limits drawn
+as flanking lines. The grid and intervals come from [`exposure_response_curve`](@ref).
+
+# Arguments
+- `io::IO`: Output stream
+- `result::BayesDRCurveResult`: Fitted continuous-treatment BayesDR result
+- `height::Int=10`: Plot height in characters
+- `width::Int=60`: Plot width in characters
+"""
+function print_exposure_response_plot(
+        io::IO,
+        result::BayesDRCurveResult;
+        height::Int = 10,
+        width::Int = 60,
+    )
+    curve = exposure_response_curve(result)
+    order = sortperm(curve.treatment)
+    treatment = curve.treatment[order]
+
+    plot = lineplot(
+        treatment,
+        curve.estimate[order],
+        title = "Exposure-Response Curve E[Y(t)]",
+        xlabel = "Treatment",
+        ylabel = "E[Y(t)]",
+        width = width,
+        height = height,
+        border = :ascii,
+        name = "estimate",
+        color = :green
+    )
+    lineplot!(plot, treatment, curve.lower[order]; name = "lower CI", color = :blue)
+    lineplot!(plot, treatment, curve.upper[order]; name = "upper CI", color = :red)
+
+    return println(io, plot)
+end
+
 function print_convergence_summary(io::IO, result::AbstractBDMLResult)
     println(io, COLOR_BOLD, "─"^62, COLOR_RESET)
     if result isa BDMLVMPResult
@@ -328,11 +444,16 @@ export summary
 # Model delegation - allow summary() to be called directly on fitted models
 
 """
-    summary(model::AbstractBDMLModel)
+    summary(model::AbstractBDMLModel; show_curve=false)
 
 Display a comprehensive summary of a fitted BDML model.
 
 Delegates to the stored result. Throws an error if the model has not been fitted.
+
+# Keyword Arguments
+- `show_curve::Bool=false`: For continuous-treatment `BayesDRModel`s, also
+  print a UnicodePlots rendering of the exposure-response curve. Ignored for
+  all other model types.
 
 # Examples
 ```julia
@@ -341,12 +462,15 @@ fit!(model)
 summary(model)
 ```
 """
-function Base.summary(io::IO, model::AbstractBDMLModel)
+function Base.summary(io::IO, model::AbstractBDMLModel; show_curve::Bool = false)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
+    if show_curve && model.result isa BayesDRCurveResult
+        return Base.summary(io, model.result; show_curve = true)
+    end
     return Base.summary(io, model.result)
 end
 
-function Base.summary(model::AbstractBDMLModel)
+function Base.summary(model::AbstractBDMLModel; show_curve::Bool = false)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
-    return Base.summary(stdout, model)
+    return Base.summary(stdout, model; show_curve = show_curve)
 end

@@ -26,7 +26,9 @@ alpha_true = 2.0 # true causal effect
 rng = StableRNG(42) # for reproducibility
 
 # Generate data as DataFrame
-df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
+df = make_plr_DTL2025(
+    rng; n, p, sigma_epsilon = 2.0, alpha = alpha_true,
+)
 
 # Create model with hierarchical model (recommended)
 # All columns except :y and :d are automatically used as covariates
@@ -83,91 +85,43 @@ fit!(
 - `n_samples`: Number of posterior samples per chain (default: 2000)
 - `n_chains`: Number of parallel chains (default: 4)
 
-### Simple VI with Mooncake
+### Collapsed VI
 
-Simple VI uses Turing's native ADVI implementation and works excellently with the Mooncake AD backend, which provides  5-10x speedup (after initial warmup).
-
-```julia
-# Default: SimpleVI with Mooncake
-using Mooncake 
-
-fit!(
-    model, 
-    SimpleVIMethod(; ad_backend=AutoMooncake);
-    n_iterations=1000,
-    n_draws=2000
-)
-```
-
-### Unified VI with AutoReverseDiff
-
-Unified VI uses AdvancedVI.jl with explicit bijectors and supports multiple variational families and subsampling for large datasets.
-
-#### MeanField (Diagonal Covariance)
-
-The default MeanField approximation assumes independent parameters:
+Collapsed VI integrates the high-dimensional coefficients out analytically
+and runs ADVI on the 3-dimensional (`:basic`) or 5-dimensional (`:hier`)
+marginal posterior for the error scales, correlation, and optional
+coefficient variances.
 
 ```julia
-# MeanField with ReverseDiff (default)
+# Default: CollapsedVI with ReverseDiff (full-rank Gaussian)
 fit!(
     model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=MeanField()
-    );
+    CollapsedVI();
     n_iterations=1000,
     n_draws=2000
 )
 
-# Or use the convenience constructor
-fit!(model, MeanFieldVI())
-```
+# Mean-field family with the Mooncake AD backend (faster after warmup)
+using Mooncake
 
-#### LowRank (Low-Rank + Diagonal Covariance)
-
-LowRank captures parameter correlations with fewer parameters than full covariance:
-
-```julia
-# LowRank with rank 3
 fit!(
     model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=LowRank(3)
-    );
+    CollapsedVI(; ad_backend=AutoMooncake, fullrank=false);
     n_iterations=1000,
     n_draws=2000
 )
-
-# Or use the convenience constructor
-fit!(model, LowRankVI(3))
 ```
 
 **When to use:**
 
-- Large datasets (automatically enables subsampling when n ≥ 10,000)
-- When you need specific variational family control
-- For exploring mean-field vs low-rank tradeoffs
+- Medium to large datasets where MCMC is too slow
+- When you want a fast posterior approximation with ELBO diagnostics
 
-**Subsampling:**
-Automatically enabled for n ≥ 10,000:
+**Key parameters:**
 
-```julia
-# Auto-subsampling (default batch size: min(256, ceil(n/1000)))
-fit!(model, UnifiedVIMethod())  # Auto-enabled for large n
-
-# Explicit control
-fit!(
-    model,
-    UnifiedVIMethod(; 
-        ad_backend=AutoReverseDiff,
-        family=MeanField(),
-        subsample=true,
-        batch_size=512
-    );
-    n_iterations=1000
-)
-```
+- `ad_backend`: AD backend (default: `AutoReverseDiff`)
+- `n_montecarlo`: Monte Carlo samples per ELBO gradient (default: 10)
+- `fullrank`: `true` for a full-rank Gaussian, `false` for mean-field (default: `true`)
 
 ### Variational Message Passing (VMP)
 
@@ -330,7 +284,104 @@ R &\sim \text{LKJ}(4)
 
 The hierarchical prior is equivalent to placing independent Student-t(4) distributions on each coefficient marginally, providing adaptive shrinkage that learns the appropriate regularization from data.
 
+## Experimental Bayes-DR
+
+`BayesDRModel` implements the binary-treatment ATE and continuous-treatment
+exposure-response procedures of Antonelli, Papadogeorgou, and Dominici (2022).
+It fits separate spike-and-slab Bayesian nuisance models and posterior-averages
+a doubly robust estimator.
+
+```julia
+model = BayesDRModel(Y, T, X)
+fit!(model, BayesDRMCMC(); n_samples = 1000, n_burn = 500, n_boot = 500)
+coeftable(model)
+```
+
+Binary `T` must contain both `0` and `1`; a treatment with more than two levels
+is handled as continuous. Covariates are standardized internally, while curve
+locations and the continuous outcome remain on their original scales.
+The reported interval is a frequentist confidence interval whose variance is
+the sum of a bootstrap data component and a posterior nuisance-parameter
+component. Consequently, `credible_interval` and `extract_alpha` are not
+defined for this model.
+
+The current experimental implementation uses additive nuisance models. Spline,
+Gaussian-process, and binary-outcome variants from the paper remain future
+extensions.
+
+The nuisance models use a custom conjugate Gibbs sampler. This retains the
+exact point-mass spike-and-slab updates and supports high-dimensional settings
+without requiring a mixed discrete/continuous Turing sampler. Common MCMC
+diagnostics summarize both nuisance fits conservatively:
+
+```julia
+ess(model)        # minimum nuisance-parameter ESS
+rhat(model)       # maximum nuisance-parameter R-hat, or missing for one chain
+mcse(model)       # maximum nuisance-parameter MCSE
+chain_info(model)
+```
+
+The complete treatment and outcome inclusion draws are available through
+`model.result.treatment_posterior.inclusion` and
+`model.result.outcome_posterior.inclusion`. Average them over the first
+dimension to obtain marginal inclusion probabilities.
+
+Small binary and continuous characterization comparisons against the reference
+R package live in `test/extended/bayes_dr_reference.jl`. They cover estimates,
+standard errors, and intervals with broad Monte Carlo tolerances. The committed
+fixtures can be regenerated manually with
+`Rscript test/reference/generate_bayes_dr_reference.R`; R is not invoked by the
+normal test suite.
+
+**Reference**: Antonelli, Papadogeorgou, and Dominici (2022), [doi:10.1111/biom.13417](https://doi.org/10.1111/biom.13417).
+
+The paper's binary-treatment simulation design is available in both its linear and nonlinear forms:
+
+```julia
+df_linear = make_irm_APD2022(
+    StableRNG(42); n = 100, p = 500, scenario = :linear,
+)
+df_nonlinear = make_irm_APD2022(
+    StableRNG(42); n = 100, p = 500, scenario = :nonlinear,
+)
+```
+
+Both designs have true ATE 1 by default. Pass `alpha` to change it and `rng` to
+make simulation replications reproducible.
+
+The paper's continuous-treatment exposure-response design is available with
+its defaults of `n = 200` and `p = 200`:
+
+```julia
+df_curve = make_er_APD2022(StableRNG(42))
+model = BayesDRModel(df_curve, :y, :d)
+```
+
+Pass signed `cubic_coefficient` and `quadratic_coefficient` values to customize
+the nonlinear treatment response. Their paper defaults are `0.05` and `-0.1`.
+
+The continuous-exposure simulation from Luo et al. (2025), Section 3.2, is
+available with its paper settings of `n = 40`, `p = 40`, and true effect 1:
+
+```julia
+df_continuous = make_plr_LML2025(StableRNG(42))
+model = BDMLModel(df_continuous, :y, :d)
+```
+
+Pass `alpha` to customize the constant treatment effect in either LML2025
+treatment design.
+
+Pass `treatment = :binary` for the Section 3.1 design. Its paper settings use
+`p = 500` and `n = 50` or `n = 200`:
+
+```julia
+df_binary = make_plr_LML2025(
+    StableRNG(42); n = 200, p = 500, treatment = :binary,
+)
+```
+
 ## References
 
 - DiTraglia, F.J. & Liu, L. (2025). "Bayesian Double Machine Learning for Causal Inference". arXiv:2508.12688v1.
 - Chernozhukov, V., et al. (2018). "Double/debiased machine learning for treatment and structural parameters". The Econometrics Journal, 21(1), C1-C68.
+- Luo, M., Moodie, E. E. M., Bhatnagar, S., & Lee, D. (2025). "A scalable Bayesian double machine learning framework, with application to racial disproportionality".

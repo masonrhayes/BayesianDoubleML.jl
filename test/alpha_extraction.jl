@@ -74,7 +74,7 @@ end
     println("True α: $alpha_true")
 
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    method = UnifiedVI()
+    method = CollapsedVI()
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
     @test hasfield(typeof(model.result), :alpha_samples)
@@ -99,7 +99,7 @@ end
     println("True α: $alpha_true")
 
     model = BDMLModel(df, :y, :d; model_type = :basic)
-    method = UnifiedVI()
+    method = CollapsedVI()
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
     @test hasfield(typeof(model.result), :alpha_samples)
@@ -115,16 +115,16 @@ end
     @test abs(alpha_mean - alpha_true) < 0.5
 end
 
-@testset "Alpha Extraction from SimpleVI" begin
+@testset "Alpha Extraction from CollapsedVI (mean-field)" begin
     Random.seed!(804)
     df = make_plr_DTL2025(100, 10, 2.0; alpha = 0.5, rng = MersenneTwister(804))
     alpha_true = 0.5
 
-    println("\n=== Alpha Extraction: SimpleVI ===")
+    println("\n=== Alpha Extraction: CollapsedVI (mean-field) ===")
     println("True α: $alpha_true")
 
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    method = SimpleVI()
+    method = CollapsedVI(; fullrank = false)
     fit!(model, method; n_iterations = 500, n_draws = 1_000)
 
     @test hasfield(typeof(model.result), :alpha_samples)
@@ -134,7 +134,7 @@ end
     alpha_mean = mean(extract_alpha(model))
 
     println("  Extracted α mean: $(round(alpha_mean, digits = 4))")
-    println("  ✓ Alpha extraction from SimpleVI works")
+    println("  ✓ Alpha extraction from CollapsedVI (mean-field) works")
 
     @test isfinite(alpha_mean)
     @test abs(alpha_mean - alpha_true) < 0.5
@@ -156,7 +156,7 @@ end
 
     # Test VI
     model_vi = BDMLModel(df, :y, :d; model_type = :hier)
-    fit!(model_vi, UnifiedVI())
+    fit!(model_vi, CollapsedVI())
 
     @test minimum(model_vi.result.alpha_samples) > -10
     @test maximum(model_vi.result.alpha_samples) < 10
@@ -213,7 +213,7 @@ end
 
     # VI
     model_vi = BDMLModel(Y, D, X; model_type = :hier)
-    fit!(model_vi, UnifiedVI())
+    fit!(model_vi, CollapsedVI())
 
     alpha_vi = mean(model_vi.result.alpha_samples)
 
@@ -240,7 +240,7 @@ end
     for seed in [100, 200, 300]
         Random.seed!(seed)
         model = BDMLModel(df, :y, :d; model_type = :hier)
-        method = UnifiedVI()
+        method = CollapsedVI()
         fit!(model, method; n_iterations = 500, n_draws = 1_000, force = true)
 
         alpha_mean = mean(extract_alpha(model))
@@ -376,7 +376,7 @@ end
     println("True α: $alpha_true")
 
     model = BDMLModel(df, :y, :d; model_type = :hier)
-    fit!(model, UnifiedVIMethod(); n_iterations = 500, n_draws = 1_000, show_progress = false)
+    fit!(model, CollapsedVI(); n_iterations = 500, n_draws = 1_000, show_progress = false)
 
     @test hasfield(typeof(model.result), :alpha_samples)
     @test length(model.result.alpha_samples) >= 500
@@ -391,4 +391,4 @@ end
 end
 
 println("\n=== All Alpha Extraction Tests Complete ===")
-println("Tested: MCMC, VI, SimpleVI, binary treatment, multi-chain via Model API")
+println("Tested: MCMC, CollapsedVI, binary treatment, multi-chain via Model API")

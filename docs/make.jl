@@ -12,6 +12,7 @@ notebooks = [
     ("MCMC Example", joinpath(@__DIR__, "..", "examples", "MCMC", "mcmc_example.jl")),
     ("ADVI Example", joinpath(@__DIR__, "..", "examples", "ADVI", "advi_example.jl")),
     ("VMP Example", joinpath(@__DIR__, "..", "examples", "VMP", "vmp_example.jl")),
+    ("BayesDR Example", joinpath(@__DIR__, "..", "examples", "BDR", "bdr_example.jl"))
 ]
 
 # Output directory for notebooks in documentation
@@ -89,6 +90,7 @@ makedocs(
             "MCMC Example" => "examples/mcmc_example.md",
             "ADVI Example" => "examples/advi_example.md",
             "VMP Example" => "examples/vmp_example.md",
+            "BayesDR Example" => "examples/bdr_example.md",
         ],
         "API Reference" => "api_reference.md",
     ],

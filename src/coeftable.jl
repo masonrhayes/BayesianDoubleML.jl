@@ -78,15 +78,16 @@ for Bayesian Double Machine Learning models.
 - `coef::Vector{Float64}`: Point estimates
 - `stderror::Vector{Float64}`: Standard errors
 - `mcse::Vector{Float64}`: Monte Carlo standard errors
-- `cilower::Vector{Float64}`: Lower bound of credible interval
-- `ciupper::Vector{Float64}`: Upper bound of credible interval
+- `cilower::Vector{Float64}`: Lower interval bound
+- `ciupper::Vector{Float64}`: Upper interval bound
 - `pvalue::Vector{Float64}`: Two-sided p-values
 - `ess::Vector{Float64}`: Effective sample sizes (MCMC only)
 - `elbo::Union{Float64, Nothing}`: Final ELBO value (VI only)
-- `level::Float64`: Credible interval level (e.g., 0.95)
+- `level::Float64`: Interval level (e.g., 0.95)
 - `nsamples::Int`: Number of posterior samples
 - `model_type::Symbol`: :basic or :hier
 - `method_type::Symbol`: :mcmc or :vi
+- `interval_type::Symbol`: :credible or :confidence
 
 # Usage
 ```julia
@@ -111,6 +112,17 @@ struct BDMLCoeftable
     nsamples::Int
     model_type::Symbol
     method_type::Symbol
+    interval_type::Symbol
+end
+
+function BDMLCoeftable(
+        coefnames, coef, stderror, mcse, cilower, ciupper, pvalue, ess,
+        elbo, level, nsamples, model_type, method_type,
+    )
+    return BDMLCoeftable(
+        coefnames, coef, stderror, mcse, cilower, ciupper, pvalue, ess,
+        elbo, level, nsamples, model_type, method_type, :credible,
+    )
 end
 
 """
@@ -160,7 +172,8 @@ function coeftable(result::BDMLMCMCResult; level = 0.95)
         level,
         length(samples),
         result.model_type,
-        :MCMC
+        :MCMC,
+        :credible,
     )
 end
 
@@ -203,7 +216,8 @@ function coeftable(result::BDMLVIResult; level = 0.95)
         level,
         length(samples),
         result.model_type,
-        :VI
+        :VI,
+        :credible,
     )
 end
 
@@ -237,8 +251,262 @@ function coeftable(result::BDMLVMPResult; level = 0.95)
         level,
         length(samples),
         result.model_type,
-        :VMP
+        :VMP,
+        :credible,
     )
+end
+
+"""
+    coeftable(result::BayesDRResult; level=result.level)
+
+Return the posterior-corrected frequentist ATE summary for a Bayes-DR fit.
+"""
+function coeftable(result::BayesDRResult; level = result.level)
+    0 < level < 1 || throw(ArgumentError("level must lie in (0, 1)"))
+    interval = if level == result.level
+        result.confidence_interval
+    else
+        _bayes_dr_interval(
+            result.estimate, result.posterior_effects, result.bootstrap_estimates,
+            Float64(level),
+        )
+    end
+    z = if result.standard_error > 0
+        result.estimate / result.standard_error
+    elseif iszero(result.estimate)
+        0.0
+    else
+        sign(result.estimate) * Inf
+    end
+    pvalue = 2 * ccdf(Normal(), abs(z))
+    return BDMLCoeftable(
+        ["ATE"],
+        [result.estimate],
+        [result.standard_error],
+        [0.0],
+        [interval[1]],
+        [interval[2]],
+        [pvalue],
+        [0.0],
+        nothing,
+        Float64(level),
+        length(result.posterior_effects),
+        :bayes_dr,
+        :BayesDR,
+        :confidence,
+    )
+end
+
+function coeftable(result::BayesDRCurveResult; level = result.level)
+    0 < level < 1 || throw(ArgumentError("level must lie in (0, 1)"))
+    interval = if level == result.level
+        result.confidence_interval
+    else
+        computed = Matrix{Float64}(undef, length(result.estimate), 2)
+        for location in eachindex(result.estimate)
+            limits = _bayes_dr_interval(
+                result.estimate[location], view(result.posterior_curves, :, location),
+                view(result.bootstrap_curves, :, location), Float64(level),
+            )
+            computed[location, 1] = limits[1]
+            computed[location, 2] = limits[2]
+        end
+        computed
+    end
+    z = result.estimate ./ result.standard_error
+    pvalue = 2 .* ccdf.(Normal(), abs.(z))
+    names = ["E[Y($(round(t; digits = 4)))]" for t in result.treatment_grid]
+    return BDMLCoeftable(
+        names,
+        result.estimate,
+        result.standard_error,
+        zeros(length(result.estimate)),
+        interval[:, 1],
+        interval[:, 2],
+        pvalue,
+        zeros(length(result.estimate)),
+        nothing,
+        Float64(level),
+        size(result.posterior_curves, 1),
+        :bayes_dr_curve,
+        :BayesDR,
+        :confidence,
+    )
+end
+
+"""
+    exposure_response_curve(result::BayesDRCurveResult; level=result.level)
+    exposure_response_curve(model::BayesDRModel; level=model.result.level)
+
+Return the continuous-treatment exposure-response curve as a `DataFrame`.
+`lower` and `upper` are pointwise posterior-corrected confidence limits.
+"""
+function exposure_response_curve(result::BayesDRCurveResult; level = result.level)
+    interval = confint(result; level)
+    return DataFrame(
+        treatment = copy(result.treatment_grid),
+        estimate = copy(result.estimate),
+        standard_error = copy(result.standard_error),
+        lower = interval[:, 1],
+        upper = interval[:, 2],
+    )
+end
+
+function exposure_response_curve(::BayesDRResult; kwargs...)
+    throw(
+        ArgumentError(
+            "exposure_response_curve is only available for continuous-treatment " *
+                "BayesDR models; use coef and confint for the binary-treatment ATE",
+        )
+    )
+end
+
+function exposure_response_curve(model::BayesDRModel; kwargs...)
+    isfitted(model) || error("Model has not been fitted. Call fit!() first.")
+    return exposure_response_curve(model.result; kwargs...)
+end
+
+"""
+    plot_exposure_response_curve(fitted::Union{BayesDRModel,BayesDRCurveResult}; kwargs...)
+
+Plot the continuous-treatment exposure-response curve `E[Y(t)]` with pointwise
+confidence band, posterior-mean line, and observed grid points.
+
+This function is implemented in the `BayesianDoubleMLMakieExt` package
+extension and requires a Makie backend to be loaded, e.g.
+`using CairoMakie` (headless/static output) or `using GLMakie` (interactive).
+Calling it without a Makie backend errors with instructions.
+
+# Arguments
+- `fitted`: A fitted continuous-treatment `BayesDRModel`, or a
+  `BayesDRCurveResult` directly.
+
+# Keyword Arguments
+- `level=nothing`: Confidence level for the band; defaults to the result's level.
+- `color=:steelblue`: Base color for band, curve, and points.
+- `title="Bayes-DR Exposure-Response Curve"`: Axis title.
+- `xlabel="Treatment"`, `ylabel="Expected outcome E[Y(t)]"`: Axis labels.
+- `figure_size=(900, 600)`: Figure size in pixels.
+- `show_points::Bool=true`: Scatter the posterior-mean grid estimates.
+- `linewidth=3`: Line width for the curve (and trend overlay).
+- `trend_degree::Union{Nothing,Integer}=nothing`: If an integer `d`, fit a
+  degree-`d` polynomial to the grid estimates with `Polynomials.jl` and overlay
+  it as a dashed trend line (e.g. `trend_degree=3` for a cubic).
+- `trend_color=:darkorange`: Color of the trend overlay.
+- `trend_linestyle=:dash`: Linestyle of the trend overlay.
+- `show_trend_equation::Bool=true`: Annotate the fitted polynomial, e.g.
+  `E[Y(t)] ≈ 1.02 + 0.58t - 0.15t² + 0.04t³`, in the top-left of the axis.
+  Only applies when `trend_degree` is given.
+- `equation_digits::Integer=2`: Decimals shown per polynomial coefficient.
+- `legend_position=:rt`: Legend position.
+
+# Returns
+A `Makie.Figure`.
+
+# Examples
+```julia
+using CairoMakie
+fig = plot_exposure_response_curve(model; trend_degree = 3)
+save("exposure_response_curve.png", fig)
+```
+
+See also: [`exposure_response_curve`](@ref).
+"""
+function plot_exposure_response_curve end
+
+# Fallback when no Makie backend is loaded. Takes an untyped argument on
+# purpose: the extension method (typed on `Union{BayesDRModel,
+# BayesDRCurveResult}`) must be strictly more specific, since redefining an
+# identical method signature from an extension is not permitted.
+function plot_exposure_response_curve(fitted; kwargs...)
+    return error(
+        "plot_exposure_response_curve requires a Makie backend to be loaded " *
+            "(e.g. `using CairoMakie` or `using GLMakie`).",
+    )
+end
+
+"""
+    average_derivative(result::BayesDRCurveResult;
+                       treatment_interval=extrema(result.treatment_grid),
+                       level=result.level)
+    average_derivative(model::BayesDRModel; kwargs...)
+
+Estimate the average derivative of the exposure-response curve over
+`treatment_interval`. By the fundamental theorem of calculus, this is the
+secant slope between the two interval endpoints. Endpoints must occur exactly
+in the fitted treatment grid.
+
+The returned named tuple contains the estimate, standard error,
+posterior-corrected confidence interval, treatment interval, confidence level,
+and the naive and posterior variance components.
+"""
+function average_derivative(
+        result::BayesDRCurveResult;
+        treatment_interval = extrema(result.treatment_grid),
+        level = result.level,
+    )
+    0 < level < 1 || throw(ArgumentError("level must lie in (0, 1)"))
+    length(treatment_interval) == 2 ||
+        throw(ArgumentError("treatment_interval must contain exactly two endpoints"))
+    lower, upper = Float64.(treatment_interval)
+    lower < upper ||
+        throw(ArgumentError("treatment_interval must satisfy lower < upper"))
+
+    lower_index = findfirst(==(lower), result.treatment_grid)
+    upper_index = findfirst(==(upper), result.treatment_grid)
+    lower_index === nothing && throw(
+        ArgumentError(
+            "lower endpoint $lower is not in the fitted treatment grid",
+        )
+    )
+    upper_index === nothing && throw(
+        ArgumentError(
+            "upper endpoint $upper is not in the fitted treatment grid",
+        )
+    )
+
+    inverse_width = inv(upper - lower)
+    posterior_derivatives =
+        (
+        result.posterior_curves[:, upper_index] .-
+            result.posterior_curves[:, lower_index]
+    ) .* inverse_width
+    bootstrap_derivatives =
+        (
+        result.bootstrap_curves[:, upper_index] .-
+            result.bootstrap_curves[:, lower_index]
+    ) .* inverse_width
+    estimate = (result.estimate[upper_index] - result.estimate[lower_index]) * inverse_width
+    naive_variance = var(bootstrap_derivatives)
+    posterior_variance = var(posterior_derivatives)
+    standard_error = sqrt(naive_variance + posterior_variance)
+    confidence_interval = _bayes_dr_interval(
+        estimate, posterior_derivatives, bootstrap_derivatives, Float64(level),
+    )
+
+    return (
+        estimate = estimate,
+        standard_error = standard_error,
+        confidence_interval = confidence_interval,
+        treatment_interval = (lower, upper),
+        level = Float64(level),
+        naive_variance = naive_variance,
+        posterior_variance = posterior_variance,
+    )
+end
+
+function average_derivative(::BayesDRResult; kwargs...)
+    throw(
+        ArgumentError(
+            "average_derivative is only available for continuous-treatment BayesDR " *
+                "models; use coef for the binary-treatment ATE",
+        )
+    )
+end
+
+function average_derivative(model::BayesDRModel; kwargs...)
+    isfitted(model) || error("Model has not been fitted. Call fit!() first.")
+    return average_derivative(model.result; kwargs...)
 end
 
 # Allow generic AbstractBDMLResult dispatch
@@ -263,10 +531,19 @@ StatsAPI.stderror(ct::BDMLCoeftable) = ct.stderror
 function Base.show(io::IO, ct::BDMLCoeftable)
     println(io, "Bayesian Double ML Coefficient Table")
     println(io, "="^70)
-    println(io, "Parameter: α (treatment effect)")
+    parameter_label = if ct.coefnames == ["ATE"]
+        "ATE (average treatment effect)"
+    elseif all(name -> startswith(name, "E[Y("), ct.coefnames)
+        "Exposure-response curve E[Y(t)]"
+    else
+        "α (treatment effect)"
+    end
+    println(io, "Parameter: $parameter_label")
     println(io, "Model type: $(ct.model_type)")
     println(io, "Inference method: $(ct.method_type)")
-    println(io, "Credible interval level: $(round(ct.level * 100, digits = 1))% (HPD)")
+    interval_label = ct.interval_type === :confidence ? "Confidence interval level" : "Credible interval level"
+    interval_suffix = ct.interval_type === :credible ? " (HPD)" : ""
+    println(io, "$interval_label: $(round(ct.level * 100, digits = 1))%$interval_suffix")
     println(io, "Number of posterior samples: $(ct.nsamples)")
     println(io, "")
 
@@ -290,7 +567,8 @@ function Base.show(io::IO, ct::BDMLCoeftable)
     end
 
     println(io, "")
-    println(io, "HPD Credible Intervals:")
+    heading = ct.interval_type === :confidence ? "Confidence Intervals:" : "HPD Credible Intervals:"
+    println(io, heading)
     for i in 1:length(ct.coef)
         println(io, "  $(ct.coefnames[i]): [$(round(ct.cilower[i], digits = 4)), $(round(ct.ciupper[i], digits = 4))]")
     end
@@ -306,6 +584,20 @@ function Base.show(io::IO, ct::BDMLCoeftable)
         println(io, "  Final ELBO: $(round(ct.elbo, digits = 2))")
     end
 end
+
+function Base.show(io::IO, result::BayesDRResult)
+    println(io, "BayesDRResult (binary-treatment ATE)")
+    return show(io, coeftable(result))
+end
+
+Base.show(io::IO, ::MIME"text/plain", result::BayesDRResult) = show(io, result)
+
+function Base.show(io::IO, result::BayesDRCurveResult)
+    println(io, "BayesDRCurveResult (continuous-treatment exposure-response curve)")
+    return show(io, coeftable(result))
+end
+
+Base.show(io::IO, ::MIME"text/plain", result::BayesDRCurveResult) = show(io, result)
 
 function Base.show(io::IO, ::MIME"text/plain", ct::BDMLCoeftable)
     return show(io, ct)
@@ -328,8 +620,7 @@ end
 # Pretty printing for BDMLVIResult using coeftable
 function Base.show(io::IO, r::BDMLVIResult)
     # First show the basic info with method type
-    method_name = r.vi_method == :simple ? "SimpleVI" :
-        r.vi_method == :vmp ? "VMP" : "UnifiedVI"
+    method_name = r.vi_method == :collapsed ? "CollapsedVI" : string(r.vi_method)
     println(io, "BDMLVIResult ($(r.model_type), $(method_name), $(r.variational_family))")
 
     # Then show the coeftable
@@ -423,6 +714,65 @@ function mcse(result::BDMLMCMCResult)
     return length(finite_mcse) > 0 ? maximum(finite_mcse) : std(result.alpha_samples) / sqrt(length(result.alpha_samples))
 end
 
+function _nuisance_diagnostic(posterior::BayesDRNuisancePosterior, diagnostic, reduction)
+    samples = _posterior_chain_array(posterior)
+    size(samples, 1) >= 10 || return missing
+    values = Float64[]
+    for parameter in axes(samples, 3)
+        value = diagnostic(view(samples, :, :, parameter))
+        value isa Real && isfinite(value) && value > 0 && push!(values, Float64(value))
+    end
+    return isempty(values) ? missing : reduction(values)
+end
+
+"""Return the minimum effective sample size across nuisance parameters."""
+function ess(posterior::BayesDRNuisancePosterior)
+    return _nuisance_diagnostic(posterior, FlexiChains.ess, minimum)
+end
+
+"""Return the maximum R-hat across nuisance parameters."""
+function rhat(posterior::BayesDRNuisancePosterior)
+    length(unique(posterior.chain_id)) > 1 || return missing
+    return _nuisance_diagnostic(posterior, FlexiChains.rhat, maximum)
+end
+
+"""Return the maximum Monte Carlo standard error across nuisance parameters."""
+function mcse(posterior::BayesDRNuisancePosterior)
+    return _nuisance_diagnostic(posterior, FlexiChains.mcse, maximum)
+end
+
+function _combine_nuisance_diagnostic(result, diagnostic, reduction)
+    values = (
+        diagnostic(result.treatment_posterior),
+        diagnostic(result.outcome_posterior),
+    )
+    finite_values = Float64[
+        value for value in values if value isa Real && isfinite(value)
+    ]
+    return isempty(finite_values) ? missing : reduction(finite_values)
+end
+
+const BayesDRAnyResult = Union{BayesDRResult, BayesDRCurveResult}
+
+ess(result::BayesDRAnyResult) = _combine_nuisance_diagnostic(result, ess, minimum)
+rhat(result::BayesDRAnyResult) = _combine_nuisance_diagnostic(result, rhat, maximum)
+mcse(result::BayesDRAnyResult) = _combine_nuisance_diagnostic(result, mcse, maximum)
+
+function chain_info(posterior::BayesDRNuisancePosterior)
+    chain_ids = unique(posterior.chain_id)
+    isempty(chain_ids) && throw(ArgumentError("nuisance posterior contains no chains"))
+    samples_per_chain = count(==(first(chain_ids)), posterior.chain_id)
+    all(count(==(chain), posterior.chain_id) == samples_per_chain for chain in chain_ids) ||
+        throw(ArgumentError("all nuisance-posterior chains must contain the same number of draws"))
+    return (
+        n_chains = length(chain_ids),
+        n_samples_per_chain = samples_per_chain,
+        total_samples = length(posterior.chain_id),
+    )
+end
+
+chain_info(result::BayesDRAnyResult) = chain_info(result.treatment_posterior)
+
 """
     confint(result::AbstractBDMLResult; level=0.95)
 
@@ -453,6 +803,8 @@ R-hat ≈ 1.0 indicates good convergence.
 function rhat_statistic(result::BDMLMCMCResult)
     return rhat(result)
 end
+
+rhat_statistic(result::BayesDRAnyResult) = rhat(result)
 
 """
     chain_info(result::BDMLMCMCResult)
@@ -567,6 +919,10 @@ function StatsAPI.vcov(result::AbstractBDMLResult)
     ct = coeftable(result)
     # For single parameter, return diagonal matrix
     return Diagonal(ct.stderror .^ 2)
+end
+
+function StatsAPI.vcov(result::BayesDRCurveResult)
+    return result.naive_covariance + result.posterior_covariance
 end
 
 # Module-level wrapper with docstring
@@ -708,7 +1064,8 @@ or if the model was fitted with VI.
 function ess(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
     result = model.result::AbstractBDMLResult
-    result isa BDMLMCMCResult || error("ESS only available for MCMC results.")
+    result isa Union{BDMLMCMCResult, BayesDRAnyResult} ||
+        error("ESS only available for MCMC results.")
     return ess(result)
 end
 
@@ -723,7 +1080,8 @@ or if the model was fitted with VI.
 function mcse(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
     result = model.result::AbstractBDMLResult
-    result isa BDMLMCMCResult || error("MCSE only available for MCMC results.")
+    result isa Union{BDMLMCMCResult, BayesDRAnyResult} ||
+        error("MCSE only available for MCMC results.")
     return mcse(result)
 end
 
@@ -738,7 +1096,8 @@ or if the model was fitted with VI.
 function rhat(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
     result = model.result::AbstractBDMLResult
-    result isa BDMLMCMCResult || error("R-hat only available for MCMC results.")
+    result isa Union{BDMLMCMCResult, BayesDRAnyResult} ||
+        error("R-hat only available for MCMC results.")
     return rhat(result)
 end
 
@@ -762,7 +1121,8 @@ or if the model was fitted with VI.
 function chain_info(model::AbstractBDMLModel)
     model.is_fitted || error("Model has not been fitted. Call fit!() first.")
     result = model.result::AbstractBDMLResult
-    result isa BDMLMCMCResult || error("Chain info only available for MCMC results.")
+    result isa Union{BDMLMCMCResult, BayesDRAnyResult} ||
+        error("Chain info only available for MCMC results.")
     return chain_info(result)
 end
 

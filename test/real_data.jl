@@ -1,5 +1,5 @@
 # Real Data Tests (Consolidated)
-# Tests for MCMC and VI inference on actual DoubleML datasets with new Model API
+# Tests for MCMC and CollapsedVI inference on actual DoubleML datasets with new Model API
 # Uses only the 2 existing data files in test/data/
 
 using BayesianDoubleML
@@ -211,21 +211,21 @@ end
 end
 
 # ============================================================================
-# VI Tests on Real Data
+# CollapsedVI Tests on Real Data
 # ============================================================================
 
-@testset "Real Data VI - PLR Hierarchical" begin
+@testset "Real Data CollapsedVI - PLR Hierarchical" begin
     Y, D, X, data_path = load_plr_data()
     n, p = size(X)
 
-    println("\n=== Real Data VI: PLR Hierarchical ===")
+    println("\n=== Real Data CollapsedVI: PLR Hierarchical ===")
     println("Dataset: make_plr_CCDDHNR2018_n500_p20.csv")
     println("Observations: $n, Controls: $p")
     println("True α: 0.5")
 
     Random.seed!(1100)
     model = BDMLModel(Y, D, X; model_type = :hier)
-    method = UnifiedVI()
+    method = CollapsedVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 1000)
 
@@ -253,17 +253,17 @@ end
     @test isfinite(model.result.final_elbo)
 end
 
-@testset "Real Data VI - PLR Basic" begin
+@testset "Real Data CollapsedVI - PLR Basic" begin
     Y, D, X, data_path = load_plr_data()
     n, p = size(X)
 
-    println("\n=== Real Data VI: PLR Basic ===")
+    println("\n=== Real Data CollapsedVI: PLR Basic ===")
     println("Dataset: make_plr_CCDDHNR2018_n500_p20.csv")
     println("Model: Basic")
 
     Random.seed!(1101)
     model = BDMLModel(Y, D, X; model_type = :basic)
-    method = UnifiedVI()
+    method = CollapsedVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 1000)
 
@@ -280,18 +280,18 @@ end
     @test isfinite(alpha_mean)
 end
 
-@testset "Real Data VI - IRM Hierarchical" begin
+@testset "Real Data CollapsedVI - IRM Hierarchical" begin
     Y, D, X, data_path = load_irm_data()
     n, p = size(X)
 
-    println("\n=== Real Data VI: IRM Hierarchical ===")
+    println("\n=== Real Data CollapsedVI: IRM Hierarchical ===")
     println("Dataset: make_irm_data_n500_p20.csv")
     println("Observations: $n, Controls: $p")
     println("True θ: 0.5")
 
     Random.seed!(1102)
     model = BDMLModel(Y, D, X; model_type = :hier)
-    method = UnifiedVI()
+    method = CollapsedVI()
 
     elapsed = @elapsed fit!(model, method; n_iterations = 200, n_draws = 500)
 
@@ -311,17 +311,17 @@ end
     @test ci[1] < alpha_mean < ci[2]
 end
 
-@testset "Real Data VI - SimpleVI" begin
+@testset "Real Data CollapsedVI - Mean-field" begin
     Y, D, X, _ = load_plr_data()
     n, p = size(X)
 
-    println("\n=== Real Data VI: SimpleVI ===")
+    println("\n=== Real Data CollapsedVI: Mean-field ===")
     println("Dataset: make_plr_CCDDHNR2018_n500_p20.csv")
     println("Observations: $n, Controls: $p")
 
     Random.seed!(1106)
     model = BDMLModel(Y, D, X; model_type = :hier)
-    method = SimpleVIMethod()
+    method = CollapsedVI(; fullrank = false)
 
     elapsed = @elapsed fit!(model, method; n_iterations = 250, n_draws = 1000)
 
@@ -337,14 +337,14 @@ end
     @test abs(alpha_mean - 0.5) < 1.0
 end
 
-@testset "Real Data VI - Coefficient Table" begin
+@testset "Real Data CollapsedVI - Coefficient Table" begin
     Y, D, X, _ = load_plr_data()
 
-    println("\n=== Real Data VI: Coefficient Table ===")
+    println("\n=== Real Data CollapsedVI: Coefficient Table ===")
 
     Random.seed!(1108)
     model = BDMLModel(Y, D, X; model_type = :hier)
-    method = UnifiedVI()
+    method = CollapsedVI()
     fit!(model, method; n_iterations = 200, n_draws = 1000)
 
     ct = coeftable(model)
@@ -360,14 +360,14 @@ end
     println("  Alpha estimate: $(round(alpha_estimate, digits = 4))")
 end
 
-@testset "Real Data VI - MCMC Comparison via Models" begin
+@testset "Real Data CollapsedVI - MCMC Comparison via Models" begin
     Y, D, X, _ = load_plr_data()
 
-    println("\n=== Real Data VI vs MCMC via Models ===")
+    println("\n=== Real Data CollapsedVI vs MCMC via Models ===")
 
-    # VI
+    # CollapsedVI
     model_vi = BDMLModel(Y, D, X; model_type = :hier)
-    fit!(model_vi, UnifiedVI(); n_iterations = 250, n_draws = 1000)
+    fit!(model_vi, CollapsedVI(); n_iterations = 250, n_draws = 1000)
     alpha_vi = mean(extract_alpha(model_vi))
 
     # MCMC
@@ -375,7 +375,7 @@ end
     fit!(model_mcmc, MCMCNUTS(); n_samples = 250)
     alpha_mcmc = mean(extract_alpha(model_mcmc))
 
-    println("  VI: α = $(round(alpha_vi, digits = 4))")
+    println("  CollapsedVI: α = $(round(alpha_vi, digits = 4))")
     println("  MCMC: α = $(round(alpha_mcmc, digits = 4))")
     println("  Difference: $(round(abs(alpha_vi - alpha_mcmc), digits = 4))")
 
@@ -386,4 +386,4 @@ end
 end
 
 println("\n=== All Real Data Tests Complete ===")
-println("Tested: MCMC and VI on PLR and IRM datasets with new Model API")
+println("Tested: MCMC and CollapsedVI on PLR and IRM datasets with new Model API")

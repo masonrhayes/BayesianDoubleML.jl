@@ -7,6 +7,7 @@
 BayesianDoubleML.AbstractBDMLModel
 BayesianDoubleML.BDMLBasicModel
 BayesianDoubleML.BDMLHierarchicalModel
+BayesianDoubleML.BayesDRModel
 BayesianDoubleML.BDMLModel
 ```
 
@@ -27,9 +28,9 @@ BayesianDoubleML.isfitted
 ```@docs
 BayesianDoubleML.AbstractInferenceMethod
 BayesianDoubleML.MCMCMethod
-BayesianDoubleML.UnifiedVIMethod
-BayesianDoubleML.SimpleVIMethod
+BayesianDoubleML.CollapsedVIMethod
 BayesianDoubleML.VMPMethod
+BayesianDoubleML.BayesDRMCMCMethod
 BayesianDoubleML.AbstractVMPBackend
 BayesianDoubleML.RxInferVMP
 BayesianDoubleML.ManualCoordinateAscentVMP
@@ -41,24 +42,12 @@ BayesianDoubleML.ManualCoordinateAscentVMP
 BayesianDoubleML.MCMCNUTS
 ```
 
-### VI Method Constructors
+### VI/VMP Method Constructors
 
 ```@docs
-BayesianDoubleML.UnifiedVI
-BayesianDoubleML.SimpleVI
-BayesianDoubleML.MeanFieldVI
-BayesianDoubleML.LowRankVI
-BayesianDoubleML.LowRankScoreVI
+BayesianDoubleML.CollapsedVI
 BayesianDoubleML.VMP
-```
-
-### Variational Families
-
-```@docs
-BayesianDoubleML.AbstractVariationalFamily
-BayesianDoubleML.MeanField
-BayesianDoubleML.LowRank
-BayesianDoubleML.LowRankScore
+BayesianDoubleML.BayesDRMCMC
 ```
 
 ### Method Traits
@@ -84,6 +73,8 @@ BayesianDoubleML.AbstractBDMLResult
 BayesianDoubleML.BDMLMCMCResult
 BayesianDoubleML.BDMLVIResult
 BayesianDoubleML.BDMLVMPResult
+BayesianDoubleML.BayesDRResult
+BayesianDoubleML.BayesDRCurveResult
 BayesianDoubleML.BDMLData
 BayesianDoubleML.StandardizationStats
 ```
@@ -124,10 +115,25 @@ BayesianDoubleML.stderror
 BayesianDoubleML.vcov
 ```
 
+### BayesDR Functions
+
+```@docs
+BayesianDoubleML.exposure_response_curve
+BayesianDoubleML.average_derivative
+```
+
 ## Utility Functions
 
 ```@docs
 BayesianDoubleML.credible_interval
+```
+
+## Visualization
+
+Requires a Makie backend (e.g. `CairoMakie`). Loaded via package extension.
+
+```@docs
+BayesianDoubleML.plot_exposure_response_curve
 ```
 
 ## Internal Functions
@@ -145,6 +151,9 @@ BayesianDoubleML.bdml_hier
 
 ```@docs
 BayesianDoubleML.make_plr_DTL2025
+BayesianDoubleML.make_irm_APD2022
+BayesianDoubleML.make_er_APD2022
+BayesianDoubleML.make_plr_LML2025
 ```
 
 ## Index

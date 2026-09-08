@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "1b683034e6d9746bf5dba18a4780c75b67c6b4a0995ab539f6fdf9ff2dbe3729"
-    julia_version = "1.12.5"
+    input_sha = "92dc540bd61e61d3ea343630b9307735a9ea4aaf59b25509a23c89a84dc8583e"
+    julia_version = "1.12.6"
 -->
 
 
@@ -80,7 +80,7 @@ end;</code></pre>
 <pre class='language-julia'><code class='language-julia'>fit!(
     model,
     MCMCMethod(:nuts),
-    n_chains = 8,
+    n_chains = 4,
     n_samples = 400
 )</code></pre>
 
@@ -98,17 +98,17 @@ Parameter: α (treatment effect)
 Model type: hier
 Inference method: MCMC
 Credible interval level: 95.0% (HPD)
-Number of posterior samples: 3200
+Number of posterior samples: 1600
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9246       0.1958       0.0015       0.0000
+  α               1.9208       0.1971       0.0022       0.0000
 
 HPD Credible Intervals:
-  α: [1.5353, 2.2985]
+  α: [1.5535, 2.3197]
 
 Diagnostics:
-  Effective Sample Size (ESS): 1875.7
+  Effective Sample Size (ESS): 731.0
 </pre>
 
 <!-- PlutoStaticHTML.End -->
