@@ -56,6 +56,61 @@ function _state_Vγ(s::VMPManualState)
 end
 
 """
+Return the effective residual degrees of freedom consumed by the joint
+coefficient block. Each eigen-direction contributes half the trace of its
+multivariate ridge hat matrix, and therefore contributes one in the unpenalized
+full-rank limit.
+"""
+function _vmp_effective_df(lam, qΣ::InverseWishart, λδ::Real, λγ::Real)
+    ν, S = Distributions.params(qΣ)
+    Ω = ν * inv(Symmetric(S))
+    Ω11, Ω12, Ω22 = Ω[1, 1], Ω[1, 2], Ω[2, 2]
+    effective_df = 0.0
+
+    @inbounds for eigenvalue in lam
+        eigenvalue = max(eigenvalue, zero(eigenvalue))
+        a = eigenvalue * Ω11 + λδ
+        c = eigenvalue * Ω12
+        d = eigenvalue * Ω22 + λγ
+        determinant = a * d - c * c
+        v11 = d / determinant
+        v12 = -c / determinant
+        v22 = a / determinant
+        effective_df += eigenvalue * (
+            Ω11 * v11 + 2 * Ω12 * v12 + Ω22 * v22
+        ) / 2
+    end
+    return effective_df
+end
+
+"""
+Reduce the Inverse-Wishart degrees of freedom by `effective_df`, scaling its
+scale matrix so that the covariance mean is unchanged. This calibrates alpha
+uncertainty using effective residual degrees of freedom without changing the
+VMP coordinate updates. It is exact for the alpha marginal in the flat
+coefficient-prior limit; under shrinkage it is an approximation.
+"""
+function _vmp_adjust_covariance(qΣ::InverseWishart, effective_df::Real)
+    ν, S = Distributions.params(qΣ)
+    d = size(S, 1)
+    corrected_ν = ν - effective_df
+    corrected_ν > d + 1 || throw(ArgumentError("effective residual degrees of freedom must exceed $(d + 1)"))
+
+    # Preserve E[Σ]. A scalar change to S does not affect Σ₁₂ / Σ₂₂.
+    corrected_S = S .* ((corrected_ν - d - 1) / (ν - d - 1))
+    return InverseWishart(corrected_ν, corrected_S)
+end
+
+function _draw_vmp_alpha_samples(rng::AbstractRNG, qΣ::InverseWishart, n_draws::Int)
+    α = Vector{Float64}(undef, n_draws)
+    for i in eachindex(α)
+        Σ = rand(rng, qΣ)
+        α[i] = Σ[1, 2] / Σ[2, 2]
+    end
+    return α
+end
+
+"""
     _logmultigamma(a::Real, d::Int)
 
 Multivariate log-gamma function `logγ_d(a)` for a `d`-dimensional Wishart / InverseWishart.
@@ -417,17 +472,17 @@ function _fit_vmp(
     mγ = _state_mγ(state)
     Vδ = _state_Vδ(state)
     Vγ = _state_Vγ(state)
+    effective_df = _vmp_effective_df(state.lam, state.qΣ, 1 / 25, 1 / 25)
+    corrected_qΣ = _vmp_adjust_covariance(state.qΣ, effective_df)
     posterior = (
         δ = MvNormal(mδ, Vδ),
         γ = MvNormal(mγ, Vγ),
-        Σ = state.qΣ,
+        Σ = corrected_qΣ,
+        Σ_vmp = state.qΣ,
+        effective_df = effective_df,
     )
 
-    α_s_samples = Vector{Float64}(undef, n_draws)
-    for s in eachindex(α_s_samples)
-        Σ_s = rand(rng, state.qΣ)
-        α_s_samples[s] = Σ_s[1, 2] / Σ_s[2, 2]
-    end
+    α_s_samples = _draw_vmp_alpha_samples(rng, corrected_qΣ, n_draws)
     α_samples = α_s_samples .* (model.stats.Y_sd / model.stats.D_sd)
 
     return BDMLVMPResult(
@@ -488,19 +543,21 @@ function _fit_vmp(
     mγ = _state_mγ(state)
     Vδ = _state_Vδ(state)
     Vγ = _state_Vγ(state)
+    effective_df = _vmp_effective_df(
+        state.lam, state.qΣ, mean(state.τδ), mean(state.τγ)
+    )
+    corrected_qΣ = _vmp_adjust_covariance(state.qΣ, effective_df)
     posterior = (
         δ = MvNormal(mδ, Vδ),
         γ = MvNormal(mγ, Vγ),
-        Σ = state.qΣ,
+        Σ = corrected_qΣ,
+        Σ_vmp = state.qΣ,
+        effective_df = effective_df,
         τ_δ = state.τδ,
         τ_γ = state.τγ,
     )
 
-    α_s_samples = Vector{Float64}(undef, n_draws)
-    for s in eachindex(α_s_samples)
-        Σ_s = rand(rng, state.qΣ)
-        α_s_samples[s] = Σ_s[1, 2] / Σ_s[2, 2]
-    end
+    α_s_samples = _draw_vmp_alpha_samples(rng, corrected_qΣ, n_draws)
     α_samples = α_s_samples .* (model.stats.Y_sd / model.stats.D_sd)
 
     return BDMLVMPResult(

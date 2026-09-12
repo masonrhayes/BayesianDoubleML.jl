@@ -290,6 +290,7 @@ end
 function print_vmp_diagnostics(io::IO, result::BDMLVMPResult)
     kind_str = vmp_diagnostic_label(result.diagnostic_kind)
     @printf io "  %-21s %.2f\n" "Final $(kind_str):" result.final_diagnostic
+    @printf io "  Effective DF:     %.2f\n" result.posterior.effective_df
     @printf io "  Converged:        %s\n" (result.converged ? "$(COLOR_GREEN)Yes ✓$(COLOR_RESET)" : "$(COLOR_RED)No ✗$(COLOR_RESET)")
     return if !isempty(result.diagnostic_history)
         n_iters = length(result.diagnostic_history)

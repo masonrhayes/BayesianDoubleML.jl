@@ -186,6 +186,10 @@ variational message updates are available in closed form:
   precisions (hierarchical variant; equivalent to ``\\text{InvGamma}(2,2)`` on
   the variances, preserving the paper's Student-``t(4)`` interpretation).
 
+Reported uncertainty for ``\\alpha`` applies an effective residual
+degrees-of-freedom correction to the mean-field covariance posterior. The raw
+variational posterior remains available as `result.posterior.Σ_vmp`.
+
 # Constructor
 ```julia
 VMPMethod(;
