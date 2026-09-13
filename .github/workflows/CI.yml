@@ -21,7 +21,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          version: '1.13'
 
       - uses: julia-actions/cache@v2
 
@@ -45,7 +45,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          version: '1.13'
 
       - uses: fredrikekre/runic-action@v1
         with:
@@ -62,18 +62,16 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          version: '1.13'
 
       - uses: julia-actions/cache@v2
 
       - name: Install dependencies
         run: |
-          julia --project=docs -e '
+          julia --project=. -e '
             using Pkg
-            Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.instantiate()
+            Pkg.instantiate(; workspace = true)
           '
-          julia --project=examples -e 'using Pkg; Pkg.instantiate()'
 
       - name: Build and deploy documentation
         run: |

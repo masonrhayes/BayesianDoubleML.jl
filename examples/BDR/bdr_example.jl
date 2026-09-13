@@ -6,7 +6,7 @@ using InteractiveUtils
 
 # ╔═╡ 0106d4c8-a946-11f1-87ef-f1f6fd32361b
 begin
-    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    import Pkg
     Pkg.activate(joinpath(@__DIR__, "../../examples"))
     Pkg.instantiate()
 end

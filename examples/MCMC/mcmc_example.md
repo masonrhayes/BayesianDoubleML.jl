@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "92dc540bd61e61d3ea343630b9307735a9ea4aaf59b25509a23c89a84dc8583e"
-    julia_version = "1.12.6"
+    input_sha = "b0cfc405be5facbe7079438f3b2cfbf3f8ca82a35d8e5a7acd0217ab06c43c4f"
+    julia_version = "1.13.0"
 -->
 
 
@@ -92,7 +92,7 @@ end;</code></pre>
     summary(model)
     coeftable(model)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash123630">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash101927">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -102,13 +102,13 @@ Number of posterior samples: 1600
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9208       0.1971       0.0022       0.0000
+  α               1.9161       0.1945       0.0023       0.0000
 
 HPD Credible Intervals:
-  α: [1.5535, 2.3197]
+  α: [1.5643, 2.3046]
 
 Diagnostics:
-  Effective Sample Size (ESS): 731.0
+  Effective Sample Size (ESS): 893.4
 </pre>
 
 <!-- PlutoStaticHTML.End -->

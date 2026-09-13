@@ -19,7 +19,7 @@ end
 # ╔═╡ 206fed88-1b2a-11f1-891f-7fd268f9692b
 # ╠═╡ show_logs = false
 begin
-    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    import Pkg
     Pkg.activate(joinpath(@__DIR__, "../../examples"))
     Pkg.instantiate()
 end
@@ -92,7 +92,7 @@ The `CollapsedVI` method differs from the MCMC implementation in that it works b
 # ╔═╡ 751ef964-a74b-4a41-a9b9-799241bebda0
 fit!(
     model,
-    CollapsedVI(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake, fullrank = false),
     n_iterations = 1_000,
     show_progress = false
 );
@@ -134,7 +134,7 @@ model2 = BDMLModel(df2, :y, :d; model_type = :hier)
 # ╔═╡ 66ca6f4b-d0ae-4481-bf13-dba9f983c3fe
 fit!(
     model2,
-    CollapsedVI(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake, fullrank = false),
     n_iterations = 1_000,
     show_progress = false
 );

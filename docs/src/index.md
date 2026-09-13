@@ -13,6 +13,7 @@ BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causa
 - MCMC (as in the paper), built on [Turing.jl](https://turinglang.org/)
 - Collapsed Automatic Differentiation Variational Inference (CollapsedVI) with multiple automatic differentiation backends, built on [AdvancedVI.jl](https://turinglang.org/AdvancedVI.jl/stable/)
 - Variational Message Passing (VMP), both manually implemented and with an optional [RxInfer.jl](https://rxinfer.com) backend
+- Experimental Bayes-DR for binary-treatment ATEs and continuous-treatment exposure-response curves, following [Antonelli et al. (2022)](https://doi.org/10.1111/biom.13417)
 
 ## Key Features
 
@@ -20,7 +21,8 @@ BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causa
 - **Multiple Inference Methods**:
   - MCMC with NUTS sampler (reference method)
   - Collapsed VI (`CollapsedVI`), which integrates coefficients out analytically and runs ADVI on the low-dimensional marginal posterior
-  - Variational Message Passing (`VMP`) with manual or RxInfer backends
+  - Variational Message Passing (`VMP`) with manual or RxInfer backends; `α` intervals include an effective residual-DF correction
+  - Experimental Bayes-DR (`BayesDRModel` + `BayesDRMCMC`) for binary and continuous treatments
 - **Multiple AD Backends**: ReverseDiff, Mooncake, Zygote, ForwardDiff.
 
 ## The BDML Model
@@ -79,7 +81,7 @@ df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
 # Create model and fit using DataFrame interface
 # All columns except :y and :d are automatically used as covariates
 model = BDMLModel(df, :y, :d; model_type=:hier)
-fit!(model, MCMCMethod(:nuts); n_samples=1000, n_chains=4)
+fit!(model, MCMCNUTS(); n_samples=1000, n_chains=4)
 
 # View results
 summary(model)

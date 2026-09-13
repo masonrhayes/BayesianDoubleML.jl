@@ -52,6 +52,9 @@ BayesianDoubleML.BayesDRMCMC
 
 ### Method Traits
 
+No current method supports mini-batch subsampling (`supports_subsampling`
+always returns `false`).
+
 ```@docs
 BayesianDoubleML.uses_sampling
 BayesianDoubleML.supports_subsampling

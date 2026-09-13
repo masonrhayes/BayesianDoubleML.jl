@@ -3,6 +3,9 @@ uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 version = "0.2.0"
 authors = ["Mason Hayes <masonrhayes@protonmail.com"]
 
+[workspace]
+projects = ["test", "docs", "examples"]
+
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 AdvancedVI = "b5ca4192-6429-45e5-a2d9-87aec30a685c"
@@ -57,11 +60,4 @@ StatsAPI = "1.8.0"
 Turing = "0.46"
 UnicodePlots = "3.8.1"
 Zygote = "0.7.10"
-julia = "1.10"
-
-[extras]
-Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-
-[targets]
-test = ["Mooncake", "Zygote"]
+julia = "1.12"
