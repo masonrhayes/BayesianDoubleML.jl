@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "ccbd3b17fa6424d0110ae96de9f4bf89d6a21271d5a1aa0f882dbad3bf441f81"
-    julia_version = "1.12.6"
+    input_sha = "675f0693015eb952020e31e0e5c32e76d2cbbd6657c9718dc0846ddc90ffaa44"
+    julia_version = "1.13.0"
 -->
 
 
@@ -71,7 +71,7 @@ end;</code></pre>
 </pre>
 
 
-<div class="markdown"><p>And we then fit the model using Variational Message Passing (VMP). </p><p>In this example, we first try using the manual method using coordinate ascent (<code>ManualCoordinateAscentVMP()</code>).</p><p>Whether using this method or the RxInfer method, the VMP implementation has the advantage of blazingly fast inference, because it:</p><ul><li><p>Applies an adjusted model using only conjugate-exponential distributions, simplifying inference. </p></li><li><p>Relies only on the <em>sufficient statistics</em> of the data so that the fitting time does not scale with <span class="tex">\(n\)</span>.</p></li></ul><p>It performs equally well as ADVI but significantly faster; however, it also has the same shortcomings - namely, when <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>, the approximation is not typically close to the true causal effect.</p></div>
+<div class="markdown"><p>And we then fit the model using Variational Message Passing (VMP). </p><p>In this example, we first try using the manual method using coordinate ascent (<code>ManualCoordinateAscentVMP()</code>).</p><p>Whether using this method or the RxInfer method, the VMP implementation has the advantage of blazingly fast inference, because it:</p><ul><li><p>Applies an adjusted model using only conjugate-exponential distributions, simplifying inference. </p></li><li><p>Relies only on the <em>sufficient statistics</em> of the data so that the fitting time does not scale with <span class="tex">\(n\)</span>.</p></li></ul><p>It performs equally well as ADVI but significantly faster; however, it shares the same limitation — it is accurate when <span class="tex">\(p\)</span> is large but still smaller than <span class="tex">\(n\)</span> (here <span class="tex">\(p/n = 0.5\)</span>), and degrades when <span class="tex">\(p &gt;= n\)</span> (<span class="tex">\(p &gt;&gt; n\)</span>).</p><p>Reported <span class="tex">\(α\)</span> uncertainty applies an effective residual degrees-of-freedom correction to the mean-field covariance posterior. The calibrated posterior is <code>result.posterior.Σ</code>, while <code>result.posterior.Σ_vmp</code> retains the raw variational posterior and <code>result.posterior.effective_df</code> records the correction (also shown by <code>summary</code>).</p></div>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model,
@@ -83,10 +83,10 @@ end;</code></pre>
 
 
 
-<div class="markdown"><p>As shown from the results below, VMP's <em>approximation</em> to the posterior is a good approximation for this particular problem. However, in a some scenarios (e.g., where the number of covariates is small relative to the number of observations: <span class="tex">\(n &lt; p\)</span>), VMP performs more poorly.</p></div>
+<div class="markdown"><p>As shown from the results below, VMP's <em>approximation</em> to the posterior is a good approximation for this particular problem. However, in some scenarios where <span class="tex">\(p &gt;= n\)</span> (more covariates than observations), VMP performs more poorly.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>coeftable(model)</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash179594">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash111101">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -96,10 +96,10 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9601       0.1448       0.0000       0.0000
+  α               1.9557       0.1923       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.6723, 2.2383]
+  α: [1.5583, 2.301]
 
 Diagnostics:
   Final Diagnostic: -664.99
@@ -109,7 +109,7 @@ Diagnostics:
 
 
 
-<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>, but not larger than n; VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit where <span class="tex">\(p\)</span> is large but <span class="tex">\(p &lt; n\)</span> (<span class="tex">\(p = 100\)</span>, <span class="tex">\(n = 200\)</span> above); VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(p &gt;= n\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'># Generate data with more observations
 df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
@@ -129,7 +129,7 @@ df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="qaipvmelofnp"><input max="16" min="1" type="range" value="6"/><script>
+<bond def="p2" unique_id="yhmdmhnxaenu"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
@@ -168,7 +168,7 @@ end</code></pre>
     summary(model2)
     coeftable(model2)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash178616">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash114466">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -178,10 +178,10 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               0.1027       0.3323       0.0000       0.7620
+  α               0.0859       1.1337       0.0000       0.9020
 
 HPD Credible Intervals:
-  α: [-0.5418, 0.7328]
+  α: [-2.3051, 2.2193]
 
 Diagnostics:
   Final Diagnostic: -232.31
@@ -212,7 +212,7 @@ end
     summary(model_rx)
     coeftable(model_rx)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash164973">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash821962">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -222,10 +222,10 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9581       0.1424       0.0000       0.0000
+  α               1.9566       0.1922       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.6921, 2.2419]
+  α: [1.5604, 2.3082]
 
 Diagnostics:
   Final Diagnostic: -665.01

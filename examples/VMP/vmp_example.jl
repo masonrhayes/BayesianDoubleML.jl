@@ -19,7 +19,7 @@ end
 # ╔═╡ 01b90848-8919-11f1-86a3-cf59c8e771e0
 # ╠═╡ show_logs = false
 begin
-    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    import Pkg
     Pkg.activate(joinpath(@__DIR__, "../../examples"))
     Pkg.instantiate()
 end
@@ -80,7 +80,9 @@ Whether using this method or the RxInfer method, the VMP implementation has the 
 - Applies an adjusted model using only conjugate-exponential distributions, simplifying inference. 
 - Relies only on the *sufficient statistics* of the data so that the fitting time does not scale with ``n``.
 
-It performs equally well as ADVI but significantly faster; however, it also has the same shortcomings - namely, when ``p`` is large relative to ``n``, the approximation is not typically close to the true causal effect.
+It performs equally well as ADVI but significantly faster; however, it shares the same limitation — it is accurate when ``p`` is large but still smaller than ``n`` (here ``p/n = 0.5``), and degrades when ``p >= n`` (``p >> n``).
+
+Reported ``α`` uncertainty applies an effective residual degrees-of-freedom correction to the mean-field covariance posterior. The calibrated posterior is `result.posterior.Σ`, while `result.posterior.Σ_vmp` retains the raw variational posterior and `result.posterior.effective_df` records the correction (also shown by `summary`).
 
 """
 
@@ -96,7 +98,7 @@ fit!(
 
 # ╔═╡ 65ef7695-3d5c-4538-bb2f-ad1063d2052f
 md"""
-As shown from the results below, VMP's *approximation* to the posterior is a good approximation for this particular problem. However, in a some scenarios (e.g., where the number of covariates is small relative to the number of observations: ``n < p``), VMP performs more poorly.
+As shown from the results below, VMP's *approximation* to the posterior is a good approximation for this particular problem. However, in some scenarios where ``p >= n`` (more covariates than observations), VMP performs more poorly.
 
 """
 
@@ -110,9 +112,9 @@ summary(model)
 md"""
 ## Problems less suitable to VMP
 
-As we see above, for this problem, as with ADVI, VMP is a good fit for the problem above where ``p`` is large relative to ``n``, but not larger than n; VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is $(alpha_true), and the above model estimated $(round(coef(model)[1], digits =2)).
+As we see above, for this problem, as with ADVI, VMP is a good fit where ``p`` is large but ``p < n`` (``p = 100``, ``n = 200`` above); VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is $(alpha_true), and the above model estimated $(round(coef(model)[1], digits =2)).
 
-However, VMP does not yield a good approximation where ``n << p``.
+However, VMP does not yield a good approximation where ``p >= n``.
 """
 
 # ╔═╡ 98323223-dc7f-49b2-bc56-62d0591350f0

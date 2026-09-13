@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "5cd74ee88d55490b9b4b5cd78fe79976e317cb9c2b0eb4cdaac6d7d1cbd456e8"
-    julia_version = "1.12.6"
+    input_sha = "375aa1809867455d3785a6b26c663388478e5824d9239679198143fd8aa798b6"
+    julia_version = "1.13.0"
 -->
 
 
@@ -81,7 +81,7 @@ end;</code></pre>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model,
-    CollapsedVI(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake, fullrank = false),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -91,7 +91,7 @@ end;</code></pre>
     summary(model)
     coeftable(model)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash123630">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash101927">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -101,17 +101,17 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9637       0.1955       0.0000       0.0000
+  α               1.9507       0.1927       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.608, 2.3592]
+  α: [1.5906, 2.3358]
 
 Diagnostics:
-  Final ELBO: -667.07
+  Final ELBO: -668.63
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.95.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
     n2 = 50
@@ -121,7 +121,7 @@ Diagnostics:
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="riqjuvlgnwzt"><input max="16" min="1" type="range" value="6"/><script>
+<bond def="p2" unique_id="xeggrcodzyau"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
@@ -159,7 +159,7 @@ end;</code></pre>
 
 <pre class='language-julia'><code class='language-julia'>fit!(
     model2,
-    CollapsedVI(; ad_backend = AutoMooncake),
+    CollapsedVI(; ad_backend = AutoMooncake, fullrank = false),
     n_iterations = 1_000,
     show_progress = false
 );</code></pre>
@@ -169,7 +169,7 @@ end;</code></pre>
     summary(model2)
     coeftable(model2)
 end</code></pre>
-<pre class="code-output documenter-example-output" id="var-hash178616">Bayesian Double ML Coefficient Table
+<pre class="code-output documenter-example-output" id="var-hash114466">Bayesian Double ML Coefficient Table
 ======================================================================
 Parameter: α (treatment effect)
 Model type: hier
@@ -179,13 +179,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               0.1167       2.3469       0.0000       0.9320
+  α               0.1941       2.1195       0.0000       0.9200
 
 HPD Credible Intervals:
-  α: [-4.5729, 3.6111]
+  α: [-4.015, 4.4263]
 
 Diagnostics:
-  Final ELBO: -230.6
+  Final ELBO: -230.94
 </pre>
 
 <!-- PlutoStaticHTML.End -->

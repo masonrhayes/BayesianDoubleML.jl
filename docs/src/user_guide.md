@@ -130,6 +130,18 @@ message updates are closed-form. The default manual coordinate-ascent backend
 works without optional dependencies. An RxInfer backend is also available when
 `RxInfer.jl` is loaded.
 
+VMP replaces the LKJ(4) + Half-Cauchy prior on the error covariance with the conjugate `InverseWishart(ν0, S0)` prior from the paper's theoretical
+specification (Equation 19). The default `S0 = nothing` uses a data-driven
+diagonal scaling on the standardized scale; pass an explicit 2×2 symmetric
+positive-definite `S0` to override it. The `aτ`/`bτ` Gamma hyperprior only
+affects the `:hier` model.
+
+Reported `α` uncertainty applies an effective residual degrees-of-freedom
+correction to the mean-field covariance posterior. In `result.posterior`, `Σ`
+is calibrated for `α` (not an exact joint covariance posterior), `Σ_vmp`
+retains the raw variational posterior, and `effective_df` records the
+correction. `summary` also reports `Effective DF`.
+
 ```julia
 # Default manual backend (no optional dependencies)
 fit!(model, VMP(); n_iterations = 50)
@@ -144,8 +156,21 @@ method = VMP(;
     ν0 = 4.0,
     S0 = [1.0 0.0; 0.0 1.0],
 )
-fit!(model, method; n_iterations = 50)
+fit!(model, method; n_iterations = 50, n_draws = 2000)
 ```
+
+**When to use:**
+
+- Large `p` where MCMC/CollapsedVI are too slow and `p < n`
+- Fast approximate inference with ELBO/Bethe free-energy diagnostics
+
+**Key parameters:**
+
+- `backend`: `ManualCoordinateAscentVMP()` (default) or `RxInferVMP()`
+- `ν0`: Inverse-Wishart prior degrees of freedom (default: `4.0`, must exceed 3)
+- `S0`: Inverse-Wishart scale matrix (default: `nothing` for data-driven scaling)
+- `n_iterations`: coordinate-ascent sweeps (default: `50`)
+- `n_draws`: posterior `α` draws after fitting (default: `2000`)
 
 ## Understanding Results
 
@@ -164,6 +189,11 @@ summary(model)
 
 ### Coefficient Table Output
 
+Below is a CollapsedVI example (`method_type` prints as `VI` with `MCSE 0.0000`
+because draws are independent). VMP prints `Inference method: VMP` with
+`Final Diagnostic` instead of `Final ELBO`; see `summary` for its
+`Effective DF`.
+
 ```
 Bayesian Double ML Coefficient Table
 ======================================================================
@@ -175,7 +205,7 @@ Number of posterior samples: 2000
 
   Parameter    Estimate  Std. Error        MCSE     P-value
   ---------    --------  ----------        ----     -------
-          α        1.9832      0.1124      0.0025      0.0000
+          α        1.9832      0.1124      0.0000      0.0000
 
 HPD Credible Intervals:
   α: [1.7623, 2.2031]
@@ -200,7 +230,7 @@ mcse(model)
 ### VI-Specific Information
 
 ```julia
-# Access the result object for VI-specific fields
+# Access the result object for CollapsedVI-specific fields
 result = model.result
 
 # ELBO convergence history
@@ -213,16 +243,33 @@ result.converged
 result.final_elbo
 ```
 
+### VMP-Specific Information
+
+```julia
+# Access the result object for VMP-specific fields
+result = model.result
+
+# ELBO / negative Bethe free-energy trace (manual / RxInfer)
+result.diagnostic_history
+result.final_diagnostic
+result.diagnostic_kind
+
+# Effective residual-DF correction for α uncertainty
+result.posterior.effective_df
+result.posterior.Σ      # calibrated for α
+result.posterior.Σ_vmp  # raw variational covariance posterior
+```
+
 ## Performance Tips
 
 ### AD Backend Selection
 
-| Backend         | Speed                                         |  Best For        |
-| --------------- | --------------------------------------------- |  --------------- |
-| AutoReverseDiff | Baseline                                      |  Default choice  |
-| AutoMooncake    | 5-10x faster                                  |  Speed           |
-| AutoZygote      | Typically slower than ReverseDiff or Mooncake |  Not recommended |
-| AutoForwardDiff | Typically very slow                           |  Not recommended |
+| Backend         | Speed                                         | Best For        |
+| --------------- | --------------------------------------------- | --------------- |
+| AutoReverseDiff | Baseline                                      | Default choice  |
+| AutoMooncake    | 5-10x faster                                  | Speed           |
+| AutoZygote      | Typically slower than ReverseDiff or Mooncake | Not recommended |
+| AutoForwardDiff | Typically very slow                           | Not recommended |
 
 ## Mathematical Background
 

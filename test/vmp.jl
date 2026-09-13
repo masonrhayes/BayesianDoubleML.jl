@@ -53,6 +53,7 @@ end
         @test std(model.result.diagnostic_history[(end - 9):end]) < 1.0
 
         @test all(k -> haskey(model.result.posterior, k), (:δ, :γ, :Σ))
+        @test all(k -> haskey(model.result.posterior, k), (:Σ_vmp, :effective_df))
         @test !haskey(model.result.posterior, :μ)
         @test length(coef(model)) == 1
         @test length(stderror(model)) == 1
@@ -113,6 +114,8 @@ end
     @test isapprox(mean(rx[:δ]), mean(ss.δ); rtol = 1.0e-3, atol = 1.0e-5)
     @test isapprox(mean(rx[:γ]), mean(ss.γ); rtol = 1.0e-3, atol = 1.0e-5)
     @test isapprox(mean(rx[:Σ]), mean(ss.Σ); rtol = 1.0e-2, atol = 1.0e-5)
+    @test isapprox(rx.effective_df, ss.effective_df; rtol = 1.0e-2)
+    @test isapprox(std(rx_model.result.alpha_samples), std(ss_model.result.alpha_samples); rtol = 5.0e-2)
     @test isapprox(mean(rx_model.result.alpha_samples), mean(ss_model.result.alpha_samples); rtol = 2.0e-2)
 end
 
@@ -130,6 +133,8 @@ end
     @test isapprox(mean(rx[:δ]), mean(ss.δ); rtol = 1.0e-2, atol = 1.0e-5)
     @test isapprox(mean(rx[:γ]), mean(ss.γ); rtol = 1.0e-2, atol = 1.0e-5)
     @test isapprox(mean(rx[:Σ]), mean(ss.Σ); rtol = 1.0e-2, atol = 1.0e-5)
+    @test isapprox(rx.effective_df, ss.effective_df; rtol = 1.0e-2)
+    @test isapprox(std(rx_model.result.alpha_samples), std(ss_model.result.alpha_samples); rtol = 5.0e-2)
     @test isapprox(mean(rx_model.result.alpha_samples), mean(ss_model.result.alpha_samples); rtol = 2.0e-2)
 
     # Hierarchical-specific posterior blocks

@@ -19,16 +19,30 @@ In addition, an experimental version of the Bayes-DR model from [Antonelli et al
 
 - **MCMC**: NUTS sampler for inference using MCMC
 - **CollapsedVI**: Fast approximate inference on the analytically collapsed (Rao-Blackwellized) posterior, with multiple AD backends
-- **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend
+- **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation (default) or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend; `α` uncertainty includes an effective residual-DF correction
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
-- **Experimental Bayes-DR**: Binary-treatment ATE estimation following [Antonelli et al (2022)](https://doi.org/10.1111/biom.13417)
+- **Experimental Bayes-DR**: Binary-treatment ATE and continuous-treatment exposure-response estimation following [Antonelli et al (2022)](https://doi.org/10.1111/biom.13417)
 
 ## Installation
+
+BayesianDoubleML.jl requires Julia 1.12 or later.
 
 ```julia
 using Pkg
 Pkg.add(url = "https://github.com/masonrhayes/BayesianDoubleML.jl")
 ```
+
+For development, the package, tests, documentation, and examples form a Pkg
+workspace backed by the root `Manifest.toml`. Instantiate all workspace members
+with:
+
+```julia
+using Pkg
+Pkg.instantiate(; workspace = true)
+```
+
+Activate `test`, `docs`, or `examples` before changing that member's direct
+dependencies; Pkg will update the shared root manifest.
 
 ## Quick Start
 
@@ -82,9 +96,12 @@ using Mooncake
 fit!(model, CollapsedVI(; ad_backend = AutoMooncake, fullrank = false))
 ```
 
-**VMP with the optional RxInfer extension:**
+**VMP (default: manual backend, optional RxInfer backend):**
 
 ```julia
+# Manual backend (default, no extra dependency)
+fit!(model, VMP(); n_iterations = 50)
+
 using Pkg
 Pkg.add("RxInfer")
 
@@ -107,7 +124,12 @@ method = VMP(;
 fit!(model, method; n_iterations = 50)
 ```
 
-You can also run the manual coordinate-ascent backend without RxInfer:
+Reported `α` uncertainty applies an effective residual degrees-of-freedom
+correction to the mean-field covariance posterior. In `result.posterior`, `Σ`
+is calibrated for `α`, `Σ_vmp` is the raw variational posterior, and
+`effective_df` records the correction (`summary` reports `Effective DF`).
+
+You can also run the manual coordinate-ascent backend explicitly without RxInfer:
 
 ```julia
 method = VMP(; backend = ManualCoordinateAscentVMP())
@@ -124,7 +146,7 @@ coeftable(model)
 
 ### Experimental Bayes-DR
 
-The experimental Bayes-DR model combines separate Bayesian probit treatment and Gaussian outcome models with an augmented inverse-probability weighted ATE estimator. Its standard error includes the paper's empirical-bootstrap and posterior nuisance-parameter variance components.
+The experimental Bayes-DR model combines separate Bayesian treatment and Gaussian outcome nuisance models with a doubly robust estimator for binary-treatment ATEs and continuous-treatment exposure-response curves. Its standard error includes the paper's empirical-bootstrap and posterior nuisance-parameter variance components.
 
 ```julia
 model = BayesDRModel(Y, T, X)  # T must be coded as 0/1
@@ -170,7 +192,7 @@ This initial implementation supports continuous outcomes and linear additive nui
 | `VMP()`                       | Conjugate VMP (default: manual backend)  |
 | `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)        |
 | `RxInferVMP()`                | RxInfer VMP backend                      |
-| `BayesDRMCMC()`               | Experimental binary-treatment Bayes-DR   |
+| `BayesDRMCMC()`               | Experimental binary-ATE and continuous exposure-response Bayes-DR |
 
 ### StatsAPI Functions
 
@@ -180,9 +202,9 @@ This initial implementation supports continuous outcomes and linear additive nui
 
 | Inference Method              | Best For                                                   |
 | ----------------------------- | ---------------------------------------------------------- |
-| VMP (ManualCoordinateAscent)  | Fastest (<seconds), with good appoximation of posterior   |
-| CollapsedVI (AutoReverseDiff) | Quite fast, good appoximation of posterior                 |
-| CollapsedVI (AutoMooncake)    | Fast, ~5-10x faster than CollapsedVI with AutoReverseDiff |
+| VMP (ManualCoordinateAscent)  | Fastest (<seconds), with good approximation of posterior when p < n |
+| CollapsedVI (AutoReverseDiff) | Quite fast, good approximation of posterior                |
+| CollapsedVI (AutoMooncake)    | Fast, ~5-10x faster than CollapsedVI with AutoReverseDiff |
 | MCMC                          | Most accurate inference                                    |
 
 ## Model Variations

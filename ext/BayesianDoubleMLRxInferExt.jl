@@ -193,16 +193,6 @@ function _posterior_covariance(qΩ)
     return InverseWishart(ν, inv(Symmetric(scale_precision)))
 end
 
-function _draw_alpha_samples(rng, qΩ, n_draws::Int)
-    qΣ = _posterior_covariance(qΩ)
-    α = Vector{Float64}(undef, n_draws)
-    for i in eachindex(α)
-        Σ = rand(rng, qΣ)
-        α[i] = Σ[1, 2] / Σ[2, 2]
-    end
-    return α, qΣ
-end
-
 function _rxinfer_configuration(
         ::BayesianDoubleML.BDMLBasicModel,
         stats::BDMLSufficientStatistics,
@@ -310,9 +300,22 @@ function _fit_vmp_rxinfer(
         min_iterations = min(50, max(10, n_iterations ÷ 2)), verbose = false,
     )
     @info "VMP convergence" converged message = conv_msg n_iterations = length(bfe_history)
-    α_s_samples, qΣ = _draw_alpha_samples(rng, result.posteriors[:Ω], n_draws)
+    qΣ_vmp = _posterior_covariance(result.posteriors[:Ω])
+    λδ, λγ = if model isa BayesianDoubleML.BDMLBasicModel
+        (1 / 25, 1 / 25)
+    else
+        (mean(result.posteriors[:τδ]), mean(result.posteriors[:τγ]))
+    end
+    effective_df = BayesianDoubleML._vmp_effective_df(
+        eigvals(Symmetric(stats.sxx)), qΣ_vmp, λδ, λγ
+    )
+    qΣ = BayesianDoubleML._vmp_adjust_covariance(qΣ_vmp, effective_df)
+    α_s_samples = BayesianDoubleML._draw_vmp_alpha_samples(rng, qΣ, n_draws)
     α_samples = α_s_samples .* (model.stats.Y_sd / model.stats.D_sd)
-    posterior = _rxinfer_posterior(result, qΣ, model, p)
+    posterior = merge(
+        _rxinfer_posterior(result, qΣ, model, p),
+        (Σ_vmp = qΣ_vmp, effective_df = effective_df),
+    )
     return BayesianDoubleML.BDMLVMPResult(
         posterior, α_samples, α_s_samples, model.stats,
         configuration.model_type, :rxinfer,

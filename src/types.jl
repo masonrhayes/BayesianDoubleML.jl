@@ -162,7 +162,10 @@ metadata. The `diagnostic_history` field contains the ELBO trace for the manual
 backend or the negative Bethe free-energy trace for the RxInfer backend.
 
 # Fields
-- `posterior::P`: Posterior distribution container (NamedTuple of Distributions)
+- `posterior::P`: Posterior container. `Σ` is residual-degrees-of-freedom calibrated
+  for alpha uncertainty (not an exact joint covariance posterior),
+  while `Σ_vmp` retains the raw variational covariance posterior and `effective_df`
+  records the correction.
 - `alpha_samples::Vector{Float64}`: Causal effect samples (original scale)
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation

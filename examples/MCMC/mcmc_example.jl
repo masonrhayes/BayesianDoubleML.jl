@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ 7b485e44-306d-4459-92de-3e1464fc54a9
 # ╠═╡ show_logs = false
 begin
-    import Pkg; Pkg.develop(path = joinpath(@__DIR__, "../.."))
+    import Pkg
     Pkg.activate(joinpath(@__DIR__, "../../examples"))
     Pkg.instantiate()
 end
