@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>VMP Example · BayesianDoubleML.jl</title><meta name="title" content="VMP Example · BayesianDoubleML.jl"/><meta property="og:title" content="VMP Example · BayesianDoubleML.jl"/><meta property="twitter:title" content="VMP Example · BayesianDoubleML.jl"/><meta name="description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:description" content="Documentation for BayesianDoubleML.jl."/><meta property="twitter:description" content="Documentation for BayesianDoubleML.jl."/><meta property="og:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/vmp_example.html"/><meta property="twitter:url" content="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/vmp_example.html"/><link rel="canonical" href="https://masonrhayes.github.io/BayesianDoubleML.jl/examples/vmp_example.html"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../index.html">BayesianDoubleML.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../index.html">Home</a></li><li><a class="tocitem" href="../user_guide.html">User Guide</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="mcmc_example.html">MCMC Example</a></li><li><a class="tocitem" href="advi_example.html">ADVI Example</a></li><li class="is-active"><a class="tocitem" href="vmp_example.html">VMP Example</a></li><li><a class="tocitem" href="bdr_example.html">BayesDR Example</a></li></ul></li><li><a class="tocitem" href="../api_reference.html">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href="vmp_example.html">VMP Example</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="vmp_example.html">VMP Example</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/masonrhayes/BayesianDoubleML.jl/blob/main/nothing" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><style>
+    #documenter-page table {
+        display: table !important;
+        margin: 2rem auto !important;
+        border-top: 2pt solid rgba(0,0,0,0.2);
+        border-bottom: 2pt solid rgba(0,0,0,0.2);
+    }
+
+    #documenter-page pre, #documenter-page div {
+        margin-top: 1.4rem !important;
+        margin-bottom: 1.4rem !important;
+    }
+
+    .code-output {
+        padding: 0.7rem 0.5rem !important;
+    }
+
+    .admonition-body {
+        padding: 0em 1.25em !important;
+    }
+</style>
+
+<!-- PlutoStaticHTML.Begin -->
+<!--
+    # This information is used for caching.
+    [PlutoStaticHTML.State]
+    input_sha = "675f0693015eb952020e31e0e5c32e76d2cbbd6657c9718dc0846ddc90ffaa44"
+    julia_version = "1.13.0"
+-->
+
+
+
+
+<div class="markdown"><h1 id="BayesianDoubleML-VMP-example">BayesianDoubleML VMP example</h1></div>
+
+<pre class='language-julia'><code class='language-julia'>begin
+    using BayesianDoubleML
+    using StableRNGs
+    using RxInfer
+    using PlutoUI
+end</code></pre>
+
+
+
+<div class="markdown"><h3 id="Data-generation">Data generation</h3></div>
+
+
+<div class="markdown"><p>Let's generate data as per Section 6 <a href="http://arxiv.org/abs/2508.12688">DiTraglia and Liu (2025)</a>.</p></div>
+
+<pre class='language-julia'><code class='language-julia'>begin
+    # Define parameters
+    n = 200
+    p = 100
+    alpha_true = 2.0
+
+    rng = StableRNG(42)
+
+    # Generate data as DataFrame
+    df = make_plr_DTL2025(n, p, 2.0; alpha = alpha_true, rng = rng)
+end;</code></pre>
+
+
+
+<div class="markdown"><p>We then define the BDMLModel, using the hierarchical model (BDML-Hier) from the paper:</p><p>As per Section 6 of the paper, the BDML-Hier model "allows different standard deviations in the normal shrinkage priors for <span class="tex">\(\delta\)</span> and <span class="tex">\(\gamma\)</span> ... with a hierarchical prior that places independent Inverse-Gamma(2, 2) hyper-priors on <span class="tex">\(\sigma^2_\delta\)</span> and <span class="tex">\(\sigma^2_\gamma\)</span>."</p></div>
+
+<pre class='language-julia'><code class='language-julia'>model = BDMLModel(df, :y, :d; model_type = :hier)</code></pre>
+<pre class="code-output documenter-example-output" id="var-model">BDMLHierarchicalModel (not fitted)
+  Observations: 200
+  Covariates: 100
+</pre>
+
+
+<div class="markdown"><p>And we then fit the model using Variational Message Passing (VMP). </p><p>In this example, we first try using the manual method using coordinate ascent (<code>ManualCoordinateAscentVMP()</code>).</p><p>Whether using this method or the RxInfer method, the VMP implementation has the advantage of blazingly fast inference, because it:</p><ul><li><p>Applies an adjusted model using only conjugate-exponential distributions, simplifying inference. </p></li><li><p>Relies only on the <em>sufficient statistics</em> of the data so that the fitting time does not scale with <span class="tex">\(n\)</span>.</p></li></ul><p>It performs equally well as ADVI but significantly faster; however, it shares the same limitation — it is accurate when <span class="tex">\(p\)</span> is large but still smaller than <span class="tex">\(n\)</span> (here <span class="tex">\(p/n = 0.5\)</span>), and degrades when <span class="tex">\(p &gt;= n\)</span> (<span class="tex">\(p &gt;&gt; n\)</span>).</p><p>Reported <span class="tex">\(α\)</span> uncertainty applies an effective residual degrees-of-freedom correction to the mean-field covariance posterior. The calibrated posterior is <code>result.posterior.Σ</code>, while <code>result.posterior.Σ_vmp</code> retains the raw variational posterior and <code>result.posterior.effective_df</code> records the correction (also shown by <code>summary</code>).</p></div>
+
+<pre class='language-julia'><code class='language-julia'>fit!(
+    model,
+    VMP(; backend = ManualCoordinateAscentVMP()),
+    n_iterations = 50,
+    n_draws = 2000,
+    show_progress = true
+)</code></pre>
+
+
+
+<div class="markdown"><p>As shown from the results below, VMP's <em>approximation</em> to the posterior is a good approximation for this particular problem. However, in some scenarios where <span class="tex">\(p &gt;= n\)</span> (more covariates than observations), VMP performs more poorly.</p></div>
+
+<pre class='language-julia'><code class='language-julia'>coeftable(model)</code></pre>
+<pre class="code-output documenter-example-output" id="var-hash111101">Bayesian Double ML Coefficient Table
+======================================================================
+Parameter: α (treatment effect)
+Model type: hier
+Inference method: VMP
+Credible interval level: 95.0% (HPD)
+Number of posterior samples: 2000
+
+  Parameter     Estimate   Std. Error         MCSE      P-value
+  ---------     --------   ----------         ----      -------
+  α               1.9557       0.1923       0.0000       0.0000
+
+HPD Credible Intervals:
+  α: [1.5583, 2.301]
+
+Diagnostics:
+  Final Diagnostic: -664.99
+</pre>
+
+<pre class='language-julia'><code class='language-julia'>summary(model)</code></pre>
+
+
+
+<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit where <span class="tex">\(p\)</span> is large but <span class="tex">\(p &lt; n\)</span> (<span class="tex">\(p = 100\)</span>, <span class="tex">\(n = 200\)</span> above); VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(p &gt;= n\)</span>.</p></div>
+
+<pre class='language-julia'><code class='language-julia'># Generate data with more observations
+df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
+
+
+<pre class='language-julia'><code class='language-julia'>model2 = BDMLModel(df2, :y, :d; model_type = :hier)</code></pre>
+<pre class="code-output documenter-example-output" id="var-model2">BDMLHierarchicalModel (not fitted)
+  Observations: 50
+  Covariates: 100
+</pre>
+
+<pre class='language-julia'><code class='language-julia'>begin
+    n2 = 50
+    lower_p = floor(n2) |&gt; Int
+    upper_p = floor(4 * n2) |&gt; Int
+    default_p = Int(floor(n2 * 2))
+    @assert lower_p &lt; upper_p
+    @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
+end</code></pre>
+<bond def="p2" unique_id="yhmdmhnxaenu"><input max="16" min="1" type="range" value="6"/><script>
+					const input_el = currentScript.previousElementSibling
+					const output_el = currentScript.nextElementSibling
+					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
+
+					let update_output = () => {
+						output_el.value = displays[input_el.valueAsNumber - 1]
+					}
+					
+					input_el.addEventListener("input", update_output)
+					// We also poll for changes because the `input_el.value` can change from the outside, e.g. https://github.com/JuliaPluto/PlutoUI.jl/issues/277
+					let id = setInterval(update_output, 200)
+					invalidation.then(() => {
+						clearInterval(id)
+						input_el.removeEventListener("input", update_output)
+					})
+					</script><output style="
+						font-family: system-ui;
+						font-variant-numeric: tabular-nums;
+    					font-size: 15px;
+    					margin-left: 3px;
+    					transform: translateY(-4px);
+    					display: inline-block;">100</output></bond>
+
+
+<div class="markdown"><p>For example, with n=50 observations and p = 100 regressors, VMP does not give a good estimate of the posterior.</p></div>
+
+<pre class='language-julia'><code class='language-julia'>@time fit!(
+    model2,
+    VMP(; backend = ManualCoordinateAscentVMP()),
+    n_iterations = 100,
+    show_progress = false
+);</code></pre>
+
+
+<pre class='language-julia'><code class='language-julia'>begin
+    summary(model2)
+    coeftable(model2)
+end</code></pre>
+<pre class="code-output documenter-example-output" id="var-hash114466">Bayesian Double ML Coefficient Table
+======================================================================
+Parameter: α (treatment effect)
+Model type: hier
+Inference method: VMP
+Credible interval level: 95.0% (HPD)
+Number of posterior samples: 2000
+
+  Parameter     Estimate   Std. Error         MCSE      P-value
+  ---------     --------   ----------         ----      -------
+  α               0.0859       1.1337       0.0000       0.9020
+
+HPD Credible Intervals:
+  α: [-2.3051, 2.2193]
+
+Diagnostics:
+  Final Diagnostic: -232.31
+</pre>
+
+
+<div class="markdown"><h2 id="RxInfer-backend">RxInfer backend</h2><p>Instead of the manually-implemented VMP, we can also fit the same model using <a href="https://rxinfer.com/">RxInfer.jl</a> as the backend. The two deliver nearly identical results, with the manual implementation being slightly more performant.</p></div>
+
+
+<div class="markdown"><p>We could also fit the exact same model using RxInfer as a backend:</p></div>
+
+<pre class='language-julia'><code class='language-julia'>begin
+    model_rx = BDMLModel(df, :y, :d; model_type = :hier)
+
+    # Fit using RxInfer
+    @time fit!(
+        model_rx,
+        VMP(; backend = RxInferVMP()),
+        n_iterations = 50,
+        show_progress = true,
+    )
+
+end
+</code></pre>
+
+
+<pre class='language-julia'><code class='language-julia'>begin
+    summary(model_rx)
+    coeftable(model_rx)
+end</code></pre>
+<pre class="code-output documenter-example-output" id="var-hash821962">Bayesian Double ML Coefficient Table
+======================================================================
+Parameter: α (treatment effect)
+Model type: hier
+Inference method: VMP
+Credible interval level: 95.0% (HPD)
+Number of posterior samples: 2000
+
+  Parameter     Estimate   Std. Error         MCSE      P-value
+  ---------     --------   ----------         ----      -------
+  α               1.9566       0.1922       0.0000       0.0000
+
+HPD Credible Intervals:
+  α: [1.5604, 2.3082]
+
+Diagnostics:
+  Final Diagnostic: -665.01
+</pre>
+
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="advi_example.html">« ADVI Example</a><a class="docs-footer-nextpage" href="bdr_example.html">BayesDR Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 13 September 2026 15:17">Sunday 13 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
