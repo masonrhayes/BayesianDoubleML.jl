@@ -26,7 +26,7 @@
     # This information is used for caching.
     [PlutoStaticHTML.State]
     input_sha = "675f0693015eb952020e31e0e5c32e76d2cbbd6657c9718dc0846ddc90ffaa44"
-    julia_version = "1.13.0"
+    julia_version = "1.13.3"
 -->
 
 
@@ -96,10 +96,10 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9557       0.1923       0.0000       0.0000
+  α               1.9499       0.1987       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.5583, 2.301]
+  α: [1.5586, 2.3175]
 
 Diagnostics:
   Final Diagnostic: -664.99
@@ -109,7 +109,7 @@ Diagnostics:
 
 
 
-<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit where <span class="tex">\(p\)</span> is large but <span class="tex">\(p &lt; n\)</span> (<span class="tex">\(p = 100\)</span>, <span class="tex">\(n = 200\)</span> above); VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(p &gt;= n\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-VMP">Problems less suitable to VMP</h2><p>As we see above, for this problem, as with ADVI, VMP is a good fit where <span class="tex">\(p\)</span> is large but <span class="tex">\(p &lt; n\)</span> (<span class="tex">\(p = 100\)</span>, <span class="tex">\(n = 200\)</span> above); VMP is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.95.</p><p>However, VMP does not yield a good approximation where <span class="tex">\(p &gt;= n\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'># Generate data with more observations
 df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
@@ -129,7 +129,7 @@ df2 = make_plr_DTL2025(n2, p2, 2.0; alpha = alpha_true, rng = rng);</code></pre>
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="yhmdmhnxaenu"><input max="16" min="1" type="range" value="6"/><script>
+<bond def="p2" unique_id="zyoyafdticvb"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
@@ -178,10 +178,10 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               0.0859       1.1337       0.0000       0.9020
+  α               0.0767       1.0621       0.0000       0.9450
 
 HPD Credible Intervals:
-  α: [-2.3051, 2.2193]
+  α: [-1.9979, 2.1739]
 
 Diagnostics:
   Final Diagnostic: -232.31
@@ -222,13 +222,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9566       0.1922       0.0000       0.0000
+  α               1.9480       0.1944       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.5604, 2.3082]
+  α: [1.57, 2.3293]
 
 Diagnostics:
   Final Diagnostic: -665.01
 </pre>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="advi_example.html">« ADVI Example</a><a class="docs-footer-nextpage" href="bdr_example.html">BayesDR Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 13 September 2026 18:09">Sunday 13 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="advi_example.html">« ADVI Example</a><a class="docs-footer-nextpage" href="bdr_example.html">BayesDR Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Saturday 31 October 2026 14:56">Saturday 31 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

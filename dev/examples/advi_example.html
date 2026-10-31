@@ -26,7 +26,7 @@
     # This information is used for caching.
     [PlutoStaticHTML.State]
     input_sha = "375aa1809867455d3785a6b26c663388478e5824d9239679198143fd8aa798b6"
-    julia_version = "1.13.0"
+    julia_version = "1.13.3"
 -->
 
 
@@ -101,17 +101,17 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               1.9507       0.1927       0.0000       0.0000
+  α               1.9572       0.1966       0.0000       0.0000
 
 HPD Credible Intervals:
-  α: [1.5906, 2.3358]
+  α: [1.6039, 2.3544]
 
 Diagnostics:
-  Final ELBO: -668.63
+  Final ELBO: -668.72
 </pre>
 
 
-<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.95.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
+<div class="markdown"><h2 id="Problems-less-suitable-to-ADVI">Problems less suitable to ADVI</h2><p>As we see above, for this problem, ADVI is a good fit for the problem above where <span class="tex">\(p\)</span> is large relative to <span class="tex">\(n\)</span>; ADVI is able to reach a good approximation, at least with this data generation process. The true causal effect is 2.0, and the above model estimated 1.96.</p><p>However, ADVI does not yield a good approximation where <span class="tex">\(n &lt;&lt; p\)</span>.</p></div>
 
 <pre class='language-julia'><code class='language-julia'>begin
     n2 = 50
@@ -121,7 +121,7 @@ Diagnostics:
     @assert lower_p &lt; upper_p
     @bind p2 Slider(lower_p:10:upper_p, show_value = true, default = default_p)
 end</code></pre>
-<bond def="p2" unique_id="xeggrcodzyau"><input max="16" min="1" type="range" value="6"/><script>
+<bond def="p2" unique_id="fxtplfltkzoo"><input max="16" min="1" type="range" value="6"/><script>
 					const input_el = currentScript.previousElementSibling
 					const output_el = currentScript.nextElementSibling
 					const displays = ["50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200"]
@@ -179,13 +179,13 @@ Number of posterior samples: 2000
 
   Parameter     Estimate   Std. Error         MCSE      P-value
   ---------     --------   ----------         ----      -------
-  α               0.1941       2.1195       0.0000       0.9200
+  α               0.1014       2.1630       0.0000       0.9540
 
 HPD Credible Intervals:
-  α: [-4.015, 4.4263]
+  α: [-4.5739, 3.8126]
 
 Diagnostics:
-  Final ELBO: -230.94
+  Final ELBO: -229.49
 </pre>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="vmp_example.html">VMP Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 13 September 2026 18:09">Sunday 13 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="mcmc_example.html">« MCMC Example</a><a class="docs-footer-nextpage" href="vmp_example.html">VMP Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Saturday 31 October 2026 14:56">Saturday 31 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
