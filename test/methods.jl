@@ -42,6 +42,19 @@ end
     @test_throws ArgumentError MCMCMethod(:hmc)
 end
 
+@testset "CollapsedMCMCMethod Constructor" begin
+    method = CollapsedMCMC()
+    @test method isa CollapsedMCMCMethod
+    @test method.sampler isa MCMCMethod
+    @test method.sampler.target_acceptance == 0.8
+    @test method.sampler.max_depth == 10
+    custom = CollapsedMCMC(; target_acceptance = 0.9, max_depth = 7)
+    @test custom.sampler.target_acceptance == 0.9
+    @test custom.sampler.max_depth == 7
+    @test_throws AssertionError CollapsedMCMC(; max_depth = 0)
+    @test_throws AssertionError CollapsedMCMC(; target_acceptance = 1.0)
+end
+
 @testset "VMPMethod Constructor" begin
     method = VMPMethod()
     @test method isa VMPMethod
@@ -81,7 +94,7 @@ end
 @testset "Method Traits - uses_sampling" begin
     # All methods use sampling
     @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
-    @test BayesianDoubleML.uses_sampling(MCMCMethod(:nuts)) == true
+    @test BayesianDoubleML.uses_sampling(CollapsedMCMC()) == true
     @test BayesianDoubleML.uses_sampling(VMPMethod()) == true
     @test BayesianDoubleML.uses_sampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == true
     @test BayesianDoubleML.uses_sampling(CollapsedVI()) == true
@@ -90,6 +103,7 @@ end
 @testset "Method Traits - supports_subsampling" begin
     # No current method supports subsampling
     @test BayesianDoubleML.supports_subsampling(MCMCMethod(:nuts)) == false
+    @test BayesianDoubleML.supports_subsampling(CollapsedMCMC()) == false
     @test BayesianDoubleML.supports_subsampling(VMPMethod()) == false
     @test BayesianDoubleML.supports_subsampling(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
     @test BayesianDoubleML.supports_subsampling(CollapsedVI()) == false
@@ -98,6 +112,7 @@ end
 @testset "Method Traits - is_deterministic" begin
     # No methods are deterministic (all use random sampling)
     @test BayesianDoubleML.is_deterministic(MCMCMethod(:nuts)) == false
+    @test BayesianDoubleML.is_deterministic(CollapsedMCMC()) == false
     @test BayesianDoubleML.is_deterministic(VMPMethod()) == false
     @test BayesianDoubleML.is_deterministic(VMPMethod(; backend = ManualCoordinateAscentVMP())) == false
     @test BayesianDoubleML.is_deterministic(CollapsedVI()) == false
@@ -106,6 +121,7 @@ end
 @testset "Method Traits - default_n_samples" begin
     # All methods default to 2000 samples
     @test BayesianDoubleML.default_n_samples(MCMCMethod(:nuts)) == 2000
+    @test BayesianDoubleML.default_n_samples(CollapsedMCMC()) == 2000
     @test BayesianDoubleML.default_n_samples(VMPMethod()) == 2000
     @test BayesianDoubleML.default_n_samples(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 2000
     @test BayesianDoubleML.default_n_samples(CollapsedVI()) == 2000
@@ -114,6 +130,7 @@ end
 @testset "Method Traits - default_n_iterations" begin
     # All methods default to 1000 iterations
     @test BayesianDoubleML.default_n_iterations(MCMCMethod(:nuts)) == 1000
+    @test BayesianDoubleML.default_n_iterations(CollapsedMCMC()) == 1000
     @test BayesianDoubleML.default_n_iterations(VMPMethod()) == 50
     @test BayesianDoubleML.default_n_iterations(VMPMethod(; backend = ManualCoordinateAscentVMP())) == 50
     @test BayesianDoubleML.default_n_iterations(CollapsedVI()) == 1000
@@ -124,6 +141,7 @@ end
     method_nuts = MCMCNUTS()
     @test typeof(method_nuts) == MCMCMethod
     @test method_nuts.algorithm == :nuts
+    @test typeof(CollapsedMCMC()) == CollapsedMCMCMethod
 
     @test typeof(VMP()) <: VMPMethod
     @test typeof(VMP(; backend = ManualCoordinateAscentVMP())) <: VMPMethod

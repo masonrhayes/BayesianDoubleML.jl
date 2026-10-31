@@ -193,7 +193,8 @@ function print_model_info(io::IO, result::AbstractBDMLResult)
 end
 
 function print_method_info(io::IO, result::BDMLMCMCResult)
-    @printf io "  Method:           %s\n" "NUTS (No-U-Turn Sampler)"
+    name = result.implementation === :collapsed ? "Collapsed NUTS (No-U-Turn Sampler)" : "NUTS (No-U-Turn Sampler)"
+    @printf io "  Method:           %s\n" name
     return @printf io "  Samples:          %d\n" length(result.alpha_samples)
 end
 

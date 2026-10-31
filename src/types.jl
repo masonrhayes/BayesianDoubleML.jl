@@ -85,6 +85,7 @@ Results from MCMC inference using NUTS or HMC sampling.
 - `alpha_samples_standardized::Vector{Float64}`: Causal effect samples (standardized scale)
 - `std_stats::StandardizationStats`: Statistics for back-transformation
 - `model_type::Symbol`: :basic or :hier
+- `implementation::Symbol`: :full or :collapsed
 
 # Usage
 ```julia
@@ -101,7 +102,11 @@ struct BDMLMCMCResult <: AbstractBDMLResult
     alpha_samples_standardized::Vector{Float64}
     std_stats::StandardizationStats
     model_type::Symbol
+    implementation::Symbol
 end
+
+BDMLMCMCResult(chain, alpha_samples, alpha_samples_standardized, std_stats, model_type) =
+    BDMLMCMCResult(chain, alpha_samples, alpha_samples_standardized, std_stats, model_type, :full)
 
 # Show methods are defined in coeftable.jl
 

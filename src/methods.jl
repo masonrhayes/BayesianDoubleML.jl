@@ -2,7 +2,7 @@
 # Defines the "how" - the algorithm/method for fitting problems
 
 export AbstractInferenceMethod
-export MCMCMethod, MCMCNUTS
+export MCMCMethod, MCMCNUTS, CollapsedMCMCMethod, CollapsedMCMC
 export VMPMethod, VMP
 
 # Abstract types
@@ -114,6 +114,29 @@ See also: [`MCMCMethod`](@ref)
 """
 MCMCNUTS(; target_acceptance::Float64 = 0.8, max_depth::Int = 10) =
     MCMCMethod(:nuts; target_acceptance, max_depth)
+
+"""
+    CollapsedMCMCMethod(; target_acceptance=0.8, max_depth=10)
+
+NUTS on the exact marginal posterior after integrating out `(δ, γ)`. Samples
+3 parameters for `:basic` or 5 for `:hier`, retaining the priors of the full
+MCMC model. The coefficient vectors are not stored in the resulting chain.
+
+Use [`CollapsedMCMC`](@ref) as a convenience constructor.
+"""
+struct CollapsedMCMCMethod <: AbstractInferenceMethod
+    sampler::MCMCMethod
+end
+
+CollapsedMCMCMethod(; kwargs...) = CollapsedMCMCMethod(MCMCNUTS(; kwargs...))
+
+"""
+    CollapsedMCMC(; target_acceptance=0.8, max_depth=10)
+
+Construct an opt-in collapsed NUTS method. For example:
+`fit!(model, CollapsedMCMC(); n_samples=2000, n_chains=4)`.
+"""
+CollapsedMCMC(; kwargs...) = CollapsedMCMCMethod(; kwargs...)
 
 # VMP backend types
 
@@ -329,6 +352,7 @@ Return true if the method uses sampling (MCMC or Monte Carlo VI).
 All current methods return true, but this enables future deterministic methods.
 """
 uses_sampling(::MCMCMethod) = true
+uses_sampling(::CollapsedMCMCMethod) = true
 uses_sampling(::VMPMethod{<:AbstractVMPBackend}) = true
 uses_sampling(::CollapsedVIMethod) = true
 
@@ -340,6 +364,7 @@ Return true if the method supports mini-batch subsampling for large datasets.
 No current method supports subsampling.
 """
 supports_subsampling(::MCMCMethod) = false
+supports_subsampling(::CollapsedMCMCMethod) = false
 supports_subsampling(::VMPMethod{<:AbstractVMPBackend}) = false
 supports_subsampling(::CollapsedVIMethod) = false
 
@@ -361,6 +386,7 @@ Return the default number of samples/draws for the method.
 Returns 2000 for MCMC, 2000 for VI draw phase.
 """
 default_n_samples(::MCMCMethod) = 2000
+default_n_samples(::CollapsedMCMCMethod) = 2000
 default_n_samples(::VMPMethod{<:AbstractVMPBackend}) = 2000
 default_n_samples(::CollapsedVIMethod) = 2000
 
@@ -372,5 +398,6 @@ Return the default number of optimization iterations for the method.
 MCMC uses iterations as warm-up/tuning. VI uses iterations for optimization.
 """
 default_n_iterations(::MCMCMethod) = 1000  # Warm-up iterations
+default_n_iterations(::CollapsedMCMCMethod) = 1000
 default_n_iterations(::VMPMethod{<:AbstractVMPBackend}) = 50  # VMP converges in ~20-50 iterations
 default_n_iterations(::CollapsedVIMethod) = 1000

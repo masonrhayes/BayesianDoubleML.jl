@@ -85,6 +85,21 @@ fit!(
 - `n_samples`: Number of posterior samples per chain (default: 2000)
 - `n_chains`: Number of parallel chains (default: 4)
 
+### Collapsed MCMC (NUTS)
+
+For the same exact posterior as full MCMC with fewer sampled parameters, use:
+
+```julia
+fit!(model, CollapsedMCMC(); n_samples=2000, n_chains=4)
+```
+
+This integrates the reduced-form coefficient vectors `(δ, γ)` out analytically
+and runs NUTS over 3 parameters for `:basic`, or 5 for `:hier`. It retains the
+full MCMC priors. `result.chain` contains only those sampled parameters, not
+coefficient vectors; `extract_alpha`, `coeftable`, and MCMC diagnostics work as
+usual. A one-time SVD preprocesses `X`, after which marginal likelihood
+evaluations scale with `rank(X)`. Full `MCMCNUTS()` remains the default.
+
 ### Collapsed VI
 
 Collapsed VI integrates the high-dimensional coefficients out analytically

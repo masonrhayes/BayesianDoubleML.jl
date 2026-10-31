@@ -251,5 +251,47 @@ end
     end
 end
 
+@testset "Collapsed MCMC preserves the full-model posterior" begin
+    df = make_plr_DTL2025(60, 5, 2.0; alpha = 0.7, rng = MersenneTwister(211))
+
+    for kind in (:basic, :hier)
+        full = BDMLModel(df, :y, :d; model_type = kind)
+        collapsed = BDMLModel(df, :y, :d; model_type = kind)
+
+        Random.seed!(211)
+        fit!(full, MCMCNUTS(; max_depth = 7); n_samples = 150, n_chains = 1)
+        Random.seed!(212)
+        fit!(collapsed, CollapsedMCMC(; max_depth = 7); n_samples = 150, n_chains = 1)
+
+        result = collapsed.result
+        @test result isa BDMLMCMCResult
+        @test full.result.implementation == :full
+        @test result.implementation == :collapsed
+        @test result.model_type == kind
+        @test chain_info(result).total_samples == 150
+        @test length(extract_alpha(result.chain)) == 150
+        @test all(isfinite, extract_alpha(collapsed))
+        @test result.alpha_samples ≈ result.alpha_samples_standardized .* (collapsed.stats.Y_sd / collapsed.stats.D_sd)
+        @test abs(mean(extract_alpha(collapsed)) - mean(extract_alpha(full))) < 0.5
+        @test coeftable(result).method_type == :MCMC
+        @test occursin("Collapsed NUTS", sprint(summary, result))
+        @test !occursin("Collapsed NUTS", sprint(summary, full.result))
+        @test length(Array(result.chain[:σ_U])) == 150
+        @test_throws KeyError result.chain[:δ]
+    end
+end
+
+@testset "Collapsed MCMC multi-chain and rank-deficient X" begin
+    rng = MersenneTwister(213)
+    X = randn(rng, 20, 24)
+    model = BDMLModel(randn(rng, 20), randn(rng, 20), X; model_type = :hier)
+    Random.seed!(213)
+    fit!(model, CollapsedMCMC(); n_samples = 30, n_chains = 2)
+
+    @test chain_info(model.result).n_chains == 2
+    @test length(extract_alpha(model)) == 60
+    @test all(isfinite, extract_alpha(model))
+end
+
 println("\n=== All MCMC Tests Complete ===")
 println("Tested: NUTS single/multi-chain, basic/hierarchical models")

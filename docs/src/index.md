@@ -11,6 +11,7 @@ Welcome to the documentation for **BayesianDoubleML.jl**, a Julia package for Ba
 BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causal effect estimation using the framework from [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688). It offers various inference methods:
 
 - MCMC (as in the paper), built on [Turing.jl](https://turinglang.org/)
+- Collapsed MCMC, which integrates the reduced-form coefficients out analytically and runs NUTS on the exact low-dimensional marginal posterior
 - Collapsed Automatic Differentiation Variational Inference (CollapsedVI) with multiple automatic differentiation backends, built on [AdvancedVI.jl](https://turinglang.org/AdvancedVI.jl/stable/)
 - Variational Message Passing (VMP), both manually implemented and with an optional [RxInfer.jl](https://rxinfer.com) backend
 - Experimental Bayes-DR for binary-treatment ATEs and continuous-treatment exposure-response curves, following [Antonelli et al. (2022)](https://doi.org/10.1111/biom.13417)
@@ -20,6 +21,7 @@ BayesianDoubleML.jl provides scalable and efficient Bayesian inference for causa
 - **Causal Inference**: Estimate treatment effects with uncertainty quantification
 - **Multiple Inference Methods**:
   - MCMC with NUTS sampler (reference method)
+  - Collapsed MCMC (`CollapsedMCMC`), which integrates coefficients out analytically and runs NUTS on the exact 3- or 5-dimensional marginal posterior
   - Collapsed VI (`CollapsedVI`), which integrates coefficients out analytically and runs ADVI on the low-dimensional marginal posterior
   - Variational Message Passing (`VMP`) with manual or RxInfer backends; `α` intervals include an effective residual-DF correction
   - Experimental Bayes-DR (`BayesDRModel` + `BayesDRMCMC`) for binary and continuous treatments

@@ -6,7 +6,7 @@
 
 Bayesian Double Machine Learning with various inference methods:
 
-- Markov chain Monte Carlo (MCMC), as in the original paper [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), as well as:
+- Markov chain Monte Carlo (MCMC), as in the original paper [DiTraglia and Liu (2025)](https://arxiv.org/abs/2508.12688), including an exact collapsed variant that integrates out the reduced-form coefficients
 - Alternative approaches using variational inference:
   - CollapsedVI: using a collapsed (i.e., Rao-Blackwellized) version of the model and Automatic Differentiation Variational Inference, and
   - VMP (Variational Message Passing) based methods
@@ -18,6 +18,7 @@ In addition, an experimental version of the Bayes-DR model from [Antonelli et al
 ## Features
 
 - **MCMC**: NUTS sampler for inference using MCMC
+- **CollapsedMCMC**: Exact NUTS inference on the marginal posterior after integrating out the reduced-form coefficients, sampling only the 3 (`:basic`) or 5 (`:hier`) remaining parameters
 - **CollapsedVI**: Fast approximate inference on the analytically collapsed (Rao-Blackwellized) posterior, with multiple AD backends
 - **VMP**: Reparameterisation of the problem using conjugate-exponential family for extremely fast inference, with manual implementation (default) or, optionally, an [RxInfer.jl](https://rxinfer.com/) backend; `α` uncertainty includes an effective residual-DF correction
 - **StatsAPI compliant**: `coeftable()`, `coef()`, `stderror()`, `vcov()`
@@ -83,6 +84,13 @@ model = BDMLModel(Y, D, X; model_type = :hier)
 ```julia
 fit!(model, MCMCNUTS())  # Default NUTS
 fit!(model, MCMCNUTS(; target_acceptance = 0.9); n_samples = 2000, n_chains = 4)
+```
+
+**Collapsed MCMC:**
+
+```julia
+# Exact marginal posterior with (δ, γ) integrated out
+fit!(model, CollapsedMCMC(); n_samples = 2000, n_chains = 4)
 ```
 
 **CollapsedVI:**
@@ -188,6 +196,7 @@ This initial implementation supports continuous outcomes and linear additive nui
 | Method                          | Description                              |
 | ------------------------------- | ---------------------------------------- |
 | `MCMCNUTS()`                  | NUTS sampler                             |
+| `CollapsedMCMC()`             | Collapsed NUTS on the exact marginal posterior |
 | `CollapsedVI()`               | Collapsed ADVI (full-rank or mean-field) |
 | `VMP()`                       | Conjugate VMP (default: manual backend)  |
 | `ManualCoordinateAscentVMP()` | Manual VMP backend (no extension)        |
@@ -205,6 +214,7 @@ This initial implementation supports continuous outcomes and linear additive nui
 | VMP (ManualCoordinateAscent)  | Fastest (<seconds), with good approximation of posterior when p < n |
 | CollapsedVI (AutoReverseDiff) | Quite fast, good approximation of posterior                |
 | CollapsedVI (AutoMooncake)    | Fast, ~5-10x faster than CollapsedVI with AutoReverseDiff |
+| CollapsedMCMC                 | Exact MCMC inference with far fewer sampled parameters      |
 | MCMC                          | Most accurate inference                                    |
 
 ## Model Variations
