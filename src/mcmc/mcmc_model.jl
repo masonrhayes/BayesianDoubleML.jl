@@ -252,4 +252,27 @@ See also: `bdml_basic`
     Turing.@addlogprob! ll
 end
 
-export bdml_basic, bdml_hier
+"""
+    bdml_collapsed(c::CollapsedBDML)
+
+Exact marginal BDML model with `(δ, γ)` integrated out. Uses the same
+scale, correlation, and hierarchical priors as `bdml_basic` / `bdml_hier`.
+"""
+@model function bdml_collapsed(c::CollapsedBDML)
+    σ_U ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    σ_V ~ truncated(Cauchy(0, 2.5), 0.01, Inf)
+    R_chol ~ LKJCholesky(2, 4)
+
+    if c.model_type === :hier
+        σ²_δ ~ InverseGamma(2, 2)
+        σ²_γ ~ InverseGamma(2, 2)
+    else
+        σ²_δ = 25.0
+        σ²_γ = 25.0
+    end
+
+    ρ = R_chol.L[2, 1]
+    Turing.@addlogprob! log_marginal_collapsed(c, σ_U, σ_V, ρ, σ²_δ, σ²_γ)
+end
+
+export bdml_basic, bdml_hier, bdml_collapsed

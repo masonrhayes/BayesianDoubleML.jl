@@ -6,9 +6,9 @@ using StatsAPI
 export fit!, BDMLModel,
     AbstractBDMLModel, BDMLBasicModel, BDMLHierarchicalModel,
     BayesDRModel, BayesDRMCMCMethod, BayesDRMCMC, BayesDRResult, BayesDRCurveResult,
-    AbstractInferenceMethod, MCMCMethod, VMPMethod,
+    AbstractInferenceMethod, MCMCMethod, CollapsedMCMCMethod, VMPMethod,
     CollapsedVIMethod,
-    MCMCNUTS, VMP, CollapsedVI,
+    MCMCNUTS, CollapsedMCMC, VMP, CollapsedVI,
     # VMP backends
     AbstractVMPBackend, RxInferVMP, ManualCoordinateAscentVMP,
     # Method traits
@@ -52,7 +52,6 @@ using Printf
 
 include("types.jl")
 include("utils.jl")
-include("mcmc/mcmc_model.jl")          # MCMC model specifications (bdml_basic, bdml_hier)
 include("alpha.jl")                   # Basic extract_alpha for MCMC, VI, VMP results
 
 # Multiple Dispatch System for BDML
@@ -60,6 +59,7 @@ include("alpha.jl")                   # Basic extract_alpha for MCMC, VI, VMP re
 include("methods.jl")       # Method types: MCMCMethod, VMPMethod, CollapsedVIMethod
 include("models.jl")      # Model types: BDMLBasicModel, BDMLHierarchicalModel
 include("collapsed/collapsed.jl")
+include("mcmc/mcmc_model.jl")          # Full and collapsed MCMC model specifications
 include("collapsed/collapsed_vi_model.jl")
 include("collapsed/vi_diagnostics.jl")  # ELBO convergence checking (shared by CollapsedVI)
 include("fit.jl")  # Dispatch-based fit!() functions

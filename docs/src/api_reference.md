@@ -28,6 +28,7 @@ BayesianDoubleML.isfitted
 ```@docs
 BayesianDoubleML.AbstractInferenceMethod
 BayesianDoubleML.MCMCMethod
+BayesianDoubleML.CollapsedMCMCMethod
 BayesianDoubleML.CollapsedVIMethod
 BayesianDoubleML.VMPMethod
 BayesianDoubleML.BayesDRMCMCMethod
@@ -40,6 +41,7 @@ BayesianDoubleML.ManualCoordinateAscentVMP
 
 ```@docs
 BayesianDoubleML.MCMCNUTS
+BayesianDoubleML.CollapsedMCMC
 ```
 
 ### VI/VMP Method Constructors

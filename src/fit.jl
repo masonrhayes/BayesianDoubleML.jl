@@ -28,7 +28,7 @@ is passed to allow refitting.
 # Keyword Arguments
 - `force::Bool=false`: Allow refitting an already-fitted model
 
-For MCMC methods:
+For MCMC methods (including `CollapsedMCMC`):
 - `n_samples::Int=2000`: Number of posterior samples to draw
 - `n_chains::Int=4`: Number of MCMC chains to run
 
@@ -47,6 +47,9 @@ model = BDMLModel(Y, D, X; model_type=:basic)
 # Fit with MCMC (NUTS)
 fit!(model, MCMCMethod(:nuts); n_samples=2000, n_chains=4)
 
+# Fit with collapsed MCMC (NUTS on the exact marginal posterior)
+fit!(model, CollapsedMCMC(); n_samples=2000, n_chains=4)
+
 # Fit with CollapsedVI
 fit!(model, CollapsedVI(); n_iterations=1000)
 
@@ -62,12 +65,13 @@ fit!(model, VMP(); force=true)
 The actual implementation dispatches on both model and method:
 - `_fit_impl(::BDMLBasicModel, ::MCMCMethod)` - Basic model MCMC
 - `_fit_impl(::BDMLHierarchicalModel, ::MCMCMethod)` - Hierarchical MCMC
+- `_fit_impl(::AbstractBDMLModel, ::CollapsedMCMCMethod)` - Collapsed MCMC
 - `_fit_impl(::BDMLBasicModel, ::CollapsedVIMethod)` - Basic model CollapsedVI
 - `_fit_impl(::BDMLHierarchicalModel, ::CollapsedVIMethod)` - Hierarchical CollapsedVI
 - `_fit_impl(::BDMLBasicModel, ::VMPMethod)` - Basic conjugate VMP (RxInfer extension)
 - `_fit_impl(::BDMLHierarchicalModel, ::VMPMethod)` - Hierarchical conjugate VMP (RxInfer extension)
 
-See also: [`BDMLModel`](@ref), [`MCMCMethod`](@ref), [`CollapsedVIMethod`](@ref), [`isfitted`](@ref)
+See also: [`BDMLModel`](@ref), [`MCMCMethod`](@ref), [`CollapsedMCMCMethod`](@ref), [`CollapsedVIMethod`](@ref), [`isfitted`](@ref)
 """
 function fit!(
         model::AbstractBDMLModel, method::AbstractInferenceMethod;
@@ -121,6 +125,26 @@ end
 
 # MCMC dispatch
 
+function _fit_mcmc(
+        model::AbstractBDMLModel, method::MCMCMethod, turing_model;
+        n_samples::Int = 2000, n_chains::Int = 4, implementation::Symbol = :full,
+    )
+    implementation in (:full, :collapsed) || throw(
+        ArgumentError("implementation must be :full or :collapsed, got $(repr(implementation))"),
+    )
+
+    sampler = NUTS(method.target_acceptance; max_depth = method.max_depth, adtype = AutoForwardDiff())
+    chain = if n_chains == 1
+        sample(turing_model, sampler, n_samples; progress = true)
+    else
+        sample(turing_model, sampler, MCMCThreads(), n_samples, n_chains; progress = true)
+    end
+
+    α_s_samples = extract_alpha(chain)
+    α_samples = α_s_samples .* (model.stats.Y_sd / model.stats.D_sd)
+    return BDMLMCMCResult(chain, α_samples, α_s_samples, model.stats, model_type(model), implementation)
+end
+
 """
     _fit_impl(model::BDMLBasicModel, method::MCMCMethod; n_samples=2000, n_chains=4)
 
@@ -132,33 +156,7 @@ function _fit_impl(
         model::BDMLBasicModel, method::MCMCMethod;
         n_samples::Int = 2000, n_chains::Int = 4
     )
-
-    # Create Turing model (uses LKJCholesky for MCMC)
-    turing_model = bdml_basic(model.Y, model.D, model.X)
-
-    # Create sampler based on method
-    if method.algorithm == :nuts
-        # Use Turing's NUTS with parameters from method
-        mcmc_sampler = NUTS(method.target_acceptance; adtype = AutoForwardDiff())
-    else
-        error("Unknown MCMC algorithm: $(method.algorithm). Only :nuts is supported.")
-    end
-
-    # Run MCMC
-    chain = if n_chains == 1
-        sample(turing_model, mcmc_sampler, n_samples; progress = true)
-    else
-        sample(turing_model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
-    end
-
-    # Extract alpha
-    α_s_samples = extract_alpha(chain)
-
-    # Transform back to original scale
-    scaling_factor = model.stats.Y_sd / model.stats.D_sd
-    α_samples = α_s_samples .* scaling_factor
-
-    return BDMLMCMCResult(chain, α_samples, α_s_samples, model.stats, :basic)
+    return _fit_mcmc(model, method, bdml_basic(model.Y, model.D, model.X); n_samples, n_chains)
 end
 
 """
@@ -172,30 +170,28 @@ function _fit_impl(
         model::BDMLHierarchicalModel, method::MCMCMethod;
         n_samples::Int = 2000, n_chains::Int = 4
     )
+    return _fit_mcmc(model, method, bdml_hier(model.Y, model.D, model.X); n_samples, n_chains)
+end
 
-    # Create Turing model
-    turing_model = bdml_hier(model.Y, model.D, model.X)
+"""
+    _fit_impl(model::AbstractBDMLModel, method::CollapsedMCMCMethod; n_samples=2000, n_chains=4)
 
-    # Create sampler
-    if method.algorithm == :nuts
-        mcmc_sampler = NUTS(method.target_acceptance; adtype = AutoForwardDiff())
-    else
-        error("HMC via dispatch interface not yet implemented.")
-    end
+Fit a BDML model with NUTS on the exact marginal posterior obtained by
+integrating out `(δ, γ)`. This is equivalent to the corresponding full MCMC
+model but samples only the error-scale, correlation, and (for `:hier`)
+variance parameters.
+"""
+function _fit_impl(
+        model::AbstractBDMLModel, method::CollapsedMCMCMethod;
+        n_samples::Int = 2000, n_chains::Int = 4,
+    )
+    method.sampler.algorithm == :nuts || error(
+        "Collapsed MCMC supports only NUTS; got $(method.sampler.algorithm)",
+    )
 
-    # Run MCMC
-    chain = if n_chains == 1
-        sample(turing_model, mcmc_sampler, n_samples; progress = true)
-    else
-        sample(turing_model, mcmc_sampler, MCMCThreads(), n_samples, n_chains; progress = true)
-    end
-
-    # Extract alpha
-    α_s_samples = extract_alpha(chain)
-
-    # Transform back
-    scaling_factor = model.stats.Y_sd / model.stats.D_sd
-    α_samples = α_s_samples .* scaling_factor
-
-    return BDMLMCMCResult(chain, α_samples, α_s_samples, model.stats, :hier)
+    collapsed_model = bdml_collapsed(CollapsedBDML(model))
+    return _fit_mcmc(
+        model, method.sampler, collapsed_model;
+        n_samples, n_chains, implementation = :collapsed,
+    )
 end
